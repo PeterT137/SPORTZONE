@@ -7,8 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Helper\" />
-    <Folder Include="Repository\" />
+    <Compile Remove="Helper\**" />
+    <Compile Remove="Repository\**" />
+    <Content Remove="Helper\**" />
+    <Content Remove="Repository\**" />
+    <EmbeddedResource Remove="Helper\**" />
+    <EmbeddedResource Remove="Repository\**" />
+    <None Remove="Helper\**" />
+    <None Remove="Repository\**" />
   </ItemGroup>
 
 </Project>

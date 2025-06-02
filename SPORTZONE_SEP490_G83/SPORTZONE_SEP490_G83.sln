@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35818.85 d17.13
+VisualStudioVersion = 17.13.35818.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SPORTZONE_SEP490_G83", "SPORTZONE_SEP490_G83.csproj", "{C52B8E78-DCF2-4B85-BA10-964EBF7FE43A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SportZone_API", "..\SportZone_API\SportZone_API.csproj", "{F58A4719-4958-A4F5-83FB-2AEB475F5CFF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{C52B8E78-DCF2-4B85-BA10-964EBF7FE43A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C52B8E78-DCF2-4B85-BA10-964EBF7FE43A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C52B8E78-DCF2-4B85-BA10-964EBF7FE43A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F58A4719-4958-A4F5-83FB-2AEB475F5CFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F58A4719-4958-A4F5-83FB-2AEB475F5CFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F58A4719-4958-A4F5-83FB-2AEB475F5CFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F58A4719-4958-A4F5-83FB-2AEB475F5CFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
