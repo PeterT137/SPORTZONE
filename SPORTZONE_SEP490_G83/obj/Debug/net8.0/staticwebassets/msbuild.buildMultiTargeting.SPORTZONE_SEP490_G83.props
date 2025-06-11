@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\SPORTZONE_SEP490_G83.props" />
+</Project>

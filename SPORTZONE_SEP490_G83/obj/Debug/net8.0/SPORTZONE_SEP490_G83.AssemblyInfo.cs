@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SPORTZONE_SEP490_G83")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6b1de6778bec8b25342455cd5570e186baab5657")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ce43cdea0c259f9b90ee1b8b37cb44d255e550e3")]
 [assembly: System.Reflection.AssemblyProductAttribute("SPORTZONE_SEP490_G83")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SPORTZONE_SEP490_G83")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
