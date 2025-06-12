@@ -12,8 +12,6 @@ const SignInForm: React.FC = () => {
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
-
-  // Forgot password state
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotStep, setForgotStep] = useState<ForgotStep>('email');
   const [forgotEmail, setForgotEmail] = useState('');
@@ -42,7 +40,7 @@ const SignInForm: React.FC = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length) {
@@ -50,7 +48,38 @@ const SignInForm: React.FC = () => {
       return;
     }
     setErrors({});
-    console.log('Sign in:', formData);
+    try {
+      setLoading(true);
+      setApiError('');
+      const response = await axios.post('http://localhost:7057/api/Login', {
+        uEmail: formData.email,
+        uPassword: formData.password,
+      });
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      console.log('Signed in user:', user);
+    } catch (err: any) {
+      setApiError(err?.response?.data || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      setApiError('');
+      const response = await axios.post('http://localhost:7057/api/GoogleLogin', {
+        email: formData.email,
+      });
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      console.log('Google login user:', user);
+    } catch (err: any) {
+      setApiError(err?.response?.data || 'Google login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotPasswordSubmit = async () => {
@@ -84,7 +113,6 @@ const SignInForm: React.FC = () => {
       });
       alert('Password reset successful!');
       setShowForgotModal(false);
-      // Reset all states
       setForgotStep('email');
       setForgotEmail('');
       setOtp('');
@@ -100,7 +128,6 @@ const SignInForm: React.FC = () => {
   return (
     <>
       <form className="space-y-6" onSubmit={handleSubmit} noValidate>
-        {/* Email */}
         <div>
           <label htmlFor="signin-email" className="block text-sm font-medium text-gray-500 mb-1">
             E-mail
@@ -119,7 +146,6 @@ const SignInForm: React.FC = () => {
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>
 
-        {/* Password */}
         <div>
           <label htmlFor="signin-password" className="block text-sm font-medium text-gray-500 mb-1">
             Password
@@ -148,7 +174,8 @@ const SignInForm: React.FC = () => {
           {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
         </div>
 
-        {/* Remember + Forgot */}
+        {apiError && <p className="text-red-500 text-sm text-center">{apiError}</p>}
+
         <div className="flex items-center justify-between text-xs text-gray-400">
           <label className="flex items-center space-x-2">
             <input
@@ -171,19 +198,28 @@ const SignInForm: React.FC = () => {
 
         <button
           type="submit"
+          disabled={loading}
           className="w-full bg-[#2f4f3f] text-white py-3 rounded-full text-sm font-semibold hover:bg-[#24412f]"
         >
-          Sign in
+          {loading ? 'Signing in...' : 'Sign in'}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full mt-2 bg-white border border-gray-300 text-gray-800 py-2 rounded-full text-sm font-medium hover:bg-gray-100 flex items-center justify-center space-x-2"
+        >
+          <i className="fab fa-google"></i>
+          <span>{loading ? 'Please wait...' : 'Sign in with Google'}</span>
         </button>
       </form>
 
-      {/* Modal Forgot Password */}
       {showForgotModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-sm">
             {apiError && <p className="text-red-600 text-sm mb-3">{apiError}</p>}
 
-            {/* Step 1: Email */}
             {forgotStep === 'email' && (
               <>
                 <h2 className="text-lg font-semibold mb-4">Reset Password</h2>
@@ -209,7 +245,6 @@ const SignInForm: React.FC = () => {
               </>
             )}
 
-            {/* Step 2: Enter OTP + Password */}
             {forgotStep === 'otp' && (
               <>
                 <h2 className="text-lg font-semibold mb-4">Enter OTP & New Password</h2>

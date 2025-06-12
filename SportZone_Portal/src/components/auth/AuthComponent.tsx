@@ -51,29 +51,8 @@ const App: React.FC = () => {
           {activeTab === 'register-manager' && <RegisterForm role="manager" />}
           <div className="flex items-center my-8 space-x-3 text-gray-300 text-xs">
             <hr className="flex-grow border-gray-300" />
-            <span>OR</span>
-            <hr className="flex-grow border-gray-300" />
           </div>
-          <button className="w-full flex items-center justify-center space-x-3 border border-gray-300 rounded-full py-2.5 text-gray-600 text-sm hover:bg-gray-100 transition">
-            <img
-              alt="Google logo, multicolor G letter on white background"
-              className="w-5 h-5"
-              src="https://storage.googleapis.com/a1aa/image/d607ce76-a42a-46f8-d08b-08309f91f61b.jpg"
-              width="20"
-              height="20"
-            />
-            <span>Continue with Google</span>
-          </button>
-          <button className="w-full flex items-center justify-center space-x-3 border border-gray-300 rounded-full py-2.5 mt-4 text-gray-600 text-sm hover:bg-gray-100 transition">
-            <img
-              alt="Facebook logo, white letter f on blue background"
-              className="w-5 h-5"
-              src="https://storage.googleapis.com/a1aa/image/23216201-7d9b-4c30-0cfc-cdf289fa967f.jpg"
-              width="20"
-              height="20"
-            />
-            <span>Continue with Facebook</span>
-          </button>
+         
         </div>
       </div>
       <RightSide />
