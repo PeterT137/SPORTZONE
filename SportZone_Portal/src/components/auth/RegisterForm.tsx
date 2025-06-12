@@ -1,224 +1,163 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
+import axios from 'axios';
 
-interface RegisterFormProps {
-  role: 'player' | 'manager';
-}
-
-interface RegisterFormData {
-  username: string;
-  phone: string;
-  email: string;
-  password: string;
-  passwordConfirm: string;
-}
-
-interface FormErrors {
-  username?: string;
-  phone?: string;
-  email?: string;
-  password?: string;
-  passwordConfirm?: string;
-}
-
-const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
-  const [formData, setFormData] = useState<RegisterFormData>({
-    username: '',
+const RegisterForm: React.FC = () => {
+  const [formData, setFormData] = useState({
+    roleId: 3,
+    name: '',
     phone: '',
     email: '',
     password: '',
-    passwordConfirm: '',
+    confirmPassword: '',
   });
 
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [apiError, setApiError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const validateForm = (): FormErrors => {
-    const newErrors: FormErrors = {};
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-    if (!formData.username) {
-      newErrors.username = 'Username is required';
-    }
-
-    if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\d{10,15}$/.test(formData.phone)) {
-      newErrors.phone = 'Invalid phone number format';
-    }
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (!formData.passwordConfirm) {
-      newErrors.passwordConfirm = 'Please confirm your password';
-    } else if (formData.password !== formData.passwordConfirm) {
-      newErrors.passwordConfirm = 'Passwords do not match';
-    }
-
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
+    if (!formData.password) newErrors.password = 'Password is required';
+    else if (formData.password.length < 6) newErrors.password = 'At least 6 characters';
+    if (formData.confirmPassword !== formData.password)
+      newErrors.confirmPassword = 'Passwords do not match';
     return newErrors;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    setErrors({});
-    console.log(`${role} Registration Form Submitted:`, formData);
-  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    try {
+      setLoading(true);
+      setApiError('');
+      setSuccess(false);
+      await axios.post('http://localhost:7057/api/Register', formData);
+      setSuccess(true);
+      setFormData({
+        roleId: 3,
+        name: '',
+        phone: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+      });
+    } catch (err: any) {
+      setApiError(err?.response?.data?.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const togglePassword = () => setShowPassword(!showPassword);
-  const toggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit} noValidate>
-      <h3 className="text-lg font-semibold mb-4 text-gray-900">
-        Đăng ký - {role === 'player' ? 'Người chơi' : 'Quản lý sân'}
-      </h3>
+    <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
+      <h2 className="text-xl font-bold text-center">Register</h2>
 
-      {/* Username */}
+      {apiError && <p className="text-red-600">{apiError}</p>}
+      {success && <p className="text-green-600">Registration successful!</p>}
+
+      {/* Role */}
       <div>
-        <label
-          htmlFor={`register-${role}-username`}
-          className="block text-sm font-medium text-gray-500 mb-1"
-        >
-          Username
-        </label>
-        <input
-          id={`register-${role}-username`}
-          name="username"
-          type="text"
-          placeholder="johndoe"
-          value={formData.username}
+        <label className="block text-sm font-medium mb-1">Role</label>
+        <select
+          name="roleId"
+          value={formData.roleId}
           onChange={handleChange}
-          required
-          className={`block w-full rounded-md border border-gray-300 bg-white py-2 px-4 text-gray-700 placeholder-gray-400 focus:border-[#2f4f3f] focus:ring-1 focus:ring-[#2f4f3f] focus:outline-none text-sm ${errors.username ? 'border-red-500' : ''}`}
+          className="w-full border border-gray-300 rounded px-3 py-2"
+        >
+          <option value={2}>Quản lý sân</option>
+          <option value={3}>Người chơi</option>
+        </select>
+      </div>
+
+      {/* Name */}
+      <div>
+        <label className="block text-sm font-medium mb-1">Name</label>
+        <input
+          type="text"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          className="w-full border border-gray-300 rounded px-3 py-2"
         />
-        {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
+        {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
       </div>
 
       {/* Phone */}
       <div>
-        <label
-          htmlFor={`register-${role}-phone`}
-          className="block text-sm font-medium text-gray-500 mb-1"
-        >
-          Phone
-        </label>
+        <label className="block text-sm font-medium mb-1">Phone</label>
         <input
-          id={`register-${role}-phone`}
+          type="text"
           name="phone"
-          type="tel"
-          placeholder="0901234567"
           value={formData.phone}
           onChange={handleChange}
-          required
-          className={`block w-full rounded-md border border-gray-300 bg-white py-2 px-4 text-gray-700 placeholder-gray-400 focus:border-[#2f4f3f] focus:ring-1 focus:ring-[#2f4f3f] focus:outline-none text-sm ${errors.phone ? 'border-red-500' : ''}`}
+          className="w-full border border-gray-300 rounded px-3 py-2"
         />
-        {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+        {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
       </div>
 
       {/* Email */}
       <div>
-        <label htmlFor={`register-${role}-email`} className="block text-sm font-medium text-gray-500 mb-1">
-          E-mail
-        </label>
+        <label className="block text-sm font-medium mb-1">Email</label>
         <input
-          id={`register-${role}-email`}
-          name="email"
           type="email"
-          autoComplete="email"
-          placeholder="example@gmail.com"
+          name="email"
           value={formData.email}
           onChange={handleChange}
-          required
-          className={`block w-full rounded-md border border-gray-300 bg-white py-2 px-4 text-gray-700 placeholder-gray-400 focus:border-[#2f4f3f] focus:ring-1 focus:ring-[#2f4f3f] focus:outline-none text-sm ${errors.email ? 'border-red-500' : ''}`}
+          className="w-full border border-gray-300 rounded px-3 py-2"
         />
-        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+        {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
       </div>
 
       {/* Password */}
       <div>
-        <label htmlFor={`register-${role}-password`} className="block text-sm font-medium text-gray-500 mb-1">
-          Password
-        </label>
-        <div className="relative">
-          <input
-            id={`register-${role}-password`}
-            name="password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="new-password"
-            placeholder="@#*%"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className={`block w-full rounded-md border border-gray-300 bg-white py-2 px-4 pr-12 text-gray-700 placeholder-gray-400 focus:border-[#2f4f3f] focus:ring-1 focus:ring-[#2f4f3f] focus:outline-none text-sm ${errors.password ? 'border-red-500' : ''}`}
-          />
-          <button
-            type="button"
-            aria-label="Toggle password visibility"
-            className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
-            onClick={togglePassword}
-          >
-            <i className={`far ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-          </button>
-        </div>
-        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+        <label className="block text-sm font-medium mb-1">Password</label>
+        <input
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          className="w-full border border-gray-300 rounded px-3 py-2"
+        />
+        {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
       </div>
 
       {/* Confirm Password */}
       <div>
-        <label htmlFor={`register-${role}-password-confirm`} className="block text-sm font-medium text-gray-500 mb-1">
-          Confirm Password
-        </label>
-        <div className="relative">
-          <input
-            id={`register-${role}-password-confirm`}
-            name="passwordConfirm"
-            type={showConfirmPassword ? 'text' : 'password'}
-            autoComplete="new-password"
-            placeholder="@#*%"
-            value={formData.passwordConfirm}
-            onChange={handleChange}
-            required
-            className={`block w-full rounded-md border border-gray-300 bg-white py-2 px-4 pr-12 text-gray-700 placeholder-gray-400 focus:border-[#2f4f3f] focus:ring-1 focus:ring-[#2f4f3f] focus:outline-none text-sm ${errors.passwordConfirm ? 'border-red-500' : ''}`}
-          />
-          <button
-            type="button"
-            aria-label="Toggle confirm password visibility"
-            className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
-            onClick={toggleConfirmPassword}
-          >
-            <i className={`far ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-          </button>
-        </div>
-        {errors.passwordConfirm && <p className="text-red-500 text-xs mt-1">{errors.passwordConfirm}</p>}
+        <label className="block text-sm font-medium mb-1">Confirm Password</label>
+        <input
+          type="password"
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          className="w-full border border-gray-300 rounded px-3 py-2"
+        />
+        {errors.confirmPassword && (
+          <p className="text-red-500 text-sm">{errors.confirmPassword}</p>
+        )}
       </div>
 
       <button
         type="submit"
-        className="w-full bg-[#2f4f3f] text-white py-3 rounded-full text-sm font-semibold hover:bg-[#24412f] transition-colors"
+        disabled={loading}
+        className="w-full bg-[#2f4f3f] text-white py-2 rounded hover:bg-[#24412f]"
       >
-        Register as {role === 'player' ? 'Player' : 'Manager'}
+        {loading ? 'Registering...' : 'Register'}
       </button>
     </form>
   );

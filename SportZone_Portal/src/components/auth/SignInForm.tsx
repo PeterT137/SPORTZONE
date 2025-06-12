@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
+import axios from 'axios';
 
 type ForgotStep = 'email' | 'otp' | 'new-password';
 
@@ -18,6 +20,8 @@ const SignInForm: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
 
   const togglePassword = () => setShowPassword((prev) => !prev);
 
@@ -49,29 +53,48 @@ const SignInForm: React.FC = () => {
     console.log('Sign in:', formData);
   };
 
-  const handleForgotPasswordSubmit = () => {
-    if (!forgotEmail || !/\S+@\S+\.\S+/.test(forgotEmail)) return;
-    console.log('Email sent to:', forgotEmail);
-    setForgotStep('otp');
-  };
-
-  const handleOtpSubmit = () => {
-    if (otp.length === 6) {
-      console.log('OTP verified:', otp);
-      setForgotStep('new-password');
+  const handleForgotPasswordSubmit = async () => {
+    setLoading(true);
+    setApiError('');
+    try {
+      await axios.post('http://localhost:7057/api/ForgotPassword/send-code', {
+        email: forgotEmail,
+      });
+      setForgotStep('otp');
+    } catch (err: any) {
+      setApiError(err?.response?.data?.message || 'Error sending code');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleNewPasswordSubmit = () => {
-    if (!newPassword || newPassword.length < 6) return;
-    if (newPassword !== confirmPassword) return;
-    console.log('Password reset success');
-    setShowForgotModal(false);
-    setForgotStep('email');
-    setForgotEmail('');
-    setOtp('');
-    setNewPassword('');
-    setConfirmPassword('');
+  const handleNewPasswordSubmit = async () => {
+    setLoading(true);
+    setApiError('');
+    if (newPassword !== confirmPassword) {
+      setApiError("Passwords don't match");
+      setLoading(false);
+      return;
+    }
+    try {
+      await axios.post('http://localhost:7057/api/ForgotPassword/verify-code', {
+        code: otp,
+        newPassword,
+        confirmPassword,
+      });
+      alert('Password reset successful!');
+      setShowForgotModal(false);
+      // Reset all states
+      setForgotStep('email');
+      setForgotEmail('');
+      setOtp('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setApiError(err?.response?.data?.message || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -158,10 +181,12 @@ const SignInForm: React.FC = () => {
       {showForgotModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-sm">
-            {/* Email Step */}
+            {apiError && <p className="text-red-600 text-sm mb-3">{apiError}</p>}
+
+            {/* Step 1: Email */}
             {forgotStep === 'email' && (
               <>
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">Reset Password</h2>
+                <h2 className="text-lg font-semibold mb-4">Reset Password</h2>
                 <input
                   type="email"
                   placeholder="Enter your email"
@@ -173,40 +198,29 @@ const SignInForm: React.FC = () => {
                   <button onClick={() => setShowForgotModal(false)} className="text-sm px-4 py-2 bg-gray-200 rounded">
                     Cancel
                   </button>
-                  <button onClick={handleForgotPasswordSubmit} className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded">
-                    Send Link
+                  <button
+                    onClick={handleForgotPasswordSubmit}
+                    disabled={loading}
+                    className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
+                  >
+                    {loading ? 'Sending...' : 'Send Code'}
                   </button>
                 </div>
               </>
             )}
 
-            {/* OTP Step */}
+            {/* Step 2: Enter OTP + Password */}
             {forgotStep === 'otp' && (
               <>
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">Enter OTP</h2>
+                <h2 className="text-lg font-semibold mb-4">Enter OTP & New Password</h2>
                 <input
                   type="text"
                   placeholder="Enter 6-digit code"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full mb-4 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md text-sm"
                   maxLength={6}
                 />
-                <div className="flex justify-end space-x-2">
-                  <button onClick={() => setForgotStep('email')} className="text-sm px-4 py-2 bg-gray-200 rounded">
-                    Back
-                  </button>
-                  <button onClick={handleOtpSubmit} className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded">
-                    Verify
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* New Password Step */}
-            {forgotStep === 'new-password' && (
-              <>
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">Set New Password</h2>
                 <input
                   type="password"
                   placeholder="New password"
@@ -222,11 +236,15 @@ const SignInForm: React.FC = () => {
                   className="w-full mb-4 px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
                 <div className="flex justify-end space-x-2">
-                  <button onClick={() => setForgotStep('otp')} className="text-sm px-4 py-2 bg-gray-200 rounded">
+                  <button onClick={() => setForgotStep('email')} className="text-sm px-4 py-2 bg-gray-200 rounded">
                     Back
                   </button>
-                  <button onClick={handleNewPasswordSubmit} className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded">
-                    Save
+                  <button
+                    onClick={handleNewPasswordSubmit}
+                    disabled={loading}
+                    className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
+                  >
+                    {loading ? 'Verifying...' : 'Verify & Save'}
                   </button>
                 </div>
               </>
