@@ -6,31 +6,32 @@ using SportZone_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddDbContext<SportZoneContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyCnn")));
 builder.Services.AddScoped<RegisterService>();
 builder.Services.AddScoped<ForgotPasswordService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-builder.Services.AddDistributedMemoryCache();
+
+builder.Services.AddMemoryCache(); 
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
 
-// Cấu hình session
-builder.Services.AddSession(options =>
+builder.Services.AddCors(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(15);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
 });
-builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -38,11 +39,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseSession(); // Bắt buộc để sử dụng session
+app.UseCors("AllowAll");
 
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

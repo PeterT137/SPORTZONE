@@ -4,7 +4,7 @@ using SportZone_API.Models;
 using SportZone_API.DTOs;
 using System.Net;
 using System.Net.Mail;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
 namespace SportZone_API.Services
@@ -12,20 +12,20 @@ namespace SportZone_API.Services
     public class ForgotPasswordService
     {
         private readonly SportZoneContext _context;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly SendEmail _emailSettings;
+        private readonly IMemoryCache _cache;
 
         public ForgotPasswordService(
             SportZoneContext context,
-            IHttpContextAccessor httpContextAccessor,
             IPasswordHasher<User> passwordHasher,
-            IOptions<SendEmail> emailOptions)
+            IOptions<SendEmail> emailOptions,
+            IMemoryCache cache)
         {
             _context = context;
-            _httpContextAccessor = httpContextAccessor;
             _passwordHasher = passwordHasher;
             _emailSettings = emailOptions.Value;
+            _cache = cache;
         }
 
         public async Task<(bool Success, string Message)> SendCodeAsync(ForgotPasswordDto dto)
@@ -35,18 +35,16 @@ namespace SportZone_API.Services
                 return (false, "Email does not exist.");
 
             var code = new Random().Next(100000, 999999).ToString();
-            var expire = DateTime.Now.AddMinutes(10);
+            var cacheKey = $"ResetCode:{code}";
+            _cache.Set(cacheKey, dto.Email, TimeSpan.FromMinutes(10));
 
-            var session = _httpContextAccessor.HttpContext?.Session;
-            session?.SetString("ResetEmail", dto.Email);
-            session?.SetString("ResetCode", code);
-            session?.SetString("ResetExpire", expire.ToString("O"));
-
-            var mail = new MailMessage();
-            mail.From = new MailAddress(_emailSettings.Email, _emailSettings.DisplayName);
+            var mail = new MailMessage
+            {
+                From = new MailAddress(_emailSettings.Email, _emailSettings.DisplayName),
+                Subject = "Forgot password confirmation code",
+                Body = $"Your confirmation code is: {code}"
+            };
             mail.To.Add(dto.Email);
-            mail.Subject = "Forgot password confirmation code";
-            mail.Body = $"Your confirmation code is: {code}";
 
             using (var smtp = new SmtpClient(_emailSettings.Host, _emailSettings.Port))
             {
@@ -59,33 +57,24 @@ namespace SportZone_API.Services
 
         public async Task<(bool Success, string Message)> ResetPasswordAsync(VerifyCodeDto dto)
         {
-            var session = _httpContextAccessor.HttpContext?.Session;
-            var sessionEmail = session?.GetString("ResetEmail");
-            var sessionCode = session?.GetString("ResetCode");
-            var sessionExpireStr = session?.GetString("ResetExpire");
+            var cacheKey = $"ResetCode:{dto.Code}";
 
-            if (sessionEmail == null || sessionCode == null || sessionExpireStr == null)
-                return (false, "No confirmation code found in session.");
-
-            if (sessionCode != dto.Code)
-                return (false, "Incorrect confirmation code.");
-
-            if (!DateTime.TryParse(sessionExpireStr, out var expire) || expire < DateTime.Now)
-                return (false, "Verification code has expired.");
+            if (!_cache.TryGetValue(cacheKey, out string email))
+                return (false, "Confirmation code not found or expired.");
 
             if (!RegisterService.IsValidPassword(dto.NewPassword))
-                return (false, "Password must be at least 8 characters, including uppercase, lowercase, numbers and special characters.");
+                return (false, "Password must be at least 10 characters, including uppercase, lowercase, numbers and special characters.");
 
             if (dto.NewPassword != dto.ConfirmPassword)
                 return (false, "Confirmation password does not match.");
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UEmail == sessionEmail);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UEmail == email);
+            if (user == null)
+                return (false, "User not found.");
+
             user.UPassword = _passwordHasher.HashPassword(user, dto.NewPassword);
             await _context.SaveChangesAsync();
-
-            session.Remove("ResetEmail");
-            session.Remove("ResetCode");
-            session.Remove("ResetExpire");
+            _cache.Remove(cacheKey);
             return (true, "Password changed successfully.");
         }
     }
