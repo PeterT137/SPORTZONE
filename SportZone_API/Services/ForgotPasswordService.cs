@@ -28,11 +28,11 @@ namespace SportZone_API.Services
             _cache = cache;
         }
 
-        public async Task<(bool Success, string Message)> SendCodeAsync(ForgotPasswordDto dto)
+        public async Task<ServiceResponse<string>> SendCodeAsync(ForgotPasswordDto dto)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UEmail == dto.Email);
             if (user == null)
-                return (false, "Email does not exist.");
+                return new ServiceResponse<string>{Success = false, Message = "Email does not exist."};
 
             var code = new Random().Next(100000, 999999).ToString();
             var cacheKey = $"ResetCode:{code}";
@@ -52,30 +52,32 @@ namespace SportZone_API.Services
                 smtp.EnableSsl = true;
                 await smtp.SendMailAsync(mail);
             }
-            return (true, "Confirmation code sent to email.");
+
+            return new ServiceResponse<string>{Success = true, Message = "Confirmation code sent to email."};
         }
 
-        public async Task<(bool Success, string Message)> ResetPasswordAsync(VerifyCodeDto dto)
+        public async Task<ServiceResponse<string>> ResetPasswordAsync(VerifyCodeDto dto)
         {
             var cacheKey = $"ResetCode:{dto.Code}";
 
             if (!_cache.TryGetValue(cacheKey, out string email))
-                return (false, "Confirmation code not found or expired.");
+                return new ServiceResponse<string>{Success = false, Message = "Confirmation code not found or expired."};
 
             if (!RegisterService.IsValidPassword(dto.NewPassword))
-                return (false, "Password must be at least 10 characters, including uppercase, lowercase, numbers and special characters.");
+                return new ServiceResponse<string>{Success = false, Message = "Password must be at least 10 characters, including uppercase, lowercase, numbers and special characters."};
 
             if (dto.NewPassword != dto.ConfirmPassword)
-                return (false, "Confirmation password does not match.");
+                return new ServiceResponse<string>{Success = false, Message = "Confirmation password does not match."};
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UEmail == email);
             if (user == null)
-                return (false, "User not found.");
+                return new ServiceResponse<string>{Success = false, Message = "User not found."};
 
             user.UPassword = _passwordHasher.HashPassword(user, dto.NewPassword);
             await _context.SaveChangesAsync();
             _cache.Remove(cacheKey);
-            return (true, "Password changed successfully.");
+
+            return new ServiceResponse<string>{Success = true, Message = "Password changed successfully.",};
         }
     }
 }

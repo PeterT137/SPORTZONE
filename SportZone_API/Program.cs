@@ -11,8 +11,9 @@ builder.Services.AddDbContext<SportZoneContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyCnn")));
 builder.Services.AddScoped<RegisterService>();
 builder.Services.AddScoped<ForgotPasswordService>();
+builder.Services.AddScoped<FacilityService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-
+builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddMemoryCache(); 
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
 
