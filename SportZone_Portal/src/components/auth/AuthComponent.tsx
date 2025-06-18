@@ -1,26 +1,10 @@
 import React, { useState } from 'react';
 import SignInForm from './SignInForm';
 import RegisterForm from './RegisterForm';
-import RoleModal from './RoleModal';
 import RightSide from './RightSide';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'signin' | 'register-player' | 'register-manager'>('signin');
-  const [showModal, setShowModal] = useState(false);
-
-  const handleTabChange = (tab: 'signin' | 'register') => {
-    if (tab === 'signin') {
-      setActiveTab('signin');
-      setShowModal(false);
-    } else {
-      setShowModal(true);
-    }
-  };
-
-  const handleRoleSelect = (role: 'player' | 'manager') => {
-    setShowModal(false);
-    setActiveTab(role === 'player' ? 'register-player' : 'register-manager');
-  };
+  const [activeTab, setActiveTab] = useState<'signin' | 'register'>('signin');
 
   return (
     <div className="min-h-screen bg-[#f5fafc] flex flex-col md:flex-row">
@@ -35,28 +19,24 @@ const App: React.FC = () => {
           <nav className="flex space-x-8 border-b border-gray-300 text-gray-500 text-sm font-semibold">
             <button
               className={`pb-3 ${activeTab === 'signin' ? 'border-b-4 border-[#2f4f3f] text-[#2f4f3f]' : 'text-gray-500'} focus:outline-none`}
-              onClick={() => handleTabChange('signin')}
+              onClick={() => setActiveTab('signin')}
             >
               Sign in
             </button>
             <button
-              className={`pb-3 ${activeTab.includes('register') ? 'border-b-4 border-[#2f4f3f] text-[#2f4f3f]' : 'text-gray-500'} hover:text-[#2f4f3f] focus:outline-none`}
-              onClick={() => handleTabChange('register')}
+              className={`pb-3 ${activeTab === 'register' ? 'border-b-4 border-[#2f4f3f] text-[#2f4f3f]' : 'text-gray-500'} hover:text-[#2f4f3f] focus:outline-none`}
+              onClick={() => setActiveTab('register')}
             >
               Register
             </button>
           </nav>
+
           {activeTab === 'signin' && <SignInForm />}
-          {activeTab === 'register-player' && <RegisterForm role="player" />}
-          {activeTab === 'register-manager' && <RegisterForm role="manager" />}
-          <div className="flex items-center my-8 space-x-3 text-gray-300 text-xs">
-            <hr className="flex-grow border-gray-300" />
-          </div>
-         
+          {activeTab === 'register' && <RegisterForm role="player" />} {/* Mặc định là player */}
         </div>
       </div>
+
       <RightSide />
-      {showModal && <RoleModal onRoleSelect={handleRoleSelect} />}
     </div>
   );
 };
