@@ -6,6 +6,7 @@ C:\Users\DoAn\SPORTZONE\SportZone_API\bin\Debug\net8.0\SportZone_API.deps.json
 C:\Users\DoAn\SPORTZONE\SportZone_API\bin\Debug\net8.0\SportZone_API.runtimeconfig.json
 C:\Users\DoAn\SPORTZONE\SportZone_API\bin\Debug\net8.0\SportZone_API.dll
 C:\Users\DoAn\SPORTZONE\SportZone_API\bin\Debug\net8.0\SportZone_API.pdb
+C:\Users\DoAn\SPORTZONE\SportZone_API\bin\Debug\net8.0\AutoMapper.dll
 C:\Users\DoAn\SPORTZONE\SportZone_API\bin\Debug\net8.0\Azure.Core.dll
 C:\Users\DoAn\SPORTZONE\SportZone_API\bin\Debug\net8.0\Azure.Identity.dll
 C:\Users\DoAn\SPORTZONE\SportZone_API\bin\Debug\net8.0\Humanizer.dll

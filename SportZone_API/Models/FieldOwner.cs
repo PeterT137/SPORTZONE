@@ -13,5 +13,7 @@ public partial class FieldOwner
 
     public DateOnly? Dob { get; set; }
 
+    public virtual ICollection<Facility> Facilities { get; set; } = new List<Facility>();
+
     public virtual User UIdNavigation { get; set; } = null!;
 }

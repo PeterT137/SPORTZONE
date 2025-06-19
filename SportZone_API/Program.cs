@@ -5,6 +5,7 @@ using SportZone_API.Services;
 using Microsoft.EntityFrameworkCore;
 using SportZone_API.Models;
 using Microsoft.AspNetCore.Identity;
+using SportZone_API.Helper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,9 +19,14 @@ builder.Services.AddDbContext<SportZoneContext>(options =>
 // Thêm Identity services cho password hashing
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
+// Thêm AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 //builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IFieldService, FieldService>();
 //builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllers()
