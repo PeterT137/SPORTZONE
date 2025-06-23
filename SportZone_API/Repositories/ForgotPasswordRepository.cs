@@ -4,11 +4,11 @@ using SportZone_API.Repositories.Interfaces;
 
 namespace SportZone_API.Repositories
 {
-    public class RegisterRepository : IRegisterRepository
+    public class ForgotPasswordRepository : IForgotPasswordRepository
     {
         private readonly SportZoneContext _context;
 
-        public RegisterRepository(SportZoneContext context)
+        public ForgotPasswordRepository(SportZoneContext context)
         {
             _context = context;
         }
@@ -18,13 +18,8 @@ namespace SportZone_API.Repositories
             return await _context.Users.FirstOrDefaultAsync(u => u.UEmail == email);
         }
 
-        public async Task RegisterUserWithCustomerAsync(User user, Customer customer)
+        public async Task SaveUserAsync()
         {
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-
-            customer.UId = user.UId;
-            await _context.Customers.AddAsync(customer);
             await _context.SaveChangesAsync();
         }
     }

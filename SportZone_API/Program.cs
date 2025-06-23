@@ -12,11 +12,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddDbContext<SportZoneContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyCnn")));
-builder.Services.AddScoped<RegisterService>();
-builder.Services.AddScoped<ForgotPasswordService>();
+builder.Services.AddScoped<IRegisterService, RegisterService>();
+
+builder.Services.AddScoped<IRegisterRepository, RegisterRepository>();
+builder.Services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
+builder.Services.AddScoped<IForgotPasswordRepository, ForgotPasswordRepository>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
 builder.Services.AddScoped<IFacilityService, FacilityService>();
+
 builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddMemoryCache(); 
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));

@@ -2,9 +2,9 @@
 
 namespace SportZone_API.Repositories.Interfaces
 {
-    public interface IRegisterRepository
+    public interface IForgotPasswordRepository
     {
         Task<User?> GetUserByEmailAsync(string email);
-        Task RegisterUserWithCustomerAsync(User user, Customer customer);
+        Task SaveUserAsync();
     }
 }

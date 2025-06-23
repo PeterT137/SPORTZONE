@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SportZone_API.DTOs;
-using SportZone_API.Services;
+using SportZone_API.Services.Interfaces;
 
 namespace SportZone_API.Controllers
 {
@@ -8,9 +8,9 @@ namespace SportZone_API.Controllers
     [Route("api/[controller]")]
     public class ForgotPasswordController : ControllerBase
     {
-        private readonly ForgotPasswordService _forgotPasswordService;
+        private readonly IForgotPasswordService _forgotPasswordService;
 
-        public ForgotPasswordController(ForgotPasswordService forgotPasswordService)
+        public ForgotPasswordController(IForgotPasswordService forgotPasswordService)
         {
             _forgotPasswordService = forgotPasswordService;
         }

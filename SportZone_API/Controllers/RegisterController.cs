@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SportZone_API.DTOs;
-using SportZone_API.Services;
+using SportZone_API.Services.Interfaces;
 
 namespace SportZone_API.Controllers
 {
@@ -8,9 +8,8 @@ namespace SportZone_API.Controllers
     [Route("api/[controller]")]
     public class RegisterController : ControllerBase
     {
-        private readonly RegisterService _registerService;
-
-        public RegisterController(RegisterService registerService)
+        private readonly IRegisterService _registerService;
+        public RegisterController(IRegisterService registerService)
         {
             _registerService = registerService;
         }
