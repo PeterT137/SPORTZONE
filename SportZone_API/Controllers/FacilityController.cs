@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Services;
+using SportZone_API.Services.Interfaces;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SportZone_API.Controllers
@@ -11,9 +12,9 @@ namespace SportZone_API.Controllers
     [Route("api/[controller]")]
     public class FacilityController : ControllerBase
     {
-        private readonly FacilityService _facilityService;
+        private readonly IFacilityService _facilityService;
 
-        public FacilityController(FacilityService facilityService)
+        public FacilityController(IFacilityService facilityService)
         {
             _facilityService = facilityService;
         }
@@ -76,9 +77,17 @@ namespace SportZone_API.Controllers
             }
         }
 
-        // GET: api/Facility/search?keyword=abc
+        //// GET: api/Facility/search?text=abc
+        //[HttpGet("search")]
+        //public async Task<IActionResult> Search(string text)
+        //{
+        //    var results = await _facilityService.SearchFacilities(text);
+        //    return Ok(results);
+        //}
+
+        // GET: api/Facility/search?text=abc
         [HttpGet("search")]
-        public async Task<IActionResult> Search(string text)
+        public async Task<IActionResult> Search([FromQuery] string text)
         {
             var results = await _facilityService.SearchFacilities(text);
             return Ok(results);

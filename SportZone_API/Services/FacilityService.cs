@@ -1,36 +1,38 @@
 ﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
+using SportZone_API.Repositories.Interfaces;
+using SportZone_API.Services.Interfaces;
 
 namespace SportZone_API.Services
 {
-    public class FacilityService
+    public class FacilityService : IFacilityService
     {
-        private readonly SportZoneContext _context;
-        private readonly IMapper _mapper; 
+        private readonly IFacilityRepository _repository;
+        private readonly IMapper _mapper;
 
-        public FacilityService(SportZoneContext context, IMapper mapper) 
+        public FacilityService(IFacilityRepository repository, IMapper mapper)
         {
-            _context = context;
+            _repository = repository;
             _mapper = mapper;
         }
 
         public async Task<List<Facility>> GetAllFacilities()
         {
-            return await _context.Facilities.ToListAsync();
+            return await _repository.GetAllAsync();
         }
 
         public async Task<Facility?> GetFacilityById(int id)
         {
-            return await _context.Facilities.FindAsync(id);
+            return await _repository.GetByIdAsync(id);
         }
 
         public async Task<ServiceResponse<Facility>> CreateFacility(FacilityDto dto)
         {
             var facility = _mapper.Map<Facility>(dto);
-            _context.Facilities.Add(facility);
-            await _context.SaveChangesAsync();
+            await _repository.AddAsync(facility);
+            await _repository.SaveChangesAsync();
+
             return new ServiceResponse<Facility>
             {
                 Success = true,
@@ -41,14 +43,14 @@ namespace SportZone_API.Services
 
         public async Task<ServiceResponse<Facility>> UpdateFacility(int id, FacilityDto dto)
         {
-            var facility = await _context.Facilities.FindAsync(id);
+            var facility = await _repository.GetByIdAsync(id);
             if (facility == null)
-            {
-                return new ServiceResponse<Facility>{Success = false, Message = "No found facility."};
-            }
+                return new ServiceResponse<Facility> { Success = false, Message = "Facility not found." };
 
             _mapper.Map(dto, facility);
-            await _context.SaveChangesAsync();
+            await _repository.UpdateAsync(facility);
+            await _repository.SaveChangesAsync();
+
             return new ServiceResponse<Facility>
             {
                 Success = true,
@@ -59,24 +61,23 @@ namespace SportZone_API.Services
 
         public async Task<ServiceResponse<Facility>> DeleteFacility(int id)
         {
-            var facility = await _context.Facilities.FindAsync(id);
+            var facility = await _repository.GetByIdAsync(id);
             if (facility == null)
-            {
-                return new ServiceResponse<Facility>{Success = false, Message = "No found facility."};
-            }
+                return new ServiceResponse<Facility> { Success = false, Message = "Facility not found." };
 
-            _context.Facilities.Remove(facility);
-            await _context.SaveChangesAsync();
-            return new ServiceResponse<Facility>{Success = true, Message = "Delete facility successful.",};
+            await _repository.DeleteAsync(facility);
+            await _repository.SaveChangesAsync();
+
+            return new ServiceResponse<Facility>
+            {
+                Success = true,
+                Message = "Delete facility successful."
+            };
         }
 
         public async Task<List<Facility>> SearchFacilities(string text)
         {
-            return await _context.Facilities
-                .Where(f => (f.Address ?? "").Contains(text) ||
-                            (f.Description ?? "").Contains(text) ||
-                            (f.Subdescription ?? "").Contains(text))
-                .ToListAsync();
+            return await _repository.SearchAsync(text);
         }
     }
 }
