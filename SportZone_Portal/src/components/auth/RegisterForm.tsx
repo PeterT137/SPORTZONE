@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 interface RegisterFormProps {
-  role: 'player' | 'manager';
+  role: 'player';
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
@@ -19,7 +19,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const roleId = role === 'player' ? 3 : 2;
+  const roleId = 2;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -33,7 +33,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
     if (!formData.email) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email';
     if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 6) newErrors.password = 'At least 6 characters';
+    else if (
+      formData.password.length < 10 ||
+      !/[A-Z]/.test(formData.password) ||
+      !/[a-z]/.test(formData.password) ||
+      !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+    ) {
+      newErrors.password = 'Password must be at least 10 characters and include uppercase, lowercase, and special character';
+    }
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords don't match";
     return newErrors;
   };
@@ -50,7 +57,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
 
     setLoading(true);
     try {
-      await axios.post('htpps://localhost:7057/api/Register', {
+      await axios.post('https://localhost:7057/api/Register', {
         roleId,
         name: formData.name,
         phone: formData.phone,
