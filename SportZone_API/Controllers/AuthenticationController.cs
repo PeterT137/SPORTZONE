@@ -20,54 +20,82 @@ namespace SportZone_API.Controllers
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO user)
         {
-            if (user == null || string.IsNullOrEmpty(user.UEmail) || string.IsNullOrEmpty(user.UPassword))
-            {
-                return BadRequest("Invalid user credentials.");
-            }
             try
             {
-                var (token, loggedInUser) = await _authService.Login(user);
-                if (loggedInUser == null || string.IsNullOrEmpty(token))
+                var (token, loggedInUser) = await _authService.LoginAsync(user);
+                return Ok(new
                 {
-                    return Unauthorized("Invalid email or password.");
-                }
-                return Ok(new { token, user = loggedInUser });
+                    success = true,
+                    message = "Đăng nhập thành công",
+                    token = token,
+                    user = loggedInUser
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
             }
         }
 
         [HttpPost("GoogleLogin")]
         public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDTO googleLoginDto)
         {
-            if (googleLoginDto == null)
-            {
-                return BadRequest("GoogleLoginDTO is required.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (string.IsNullOrEmpty(googleLoginDto.Email))
-            {
-                return BadRequest("Email is required.");
-            }
             try
             {
-                var (token, loggedInUser) = await _authService.GoogleLogin(googleLoginDto);
-                if (loggedInUser == null || string.IsNullOrEmpty(token))
+                if (!ModelState.IsValid)
                 {
-                    return Unauthorized($"Google login failed. User: {(loggedInUser == null ? "NULL" : loggedInUser.UId.ToString())}, Token: {(string.IsNullOrEmpty(token) ? "NULL" : "EXISTS")}");
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Dữ liệu không hợp lệ",
+                        errors = ModelState
+                    });
                 }
-                return Ok(new { token, user = loggedInUser, message = "Google login successful" });
+
+                var (token, loggedInUser) = await _authService.GoogleLoginAsync(googleLoginDto);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Đăng nhập Google thành công",
+                    token = token,
+                    user = loggedInUser
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
             }
         }
     }

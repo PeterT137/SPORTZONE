@@ -5,8 +5,12 @@ namespace SportZone_API.Repository.Interfaces
 {
     public interface IAuthRepository
     {
-        Task<(string token, User user)> Login(LoginDTO user);
-        Task<(string token, User user)> GoogleLogin(GoogleLoginDTO googleLoginDto);
-        string CreateHashedPassword(string plainPassword);
+        // Data access methods only
+        Task<User?> GetUserByEmailAsync(string email, bool isExternalLogin = false);
+        Task<User> CreateUserAsync(User user);
+        Task<bool> UpdateUserAsync(User user);
+        Task<ExternalLogin?> GetExternalLoginAsync(int userId, string provider);
+        Task<ExternalLogin> CreateExternalLoginAsync(ExternalLogin externalLogin);
+        Task<bool> UpdateExternalLoginAsync(ExternalLogin externalLogin);
     }
 }

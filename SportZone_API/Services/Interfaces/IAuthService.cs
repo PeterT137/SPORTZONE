@@ -7,7 +7,15 @@ namespace SportZone_API.Services.Interfaces
 {
     public interface IAuthService
     {
-        Task<(string token, User user)> Login(LoginDTO user);
-        Task<(string token, User user)> GoogleLogin(GoogleLoginDTO googleLoginDto);
+        // Business logic methods
+        Task<(string token, User user)> LoginAsync(LoginDTO loginDto);
+        Task<(string token, User user)> GoogleLoginAsync(GoogleLoginDTO googleLoginDto);
+
+        // Password helper methods
+        string HashPassword(string plainPassword);
+        bool VerifyPassword(User user, string plainPassword, string hashedPassword);
+
+        // JWT token methods  
+        string GenerateJwtToken(User user);
     }
 }
