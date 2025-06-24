@@ -1,7 +1,7 @@
+import { CheckCircle, Edit3, Trash2, X } from 'lucide-react';
 import React, { useState, type ChangeEvent, type FormEvent } from 'react';
 import Swal from 'sweetalert2';
-import { CheckCircle, Edit3, Trash2, X } from 'lucide-react';
-
+import Header from '../Header';
 // Định nghĩa kiểu dữ liệu
 type Facility = {
   id: number;
@@ -101,6 +101,7 @@ const FacilityManager: React.FC = () => {
   const handleEdit = (id: number) => {
     const target = facilities.find(f => f.id === id);
     if (target) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id: _, ...rest } = target;
       setFormData(rest);
       setEditId(id);
@@ -135,6 +136,8 @@ const FacilityManager: React.FC = () => {
   );
 
   return (
+    <>
+    <Header />
     <div className="min-h-screen p-6 text-gray-800 max-w-6xl mx-auto font-[Poppins]">
       <header className="mb-8">
         <h1 className="text-4xl font-bold text-green-700 mb-6">📋 Quản lý Cơ sở Vật chất</h1>
@@ -173,24 +176,50 @@ const FacilityManager: React.FC = () => {
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredFacilities.map(fac => (
-          <div key={fac.id} className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-            <h3 className="text-green-700 font-semibold text-xl mb-2">👤 Quản lý: {fac.u_id}</h3>
-            <p><strong>🕘 Giờ mở cửa:</strong> {fac.open_time}</p>
-            <p><strong>🕔 Giờ đóng cửa:</strong> {fac.close_time}</p>
-            <p><strong>📍 Địa chỉ:</strong> {fac.address}</p>
-            <p><strong>📝 Mô tả:</strong> {fac.description}</p>
-            <p><strong>💬 Mô tả phụ:</strong> {fac.subdescription || '-'}</p>
-            <div className="mt-4 flex justify-between">
-              <button onClick={() => handleEdit(fac.id)} className="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                <Edit3 size={16} /> Sửa
+          <div
+            key={fac.id}
+            className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group relative overflow-hidden"
+          >
+            <div className="absolute right-4 top-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => handleEdit(fac.id)}
+                className="text-blue-600 hover:text-blue-800 transition"
+                title="Chỉnh sửa"
+              >
+                <Edit3 size={18} />
               </button>
-              <button onClick={() => handleDelete(fac.id)} className="text-red-600 hover:text-red-800 flex items-center gap-1">
-                <Trash2 size={16} /> Xóa
+              <button
+                onClick={() => handleDelete(fac.id)}
+                className="text-red-600 hover:text-red-800 transition"
+                title="Xoá"
+              >
+                <Trash2 size={18} />
               </button>
+            </div>
+
+            <h3 className="text-xl font-semibold text-green-700 mb-3 flex items-center gap-2">
+              <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm font-medium">
+                #{fac.u_id}
+              </span>
+              <span className="text-gray-800">Cơ sở: {fac.description}</span>
+            </h3>
+
+            <div className="space-y-2 text-sm text-gray-700">
+              <p>
+                <span className="font-semibold">📍 Địa chỉ:</span> {fac.address}
+              </p>
+              <p>
+                <span className="font-semibold">⏰ Giờ hoạt động:</span>{' '}
+                {fac.open_time} - {fac.close_time}
+              </p>
+              {fac.subdescription && (
+                <p className="text-gray-500 italic">💬 {fac.subdescription}</p>
+              )}
             </div>
           </div>
         ))}
       </section>
+
 
       {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -235,6 +264,7 @@ const FacilityManager: React.FC = () => {
         </div>
       )}
     </div>
+      </>
   );
 };
 

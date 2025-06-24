@@ -37,12 +37,6 @@ const Header: React.FC = () => {
           >
             Đăng nhập
           </button>
-          <button
-            onClick={() => navigate("/register")}
-            className="px-6 py-2 bg-[#1ebd6f] text-white rounded hover:bg-[#17a55d]"
-          >
-            Đăng ký
-          </button>
         </div>
       </nav>
     </header>

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import axios from 'axios';
-
+import Swal from 'sweetalert2';
 interface RegisterFormProps {
   role: 'player';
 }
@@ -54,6 +54,17 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
       setErrors(validationErrors);
       return;
     }
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: type,
+        title: message,
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+      });
+    };
 
     setLoading(true);
     try {
@@ -69,7 +80,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
       setSuccessMessage('Registration successful! You can now sign in.');
       setFormData({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
     } catch (err: any) {
-      setApiError(err?.response?.data?.message || 'Registration failed');
+      const errorMessage =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        'Đã xảy ra lỗi không xác định';
+      showToast(errorMessage, 'error');
+
     } finally {
       setLoading(false);
     }
