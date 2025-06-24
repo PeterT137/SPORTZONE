@@ -29,5 +29,9 @@ public partial class User
 
     public virtual FieldOwner? FieldOwner { get; set; }
 
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
     public virtual Role? Role { get; set; }
+
+    public virtual Staff? Staff { get; set; }
 }

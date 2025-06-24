@@ -22,7 +22,7 @@ builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
 builder.Services.AddScoped<IFacilityService, FacilityService>();
 
 builder.Services.AddAutoMapper(typeof(Program));
-builder.Services.AddMemoryCache(); 
+builder.Services.AddMemoryCache();
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
 
 builder.Services.AddCors(options =>
