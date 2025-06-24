@@ -51,7 +51,7 @@ const SignInForm: React.FC = () => {
     try {
       setLoading(true);
       setApiError('');
-      const response = await axios.post('http://localhost:7057/api/Login', {
+      const response = await axios.post('https://localhost:7057/api/Login', {
         uEmail: formData.email,
         uPassword: formData.password,
       });
@@ -69,7 +69,7 @@ const SignInForm: React.FC = () => {
     try {
       setLoading(true);
       setApiError('');
-      const response = await axios.post('http://localhost:7057/api/GoogleLogin', {
+      const response = await axios.post('https://localhost:7057/api/GoogleLogin', {
         email: formData.email,
       });
       const { token, user } = response.data;
@@ -86,7 +86,7 @@ const SignInForm: React.FC = () => {
     setLoading(true);
     setApiError('');
     try {
-      await axios.post('http://localhost:7057/api/ForgotPassword/send-code', {
+      await axios.post('https://localhost:7057/api/ForgotPassword/send-code', {
         email: forgotEmail,
       });
       setForgotStep('otp');
@@ -106,7 +106,7 @@ const SignInForm: React.FC = () => {
       return;
     }
     try {
-      await axios.post('http://localhost:7057/api/ForgotPassword/verify-code', {
+      await axios.post('https://localhost:7057/api/ForgotPassword/verify-code', {
         code: otp,
         newPassword,
         confirmPassword,
