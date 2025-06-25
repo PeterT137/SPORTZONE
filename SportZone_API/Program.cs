@@ -5,7 +5,7 @@ using SportZone_API.Services;
 using Microsoft.EntityFrameworkCore;
 using SportZone_API.Models;
 using Microsoft.AspNetCore.Identity;
-using SportZone_API.Helper;
+using SportZone_API.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 

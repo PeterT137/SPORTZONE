@@ -9,7 +9,7 @@
     "Parameters": [
       {
         "Name": "googleLoginDto",
-        "Type": "SportZone_API.DTO.GoogleLoginDTO",
+        "Type": "SportZone_API.DTOs.GoogleLoginDTO",
         "IsRequired": true
       }
     ],
@@ -25,7 +25,7 @@
     "Parameters": [
       {
         "Name": "user",
-        "Type": "SportZone_API.DTO.LoginDTO",
+        "Type": "SportZone_API.DTOs.LoginDTO",
         "IsRequired": true
       }
     ],
@@ -51,7 +51,7 @@
     "Parameters": [
       {
         "Name": "fieldDto",
-        "Type": "SportZone_API.DTO.FieldCreateDTO",
+        "Type": "SportZone_API.DTOs.FieldCreateDTO",
         "IsRequired": true
       }
     ],
@@ -88,7 +88,7 @@
       },
       {
         "Name": "fieldDto",
-        "Type": "SportZone_API.DTO.FieldUpdateDTO",
+        "Type": "SportZone_API.DTOs.FieldUpdateDTO",
         "IsRequired": true
       }
     ],
