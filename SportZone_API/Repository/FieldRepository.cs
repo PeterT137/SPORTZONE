@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SportZone_API.Models;
-using SportZone_API.DTO;
+using SportZone_API.DTOs;
 using SportZone_API.Repository.Interfaces;
 using AutoMapper;
 

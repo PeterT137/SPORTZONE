@@ -1,4 +1,4 @@
-﻿using SportZone_API.DTO;
+﻿using SportZone_API.DTOs;
 using SportZone_API.Models;
 
 namespace SportZone_API.Services.Interfaces

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace SportZone_API.DTO
+namespace SportZone_API.DTOs
 {
     public class GoogleLoginDTO
     {

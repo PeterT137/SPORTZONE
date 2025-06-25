@@ -66,8 +66,16 @@
       "DocumentGroups": [
         {
           "DockedWidth": 166,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 2,
           "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
@@ -76,7 +84,7 @@
               "RelativeDocumentMoniker": "Controllers\\AuthenticationController.cs",
               "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Controllers\\AuthenticationController.cs",
               "RelativeToolTip": "Controllers\\AuthenticationController.cs",
-              "ViewState": "AgIAADYAAAAAAAAAAAAswGUAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAADIAAAAAAAAAAADwv0UAAAA6AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-06-23T09:41:47.945Z",
               "EditorCaption": ""
@@ -91,8 +99,7 @@
               "RelativeToolTip": "Services\\Interfaces\\IAuthService.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-23T09:41:33.011Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-23T09:41:33.011Z"
             },
             {
               "$type": "Document",
@@ -104,16 +111,7 @@
               "RelativeToolTip": "Repository\\Interfaces\\IAuthRepository.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-23T09:41:07.095Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+              "WhenOpened": "2025-06-23T09:41:07.095Z"
             },
             {
               "$type": "Document",
@@ -137,8 +135,7 @@
               "RelativeToolTip": "Services\\FieldService.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAFUAAABJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-19T07:44:14.421Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-19T07:44:14.421Z"
             },
             {
               "$type": "Document",
@@ -222,8 +219,7 @@
               "RelativeToolTip": "Repository\\AuthRepository.cs",
               "ViewState": "AgIAADAAAAAAAAAAAAAcwGMAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-19T09:16:28.557Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-19T09:16:28.557Z"
             },
             {
               "$type": "Document",
@@ -235,8 +231,7 @@
               "RelativeToolTip": "Services\\AuthService.cs",
               "ViewState": "AgIAAMwAAAAAAAAAAAAcwP8AAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-19T09:17:31.578Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-19T09:17:31.578Z"
             },
             {
               "$type": "Document",

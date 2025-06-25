@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.Models;
 using Microsoft.EntityFrameworkCore;
 using SportZone_API.Services.Interfaces;
-using SportZone_API.DTO;
+using SportZone_API.DTOs;
 
 namespace SportZone_API.Controllers
 {
@@ -67,7 +67,7 @@ namespace SportZone_API.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = "Dữ liệu không hợp lệ",
+                        message = "Dữ liệu không hợp lệ", 
                         errors = ModelState
                     });
                 }

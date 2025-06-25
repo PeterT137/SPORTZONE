@@ -1,7 +1,7 @@
 ﻿using SportZone_API.Models;
 using SportZone_API.Services.Interfaces;
 using SportZone_API.Repository.Interfaces;
-using SportZone_API.DTO;
+using SportZone_API.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;

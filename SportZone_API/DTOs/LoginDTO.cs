@@ -1,4 +1,4 @@
-﻿namespace SportZone_API.DTO
+﻿namespace SportZone_API.DTOs
 {
     public class LoginDTO
     {

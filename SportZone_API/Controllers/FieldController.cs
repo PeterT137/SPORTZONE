@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using SportZone_API.DTO;
+using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
 
 namespace SportZone_API.Controllers

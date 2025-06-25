@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using System.Collections.Generic;
 using SportZone_API.Models;
-using SportZone_API.DTO;
+using SportZone_API.DTOs;
 
 namespace SportZone_API.Services.Interfaces
 {
