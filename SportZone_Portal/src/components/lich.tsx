@@ -39,7 +39,7 @@ type BookingDetailsModalProps = {
   onClose: () => void;
 };
 
-// Generate mock bookings
+// Mock data
 const generateMockBookings = (): Booking[] => {
   const bookings: Booking[] = [];
   const statuses: BookingStatus[] = ["confirmed", "pending", "cancelled"];
@@ -53,7 +53,7 @@ const generateMockBookings = (): Booking[] => {
 
   for (let i = 0; i < 20; i++) {
     const randomDay = Math.floor(Math.random() * 7);
-    const randomHour = Math.floor(Math.random() * 24);
+    const randomHour = Math.floor(Math.random() * 12) + 8;
     const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
     const randomField =
       sportFields[Math.floor(Math.random() * sportFields.length)];
@@ -71,7 +71,7 @@ const generateMockBookings = (): Booking[] => {
   return bookings;
 };
 
-// Booking cell
+// Booking Cell
 const BookingCell: React.FC<BookingCellProps> = React.memo(
   ({ booking, onClick }) => {
     const statusColors: Record<BookingStatus, string> = {
@@ -83,16 +83,16 @@ const BookingCell: React.FC<BookingCellProps> = React.memo(
     return (
       <div
         onClick={() => onClick(booking)}
-        className={`p-1 rounded-md border text-xs ${statusColors[booking.status]} cursor-pointer hover:shadow-md transition`}
+        className={`p-2 rounded-md border ${statusColors[booking.status]} cursor-pointer transition-all hover:shadow-lg`}
       >
         <p className="font-semibold truncate">{booking.customerName}</p>
-        <p className="truncate">{booking.field}</p>
+        <p className="text-sm truncate">{booking.field}</p>
       </div>
     );
   }
 );
 
-// Booking details modal
+// Modal
 const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
   booking,
   onClose,
@@ -111,48 +111,73 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
             ×
           </button>
         </div>
-        <div className="space-y-2 text-sm">
-          <p><span className="font-semibold">Customer:</span> {booking.customerName}</p>
-          <p><span className="font-semibold">Date:</span> {format(booking.date, "PPP")}</p>
-          <p><span className="font-semibold">Time:</span> {format(booking.date, "p")}</p>
-          <p><span className="font-semibold">Field:</span> {booking.field}</p>
-          <p><span className="font-semibold">Status:</span> {booking.status}</p>
-          <p><span className="font-semibold">Contact:</span> {booking.contact}</p>
+        <div className="space-y-3">
+          <p>
+            <span className="font-semibold">Customer:</span>{" "}
+            {booking.customerName}
+          </p>
+          <p>
+            <span className="font-semibold">Date:</span>{" "}
+            {format(booking.date, "PPP")}
+          </p>
+          <p>
+            <span className="font-semibold">Time:</span>{" "}
+            {format(booking.date, "p")}
+          </p>
+          <p>
+            <span className="font-semibold">Field:</span> {booking.field}
+          </p>
+          <p>
+            <span className="font-semibold">Status:</span> {booking.status}
+          </p>
+          <p>
+            <span className="font-semibold">Contact:</span> {booking.contact}
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-// Main component
+// Main Component
 const WeeklySchedule: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeSchedule, setActiveSchedule] = useState<"morning" | "afternoon">(
+    "morning"
+  );
+  const [selectedSport, setSelectedSport] = useState<
+    "soccer" | "pickleball" | "tennis"
+  >("soccer");
 
   const bookings = useMemo(() => generateMockBookings(), []);
+
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
-  const timeSlots = Array.from({ length: 24 }, (_, i) => i); // 0h → 23h
+
+  const morningSlots = Array.from({ length: 5 }, (_, i) => i + 8);
+  const afternoonSlots = Array.from({ length: 5 }, (_, i) => i + 13);
 
   const filteredBookings = bookings.filter(
     (booking) =>
-      booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.field.toLowerCase().includes(searchTerm.toLowerCase())
+      (booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.field.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      booking.field.toLowerCase().includes(selectedSport)
   );
 
   const navigateWeek = (direction: number) => {
     setCurrentDate((prev) => addWeeks(prev, direction));
   };
 
-  const renderTimeSlots = () => (
+  const renderTimeSlots = (timeSlots: number[], label: string) => (
     <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-4">24-Hour Schedule</h3>
-      <div className="grid grid-cols-8 gap-1 text-xs">
-        <div className="sticky left-0 bg-white z-10" />
+      <h3 className="text-lg font-semibold mb-4">{label}</h3>
+      <div className="grid grid-cols-8 gap-2">
+        <div className="sticky left-0 bg-white z-10"></div>
         {daysInWeek.map((day) => (
-          <div key={day.toString()} className="text-center font-semibold py-1">
+          <div key={day.toISOString()} className="text-center font-semibold py-2">
             {format(day, "EEE")}
             <br />
             {format(day, "d")}
@@ -160,13 +185,13 @@ const WeeklySchedule: React.FC = () => {
         ))}
         {timeSlots.map((hour) => (
           <React.Fragment key={hour}>
-            <div className="sticky left-0 bg-white z-10 text-right pr-2 py-1">
-              {`${hour.toString().padStart(2, "0")}:00`}
+            <div className="sticky left-0 bg-white z-10 text-right pr-4 py-2">
+              {format(new Date().setHours(hour, 0, 0, 0), "ha")}
             </div>
             {daysInWeek.map((day) => (
               <div
                 key={`${day.toISOString()}-${hour}`}
-                className="border rounded-sm h-12 p-1"
+                className="border rounded-md h-20 p-1"
               >
                 {filteredBookings
                   .filter(
@@ -191,6 +216,46 @@ const WeeklySchedule: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">
+      {/* Sport type selection */}
+      <div className="flex space-x-4 mb-6">
+        {(["soccer", "pickleball", "tennis"] as const).map((sport) => (
+          <button
+            key={sport}
+            onClick={() => setSelectedSport(sport)}
+            className={`px-4 py-2 rounded-lg ${
+              selectedSport === sport ? "bg-blue-500 text-white" : "bg-gray-200"
+            }`}
+          >
+            {sport.charAt(0).toUpperCase() + sport.slice(1)}{" "}
+            {sport === "soccer" ? "Fields" : "Courts"}
+          </button>
+        ))}
+      </div>
+
+      {/* Schedule tab */}
+      <div className="flex space-x-4 mb-6">
+        <button
+          onClick={() => setActiveSchedule("morning")}
+          className={`px-4 py-2 rounded-lg ${
+            activeSchedule === "morning"
+              ? "bg-green-500 text-white"
+              : "bg-gray-200"
+          }`}
+        >
+          Morning Schedule (8AM - 12PM)
+        </button>
+        <button
+          onClick={() => setActiveSchedule("afternoon")}
+          className={`px-4 py-2 rounded-lg ${
+            activeSchedule === "afternoon"
+              ? "bg-green-500 text-white"
+              : "bg-gray-200"
+          }`}
+        >
+          Afternoon Schedule (1PM - 5PM)
+        </button>
+      </div>
+
       {/* Header controls */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center space-x-4">
@@ -234,12 +299,14 @@ const WeeklySchedule: React.FC = () => {
         </div>
       </div>
 
-      {/* Schedule */}
       <div className="overflow-x-auto">
-        <div className="min-w-[768px]">{renderTimeSlots()}</div>
+        <div className="min-w-[768px]">
+          {activeSchedule === "morning"
+            ? renderTimeSlots(morningSlots, "Morning Schedule (8AM - 12PM)")
+            : renderTimeSlots(afternoonSlots, "Afternoon Schedule (1PM - 5PM)")}
+        </div>
       </div>
 
-      {/* Booking Details */}
       <BookingDetailsModal
         booking={selectedBooking}
         onClose={() => setSelectedBooking(null)}
