@@ -1,18 +1,22 @@
 [
   {
     "ContainingType": "SportZone_API.Controllers.AuthenticationController",
-    "Method": "GoogleLogin",
-    "RelativePath": "api/Authentication/GoogleLogin",
-    "HttpMethod": "POST",
+    "Method": "GoogleResponse",
+    "RelativePath": "api/Authentication/google-response",
+    "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
-    "Parameters": [
-      {
-        "Name": "googleLoginDto",
-        "Type": "SportZone_API.DTOs.GoogleLoginDTO",
-        "IsRequired": true
-      }
-    ],
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SportZone_API.Controllers.AuthenticationController",
+    "Method": "Login",
+    "RelativePath": "api/Authentication/googlelogin",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {

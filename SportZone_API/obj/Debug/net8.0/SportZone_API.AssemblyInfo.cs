@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SportZone_API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2052513b0809e144caa78442ae6866ffbf32131c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bbe2628993ea73a1a48e6be9c5986eb5eb98a6cd")]
 [assembly: System.Reflection.AssemblyProductAttribute("SportZone_API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SportZone_API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

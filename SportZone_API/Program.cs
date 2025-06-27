@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using SportZone_API.Repository.Interfaces;
 using SportZone_API.Repository;
 using SportZone_API.Services.Interfaces;
@@ -6,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using SportZone_API.Models;
 using Microsoft.AspNetCore.Identity;
 using SportZone_API.Mappings;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +32,19 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFieldService, FieldService>();
 //builder.Services.AddScoped<IUserService, UserService>();
 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
+.AddCookie()
+.AddGoogle(options =>
+{
+    options.ClientId = "556790071077-0hk1p2ahlh1vllotj74ih98tbrft3esl.apps.googleusercontent.com";
+    options.ClientSecret = "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";
+    options.CallbackPath = "/signin-google";
+    options.SaveTokens = true;
+});
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -40,6 +56,17 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 var app = builder.Build();
@@ -52,9 +79,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("AllowAll");
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

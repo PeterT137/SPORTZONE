@@ -36,30 +36,23 @@
         }
       }
     },
-    "/api/Authentication/GoogleLogin": {
-      "post": {
+    "/api/Authentication/googlelogin": {
+      "get": {
         "tags": [
           "Authentication"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GoogleLoginDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GoogleLoginDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/GoogleLoginDTO"
-              }
-            }
+        "responses": {
+          "200": {
+            "description": "OK"
           }
-        },
+        }
+      }
+    },
+    "/api/Authentication/google-response": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -303,28 +296,6 @@
           },
           "isBookingEnable": {
             "type": "boolean",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "GoogleLoginDTO": {
-        "required": [
-          "email"
-        ],
-        "type": "object",
-        "properties": {
-          "email": {
-            "minLength": 1,
-            "type": "string",
-            "format": "email"
-          },
-          "googleUserId": {
-            "type": "string",
-            "nullable": true
-          },
-          "accessToken": {
-            "type": "string",
             "nullable": true
           }
         },
