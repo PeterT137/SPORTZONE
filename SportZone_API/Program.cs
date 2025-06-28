@@ -10,11 +10,15 @@ using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services;
 using SportZone_API.Services.Interfaces;
 using SportZone_API.Mappings;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 var connectionString = builder.Configuration.GetConnectionString("MyCnn");
+builder.Services.AddControllers()
+    .AddJsonOptions(x =>
+        x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
 builder.Services.AddDbContext<SportZoneContext>(options =>
     options.UseSqlServer(connectionString));

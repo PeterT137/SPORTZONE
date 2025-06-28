@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Google;
+using Newtonsoft.Json;
 
 namespace SportZone_API.Controllers
 {
@@ -74,7 +75,6 @@ namespace SportZone_API.Controllers
         }
 
 
-
         [HttpGet("google-response")]
         public async Task<IActionResult> GoogleResponse()
         {
@@ -84,12 +84,7 @@ namespace SportZone_API.Controllers
 
                 if (!result.Succeeded)
                 {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "Xác thực Google thất bại",
-                        error = result.Failure?.Message
-                    });
+                    return Redirect("http://localhost:5173/auth/callback?error=XacThucThatBai");
                 }
 
                 var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
@@ -97,7 +92,6 @@ namespace SportZone_API.Controllers
                 var googleUserId = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var accessToken = result.Properties.GetTokenValue("access_token");
 
-                //Tạo GoogleLoginDTO từ thông tin Google
                 var googleLoginDto = new GoogleLoginDTO
                 {
                     Email = email,
@@ -105,33 +99,20 @@ namespace SportZone_API.Controllers
                     AccessToken = accessToken
                 };
 
-                // Gọi AuthService để xử lý đăng nhập Google và tạo token
                 var (token, loggedInUser) = await _authService.GoogleLoginAsync(googleLoginDto);
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Đăng nhập Google thành công",
-                    token = token,
-                    user = loggedInUser
-                });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                // Serialize user thông tin nếu bạn cần gửi về frontend
+                var userJson = Uri.EscapeDataString(JsonConvert.SerializeObject(loggedInUser));
+
+                // Redirect về frontend cùng token và user
+                var redirectUrl = $"http://localhost:5173/google-auth-callback?token={token}&user={userJson}";
+                return Redirect(redirectUrl);
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    success = false,
-                    message = $"Lỗi server: {ex.Message}"
-                });
+                return Redirect($"http://localhost:5173/google-auth-callback?error={Uri.EscapeDataString(ex.Message)}");
             }
         }
+
     }
 }
