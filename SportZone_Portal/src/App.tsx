@@ -7,6 +7,7 @@ import FacilityManager from './components/facility/FacilityManager';
 import FieldManager from "./components/field/FieldManager";
 import HomePage from './components/Pages/HomePage';
 import WeeklySchedule from  './components/lich'
+import GoogleAuthCallback from './components/GoogleAuthCallback';
 
 const AppContent: React.FC = () => {
   return (
@@ -17,6 +18,8 @@ const AppContent: React.FC = () => {
       <Route path="/facility_manager" element={<FacilityManager />} />
       <Route path="/field_manager" element={<FieldManager />} />
       <Route path="/weekly_schedule" element={<WeeklySchedule />} />
+      <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
+
     </Routes>
   );
 };

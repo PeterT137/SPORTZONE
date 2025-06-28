@@ -78,7 +78,7 @@ const SignInForm: React.FC = () => {
     setErrors({});
     try {
       setLoading(true);
-      const response = await axios.post('https://localhost:7057/api/Login', {
+      const response = await axios.post('https://localhost:7057/api/Authentication/Login', {
         uEmail: formData.email,
         uPassword: formData.password,
       });
@@ -93,23 +93,10 @@ const SignInForm: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.post('https://localhost:7057/api/GoogleLogin', {
-        email: formData.email,
-      });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      showToast('Đăng nhập Google thành công!');
-      console.log('Google login user:', user);
-    } catch (err: any) {
-      showToast(err?.response?.data || 'Google login thất bại!', 'error');
-    } finally {
-      setLoading(false);
-    }
+  
+  const handleGoogleLogin = () => {
+    window.location.href = 'https://localhost:7057/api/Authentication/googlelogin';
   };
-
   const handleForgotPasswordSubmit = async () => {
     setLoading(true);
     try {
