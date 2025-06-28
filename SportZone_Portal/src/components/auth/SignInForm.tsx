@@ -2,6 +2,7 @@
 import axios from 'axios';
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 
 type ForgotStep = 'email' | 'otp' | 'new-password';
 
@@ -35,6 +36,7 @@ const SignInForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const togglePassword = () => setShowPassword((prev) => !prev);
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -85,6 +87,8 @@ const SignInForm: React.FC = () => {
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       showToast('Đăng nhập thành công!');
+      navigate("/homepage");
+      
       console.log('Signed in user:', user);
     } catch (err: any) {
       showToast(err?.response?.data || 'Đăng nhập thất bại!', 'error');
