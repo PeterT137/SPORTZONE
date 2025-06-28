@@ -7,8 +7,6 @@ using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Repositories;
 using SportZone_API.Repositories.Interfaces;
-using SportZone_API.Repository;
-using SportZone_API.Repository.Interfaces;
 using SportZone_API.Services;
 using SportZone_API.Services.Interfaces;
 using SportZone_API.Mappings;

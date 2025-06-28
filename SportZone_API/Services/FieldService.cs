@@ -1,9 +1,9 @@
 ﻿using SportZone_API.DTOs;
 using SportZone_API.Models;
-using SportZone_API.Repository.Interfaces;
 using SportZone_API.Services.Interfaces;
 using AutoMapper;
 using Azure.Core.Pipeline;
+using SportZone_API.Repositories.Interfaces;
 
 namespace SportZone_API.Services
 {

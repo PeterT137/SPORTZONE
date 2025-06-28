@@ -15,11 +15,6 @@ namespace SportZone_API.Controllers
             _fieldService = fieldService;
         }
 
-        /// <summary>
-        /// Lấy danh sách tất cả sân
-        /// </summary> 
-        /// 
-
         [HttpGet]
         public async Task<IActionResult> GetAllFields()
         {
@@ -44,9 +39,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy chi tiết sân theo ID
-        /// </summary>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetFieldByID(int id)
         {
@@ -86,9 +78,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách sân theo cơ sở
-        /// </summary>
         [HttpGet("facility/{facId}")]
         public async Task<IActionResult> GetFieldByFacility(int facId)
         {
@@ -122,9 +111,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách sân theo loại
-        /// </summary>
         [HttpGet("category/{categoryId}")]
         public async Task<IActionResult> GetFieldsByCategory(int categoryId)
         {
@@ -158,9 +144,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Tạo sân mới
-        /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateField([FromBody] FieldCreateDTO fieldDto)
         {
@@ -209,9 +192,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Cập nhật thông tin sân
-        /// </summary>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateField(int id, [FromBody] FieldUpdateDTO fieldDto)
         {
@@ -260,9 +240,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Xóa sân
-        /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteField(int id)
         {

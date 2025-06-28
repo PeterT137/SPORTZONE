@@ -61,48 +61,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        //[HttpPost("GoogleLogin")]
-        //public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDTO googleLoginDto)
-        //{
-        //    try
-        //    {
-        //        if (!ModelState.IsValid)
-        //        {
-        //            return BadRequest(new
-        //            {
-        //                success = false,
-        //                message = "Dữ liệu không hợp lệ", 
-        //                errors = ModelState
-        //            });
-        //        }
-
-        //        var (token, loggedInUser) = await _authService.GoogleLoginAsync(googleLoginDto);
-        //        return Ok(new
-        //        {
-        //            success = true,
-        //            message = "Đăng nhập Google thành công",
-        //            token = token,
-        //            user = loggedInUser
-        //        });
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return BadRequest(new
-        //        {
-        //            success = false,
-        //            message = ex.Message
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError, new
-        //        {
-        //            success = false,
-        //            message = $"Lỗi server: {ex.Message}"
-        //        });
-        //    }
-        //}
-
         [HttpGet("googlelogin")]
         public IActionResult Login()
         {
