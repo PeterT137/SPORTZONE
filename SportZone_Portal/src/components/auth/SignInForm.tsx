@@ -1,8 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
 import axios from 'axios';
+import React, { useState } from 'react';
+import Swal from 'sweetalert2';
 
 type ForgotStep = 'email' | 'otp' | 'new-password';
+
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  Swal.fire({
+    toast: true,
+    position: 'top-end',
+    icon: type,
+    title: message,
+    showConfirmButton: false,
+    timer: 2500,
+    timerProgressBar: true,
+  });
+};
 
 const SignInForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -10,6 +23,7 @@ const SignInForm: React.FC = () => {
     password: '',
     rememberMe: false,
   });
+
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -19,7 +33,6 @@ const SignInForm: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState('');
 
   const togglePassword = () => setShowPassword((prev) => !prev);
 
@@ -33,12 +46,27 @@ const SignInForm: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
-    if (!formData.email) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email';
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 6) newErrors.password = 'At least 6 characters';
+
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (
+      formData.password.length < 10 ||
+      !/[A-Z]/.test(formData.password) ||
+      !/[a-z]/.test(formData.password) ||
+      !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+    ) {
+      newErrors.password = 'Password must be at least 10 characters, include uppercase, lowercase, and a special character';
+    }
+
     return newErrors;
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,16 +78,16 @@ const SignInForm: React.FC = () => {
     setErrors({});
     try {
       setLoading(true);
-      setApiError('');
       const response = await axios.post('https://localhost:7057/api/Login', {
         uEmail: formData.email,
         uPassword: formData.password,
       });
       const { token, user } = response.data;
       localStorage.setItem('token', token);
+      showToast('Đăng nhập thành công!');
       console.log('Signed in user:', user);
     } catch (err: any) {
-      setApiError(err?.response?.data || 'Login failed');
+      showToast(err?.response?.data || 'Đăng nhập thất bại!', 'error');
     } finally {
       setLoading(false);
     }
@@ -68,15 +96,15 @@ const SignInForm: React.FC = () => {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
-      setApiError('');
       const response = await axios.post('https://localhost:7057/api/GoogleLogin', {
         email: formData.email,
       });
       const { token, user } = response.data;
       localStorage.setItem('token', token);
+      showToast('Đăng nhập Google thành công!');
       console.log('Google login user:', user);
     } catch (err: any) {
-      setApiError(err?.response?.data || 'Google login failed');
+      showToast(err?.response?.data || 'Google login thất bại!', 'error');
     } finally {
       setLoading(false);
     }
@@ -84,14 +112,14 @@ const SignInForm: React.FC = () => {
 
   const handleForgotPasswordSubmit = async () => {
     setLoading(true);
-    setApiError('');
     try {
       await axios.post('https://localhost:7057/api/ForgotPassword/send-code', {
         email: forgotEmail,
       });
+      showToast('Mã OTP đã được gửi về email!');
       setForgotStep('otp');
     } catch (err: any) {
-      setApiError(err?.response?.data?.message || 'Error sending code');
+      showToast(err?.response?.data?.message || 'Gửi mã thất bại', 'error');
     } finally {
       setLoading(false);
     }
@@ -99,9 +127,8 @@ const SignInForm: React.FC = () => {
 
   const handleNewPasswordSubmit = async () => {
     setLoading(true);
-    setApiError('');
     if (newPassword !== confirmPassword) {
-      setApiError("Passwords don't match");
+      showToast('Mật khẩu không khớp!', 'error');
       setLoading(false);
       return;
     }
@@ -111,7 +138,7 @@ const SignInForm: React.FC = () => {
         newPassword,
         confirmPassword,
       });
-      alert('Password reset successful!');
+      showToast('Đặt lại mật khẩu thành công!');
       setShowForgotModal(false);
       setForgotStep('email');
       setForgotEmail('');
@@ -119,7 +146,7 @@ const SignInForm: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      setApiError(err?.response?.data?.message || 'Failed to reset password');
+      showToast(err?.response?.data?.message || 'Đặt lại mật khẩu thất bại', 'error');
     } finally {
       setLoading(false);
     }
@@ -174,8 +201,6 @@ const SignInForm: React.FC = () => {
           {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
         </div>
 
-        {apiError && <p className="text-red-500 text-sm text-center">{apiError}</p>}
-
         <div className="flex items-center justify-between text-xs text-gray-400">
           <label className="flex items-center space-x-2">
             <input
@@ -218,8 +243,6 @@ const SignInForm: React.FC = () => {
       {showForgotModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-sm">
-            {apiError && <p className="text-red-600 text-sm mb-3">{apiError}</p>}
-
             {forgotStep === 'email' && (
               <>
                 <h2 className="text-lg font-semibold mb-4">Reset Password</h2>
