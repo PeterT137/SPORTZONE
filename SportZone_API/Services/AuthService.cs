@@ -116,6 +116,54 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<LogoutResponseDTO> LogoutAsync(LogoutDTO logoutDto)
+        {
+            try
+            {
+                // Input validation
+                if (logoutDto == null || logoutDto.UId <= 0)
+                {
+                    throw new ArgumentException("User ID là bắt buộc");
+                }
+
+                // Verify user exists
+                var user = await _authRepository.GetUserByIdAsync(logoutDto.UId);
+                if (user == null)
+                {
+                    throw new ArgumentException("User không tồn tại");
+                }
+
+                var logoutTime = DateTime.UtcNow;
+
+                // Invalidate current token if provided
+                if (!string.IsNullOrEmpty(logoutDto.Token))
+                {
+                    await InvalidateTokenAsync(logoutDto.Token);
+                }
+
+                // Optional: Update last logout time in database
+                // You can add a LastLogoutTime field to User model if needed
+                // user.LastLogoutTime = logoutTime;
+                // await _authRepository.UpdateUserAsync(user);
+
+                // Optional: Log logout activity
+                await LogLogoutActivityAsync(logoutDto.UId, logoutTime);
+
+                return new LogoutResponseDTO
+                {
+                    Success = true,
+                    Message = "Đăng xuất thành công",
+                    LogoutTime = logoutTime,
+                    UserId = logoutDto.UId
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi đăng xuất: {ex.Message}", ex);
+            }
+        }
+
+
         public string HashPassword(string plainPassword)
         {
             if (string.IsNullOrEmpty(plainPassword))
@@ -250,6 +298,176 @@ namespace SportZone_API.Services
             {
                 // Log error nhưng không throw để không ảnh hưởng đến login process
                 Console.WriteLine($"Lỗi khi xử lý External login: {ex.Message}");
+            }
+        }
+
+        // Token Management Methods
+        public async Task<bool> InvalidateTokenAsync(string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token))
+                    return false;
+
+                // For JWT tokens, we can implement token blacklisting
+                // This is a simplified implementation - in production, you might want to store blacklisted tokens in Redis or database
+
+                // Extract token info
+                var tokenHandler = new JwtSecurityTokenHandler();
+                if (!tokenHandler.CanReadToken(token))
+                    return false;
+
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+                var userId = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                    return false;
+
+                // Add to blacklist (in memory for now - consider Redis in production)
+                await AddTokenToBlacklistAsync(token, jwtToken.ValidTo);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error invalidating token: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ValidateTokenAsync(string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token))
+                    return false;
+
+                // Check if token is blacklisted
+                if (await IsTokenBlacklistedAsync(token))
+                    return false;
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? "your-256-bit-secret");
+
+                var validationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> InvalidateAllUserTokensAsync(int userId)
+        {
+            try
+            {
+                // In production, you might want to update a user's token version or similar mechanism
+                // For now, we'll add a flag to the user or implement a different strategy
+
+                // This is a placeholder - you could implement this by:
+                // 1. Adding a TokenVersion field to User model
+                // 2. Incrementing it on logout from all devices
+                // 3. Validating token version in ValidateTokenAsync
+
+                Console.WriteLine($"Invalidating all tokens for user {userId}");
+
+                // For demonstration, let's just return true
+                // In real implementation, you would:
+                // - Get user from repository
+                // - Update user's security stamp/token version
+                // - Save changes
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error invalidating all tokens for user {userId}: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Token Blacklist Management (In-Memory - Consider Redis for production)
+        private static readonly HashSet<string> _blacklistedTokens = new HashSet<string>();
+        private static readonly Dictionary<string, DateTime> _tokenExpirations = new Dictionary<string, DateTime>();
+
+        private async Task AddTokenToBlacklistAsync(string token, DateTime expiration)
+        {
+            await Task.Run(() =>
+            {
+                lock (_blacklistedTokens)
+                {
+                    _blacklistedTokens.Add(token);
+                    _tokenExpirations[token] = expiration;
+                }
+            });
+
+            // Clean up expired tokens periodically
+            await CleanupExpiredTokensAsync();
+        }
+
+        private async Task<bool> IsTokenBlacklistedAsync(string token)
+        {
+            return await Task.Run(() =>
+            {
+                lock (_blacklistedTokens)
+                {
+                    return _blacklistedTokens.Contains(token);
+                }
+            });
+        }
+
+        private async Task CleanupExpiredTokensAsync()
+        {
+            await Task.Run(() =>
+            {
+                lock (_blacklistedTokens)
+                {
+                    var now = DateTime.UtcNow;
+                    var expiredTokens = _tokenExpirations
+                        .Where(kvp => kvp.Value < now)
+                        .Select(kvp => kvp.Key)
+                        .ToList();
+
+                    foreach (var expiredToken in expiredTokens)
+                    {
+                        _blacklistedTokens.Remove(expiredToken);
+                        _tokenExpirations.Remove(expiredToken);
+                    }
+                }
+            });
+        }
+
+        // Logout Activity Logging
+        private async Task LogLogoutActivityAsync(int userId, DateTime logoutTime)
+        {
+            try
+            {
+                // This is a placeholder for logging logout activity
+                // In production, you might want to:
+                // 1. Create a UserActivity or AuditLog table
+                // 2. Store logout activities for security monitoring
+
+                Console.WriteLine($"User {userId} logged out at {logoutTime}");
+
+                // You could implement this by adding to a logging system:
+                // await _authRepository.LogUserActivityAsync(userId, "Logout", logoutTime);
+
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error logging logout activity: {ex.Message}");
             }
         }
     }

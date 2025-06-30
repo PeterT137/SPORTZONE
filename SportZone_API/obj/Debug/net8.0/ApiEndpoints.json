@@ -36,6 +36,38 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "SportZone_API.Controllers.AuthenticationController",
+    "Method": "Logout",
+    "RelativePath": "api/Authentication/Logout",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "logoutDto",
+        "Type": "SportZone_API.DTOs.LogoutDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SportZone_API.Controllers.AuthenticationController",
+    "Method": "ValidateToken",
+    "RelativePath": "api/Authentication/ValidateToken",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "token",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "SportZone_API.Controllers.FieldController",
     "Method": "GetAllFields",
     "RelativePath": "api/Field",

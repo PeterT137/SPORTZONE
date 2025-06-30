@@ -3,12 +3,48 @@
   "WorkspaceRootPath": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\dtos\\googlelogindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:dtos\\googlelogindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\dtos\\logindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:dtos\\logindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\services\\interfaces\\iauthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:services\\interfaces\\iauthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\repository\\authrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:repository\\authrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\repository\\interfaces\\iauthrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:repository\\interfaces\\iauthrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\controllers\\authenticationcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:controllers\\authenticationcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\services\\fieldservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:services\\fieldservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\dtos\\googlelogindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:dtos\\googlelogindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\controllers\\fieldcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:controllers\\fieldcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\repository\\fieldrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:repository\\fieldrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\services\\interfaces\\ifieldservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:services\\interfaces\\ifieldservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -23,26 +59,6 @@
       "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\repository\\authrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:repository\\authrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\repository\\fieldrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:repository\\fieldrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\services\\interfaces\\iauthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:services\\interfaces\\iauthservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\services\\interfaces\\ifieldservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:services\\interfaces\\ifieldservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\repository\\interfaces\\iauthrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:repository\\interfaces\\iauthrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\dtos\\fielddto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:dtos\\fielddto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -51,16 +67,8 @@
       "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:mappings\\mappingprofile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\services\\fieldservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:services\\fieldservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\repository\\interfaces\\ifieldrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:repository\\interfaces\\ifieldrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|c:\\users\\doan\\sportzone\\sportzone_api\\controllers\\fieldcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{916C24C9-C62F-F76E-8FB5-C741FB5DA529}|SportZone_API.csproj|solutionrelative:controllers\\fieldcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -69,8 +77,8 @@
       "VerticalTabListWidth": 256,
       "DocumentGroups": [
         {
-          "DockedWidth": 146,
-          "SelectedChildIndex": 2,
+          "DockedWidth": 235,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -83,103 +91,97 @@
             {
               "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "LoginDTO.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\DTOs\\LoginDTO.cs",
+              "RelativeDocumentMoniker": "DTOs\\LoginDTO.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\DTOs\\LoginDTO.cs",
+              "RelativeToolTip": "DTOs\\LoginDTO.cs",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAQwBUAAAAqAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-30T09:59:04.403Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "AuthRepository.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\AuthRepository.cs",
+              "RelativeDocumentMoniker": "Repository\\AuthRepository.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\AuthRepository.cs",
+              "RelativeToolTip": "Repository\\AuthRepository.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-19T09:16:28.557Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AuthService.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\AuthService.cs",
+              "RelativeDocumentMoniker": "Services\\AuthService.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\AuthService.cs",
+              "RelativeToolTip": "Services\\AuthService.cs",
+              "ViewState": "AgIAACIBAAAAAAAAAAAEwI0AAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-29T07:46:01.103Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "IAuthService.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\Interfaces\\IAuthService.cs",
+              "RelativeDocumentMoniker": "Services\\Interfaces\\IAuthService.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\Interfaces\\IAuthService.cs",
+              "RelativeToolTip": "Services\\Interfaces\\IAuthService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-23T09:41:33.011Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "IAuthRepository.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\Interfaces\\IAuthRepository.cs",
+              "RelativeDocumentMoniker": "Repository\\Interfaces\\IAuthRepository.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\Interfaces\\IAuthRepository.cs",
+              "RelativeToolTip": "Repository\\Interfaces\\IAuthRepository.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-23T09:41:07.095Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
               "Title": "AuthenticationController.cs",
               "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Controllers\\AuthenticationController.cs",
               "RelativeDocumentMoniker": "Controllers\\AuthenticationController.cs",
               "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Controllers\\AuthenticationController.cs",
               "RelativeToolTip": "Controllers\\AuthenticationController.cs",
-              "ViewState": "AgIAAIgAAAAAAAAAAAAIwKMAAAARAAAAAAAAAA==",
+              "ViewState": "AgIAAJMAAAAAAAAAAAAuwJcAAABHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-06-23T09:41:47.945Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Program.cs",
-              "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Program.cs",
-              "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAkAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-18T09:17:16.993Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "AuthRepository.cs",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\AuthRepository.cs",
-              "RelativeDocumentMoniker": "Repository\\AuthRepository.cs",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\AuthRepository.cs",
-              "RelativeToolTip": "Repository\\AuthRepository.cs",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAAAFkAAAA+AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-19T09:16:28.557Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "MappingProfile.cs",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Mappings\\MappingProfile.cs",
-              "RelativeDocumentMoniker": "Mappings\\MappingProfile.cs",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Mappings\\MappingProfile.cs",
-              "RelativeToolTip": "Mappings\\MappingProfile.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAABZAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-19T13:13:02.511Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\appsettings.json",
-              "RelativeDocumentMoniker": "appsettings.json",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\appsettings.json",
-              "RelativeToolTip": "appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-06-18T09:15:08.713Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "launchSettings.json",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Properties\\launchSettings.json",
-              "RelativeDocumentMoniker": "Properties\\launchSettings.json",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Properties\\launchSettings.json",
-              "RelativeToolTip": "Properties\\launchSettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACAAAAAiAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-06-27T16:52:00.769Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "IAuthService.cs",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\Interfaces\\IAuthService.cs",
-              "RelativeDocumentMoniker": "Services\\Interfaces\\IAuthService.cs",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\Interfaces\\IAuthService.cs",
-              "RelativeToolTip": "Services\\Interfaces\\IAuthService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAFAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-23T09:41:33.011Z"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 6,
-              "Title": "FieldRepository.cs",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\FieldRepository.cs",
-              "RelativeDocumentMoniker": "Repository\\FieldRepository.cs",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\FieldRepository.cs",
-              "RelativeToolTip": "Repository\\FieldRepository.cs",
-              "ViewState": "AgIAACYAAAAAAAAAAAAwwFIAAAAAAAAAAAAAAA==",
+              "Title": "FieldService.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\FieldService.cs",
+              "RelativeDocumentMoniker": "Services\\FieldService.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\FieldService.cs",
+              "RelativeToolTip": "Services\\FieldService.cs",
+              "ViewState": "AgIAADEAAAAAAAAAAAAYwFgAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-19T07:43:10.279Z"
+              "WhenOpened": "2025-06-19T07:44:14.421Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "IFieldService.cs",
               "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\Interfaces\\IFieldService.cs",
               "RelativeDocumentMoniker": "Services\\Interfaces\\IFieldService.cs",
@@ -192,18 +194,78 @@
             {
               "$type": "Document",
               "DocumentIndex": 9,
-              "Title": "IAuthRepository.cs",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\Interfaces\\IAuthRepository.cs",
-              "RelativeDocumentMoniker": "Repository\\Interfaces\\IAuthRepository.cs",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\Interfaces\\IAuthRepository.cs",
-              "RelativeToolTip": "Repository\\Interfaces\\IAuthRepository.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAABAAAAAAAAAA==",
+              "Title": "FieldRepository.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\FieldRepository.cs",
+              "RelativeDocumentMoniker": "Repository\\FieldRepository.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\FieldRepository.cs",
+              "RelativeToolTip": "Repository\\FieldRepository.cs",
+              "ViewState": "AgIAAEMAAAAAAAAAAAAcwFsAAAAkAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-23T09:41:07.095Z"
+              "WhenOpened": "2025-06-19T07:43:10.279Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "FieldController.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Controllers\\FieldController.cs",
+              "RelativeDocumentMoniker": "Controllers\\FieldController.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Controllers\\FieldController.cs",
+              "RelativeToolTip": "Controllers\\FieldController.cs",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAowC0BAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-19T07:46:43.09Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 13,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-06-18T09:15:08.713Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "MappingProfile.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Mappings\\MappingProfile.cs",
+              "RelativeDocumentMoniker": "Mappings\\MappingProfile.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Mappings\\MappingProfile.cs",
+              "RelativeToolTip": "Mappings\\MappingProfile.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAABZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-19T13:13:02.511Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAkAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-18T09:17:16.993Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "launchSettings.json",
+              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Properties\\launchSettings.json",
+              "RelativeDocumentMoniker": "Properties\\launchSettings.json",
+              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Properties\\launchSettings.json",
+              "RelativeToolTip": "Properties\\launchSettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACAAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-06-27T16:52:00.769Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
               "Title": "IFieldRepository.cs",
               "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Repository\\Interfaces\\IFieldRepository.cs",
               "RelativeDocumentMoniker": "Repository\\Interfaces\\IFieldRepository.cs",
@@ -215,7 +277,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 14,
               "Title": "FieldDTO.cs",
               "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\DTOs\\FieldDTO.cs",
               "RelativeDocumentMoniker": "DTOs\\FieldDTO.cs",
@@ -224,36 +286,12 @@
               "ViewState": "AgIAACkAAAAAAAAAAAAmwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-06-19T13:12:51.245Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 12,
-              "Title": "FieldService.cs",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\FieldService.cs",
-              "RelativeDocumentMoniker": "Services\\FieldService.cs",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Services\\FieldService.cs",
-              "RelativeToolTip": "Services\\FieldService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAFUAAABJAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-19T07:44:14.421Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 14,
-              "Title": "FieldController.cs",
-              "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Controllers\\FieldController.cs",
-              "RelativeDocumentMoniker": "Controllers\\FieldController.cs",
-              "ToolTip": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\Controllers\\FieldController.cs",
-              "RelativeToolTip": "Controllers\\FieldController.cs",
-              "ViewState": "AgIAABEBAAAAAAAAAAAgwC0BAAANAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-19T07:46:43.09Z"
             }
           ]
         },
         {
-          "DockedWidth": 186,
-          "SelectedChildIndex": 7,
+          "DockedWidth": 97,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Bookmark",
@@ -281,7 +319,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 7,
               "Title": "GoogleLoginDTO.cs",
               "DocumentMoniker": "C:\\Users\\DoAn\\SPORTZONE\\SportZone_API\\DTOs\\GoogleLoginDTO.cs",
               "RelativeDocumentMoniker": "DTOs\\GoogleLoginDTO.cs",

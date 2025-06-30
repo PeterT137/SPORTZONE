@@ -10,6 +10,7 @@ namespace SportZone_API.Services.Interfaces
         // Business logic methods
         Task<(string token, User user)> LoginAsync(LoginDTO loginDto);
         Task<(string token, User user)> GoogleLoginAsync(GoogleLoginDTO googleLoginDto);
+        Task<LogoutResponseDTO> LogoutAsync(LogoutDTO logoutDto);
 
         // Password helper methods
         string HashPassword(string plainPassword);
@@ -17,5 +18,10 @@ namespace SportZone_API.Services.Interfaces
 
         // JWT token methods  
         string GenerateJwtToken(User user);
+        Task<bool> InvalidateTokenAsync(string token);
+        Task<bool> ValidateTokenAsync(string token);
+
+        // Session management
+        Task<bool> InvalidateAllUserTokensAsync(int userId);
     }
 }

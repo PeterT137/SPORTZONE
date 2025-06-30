@@ -61,48 +61,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        //[HttpPost("GoogleLogin")]
-        //public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDTO googleLoginDto)
-        //{
-        //    try
-        //    {
-        //        if (!ModelState.IsValid)
-        //        {
-        //            return BadRequest(new
-        //            {
-        //                success = false,
-        //                message = "Dữ liệu không hợp lệ", 
-        //                errors = ModelState
-        //            });
-        //        }
-
-        //        var (token, loggedInUser) = await _authService.GoogleLoginAsync(googleLoginDto);
-        //        return Ok(new
-        //        {
-        //            success = true,
-        //            message = "Đăng nhập Google thành công",
-        //            token = token,
-        //            user = loggedInUser
-        //        });
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return BadRequest(new
-        //        {
-        //            success = false,
-        //            message = ex.Message
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError, new
-        //        {
-        //            success = false,
-        //            message = $"Lỗi server: {ex.Message}"
-        //        });
-        //    }
-        //}
-
         [HttpGet("googlelogin")]
         public IActionResult Login()
         {
@@ -164,6 +122,93 @@ namespace SportZone_API.Controllers
                 {
                     success = false,
                     message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("Logout")]
+        public async Task<IActionResult> Logout([FromBody] LogoutDTO logoutDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Dữ liệu không hợp lệ",
+                        errors = ModelState
+                    });
+                }
+
+                var result = await _authService.LogoutAsync(logoutDto);
+
+                if (result.Success)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = result.Message,
+                        logoutTime = result.LogoutTime,
+                        userId = result.UserId
+                    });
+                }
+                else
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = result.Message
+                    });
+                }
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("ValidateToken")]
+        public async Task<IActionResult> ValidateToken([FromBody] string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Token là bắt buộc"
+                    });
+                }
+
+                var isValid = await _authService.ValidateTokenAsync(token);
+
+                return Ok(new
+                {
+                    success = true,
+                    isValid = isValid,
+                    message = isValid ? "Token hợp lệ" : "Token không hợp lệ hoặc đã hết hạn"
                 });
             }
             catch (Exception ex)

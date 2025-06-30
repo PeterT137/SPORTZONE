@@ -7,6 +7,7 @@ namespace SportZone_API.Repository.Interfaces
     {
         // Data access methods only
         Task<User?> GetUserByEmailAsync(string email, bool isExternalLogin = false);
+        Task<User?> GetUserByIdAsync(int userId);
         Task<User> CreateUserAsync(User user);
         Task<bool> UpdateUserAsync(User user);
         Task<ExternalLogin?> GetExternalLoginAsync(int userId, string provider);
