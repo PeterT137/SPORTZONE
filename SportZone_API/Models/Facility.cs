@@ -19,9 +19,15 @@ public partial class Facility
 
     public string? Subdescription { get; set; }
 
+    public virtual ICollection<Discount> Discounts { get; set; } = new List<Discount>();
+
     public virtual ICollection<Field> Fields { get; set; } = new List<Field>();
 
     public virtual ICollection<Image> Images { get; set; } = new List<Image>();
+
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+    public virtual ICollection<Service> Services { get; set; } = new List<Service>();
 
     public virtual FieldOwner? UIdNavigation { get; set; }
 }

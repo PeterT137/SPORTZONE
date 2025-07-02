@@ -27,9 +27,11 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 //builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFieldService, FieldService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 //builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddAuthentication(options =>

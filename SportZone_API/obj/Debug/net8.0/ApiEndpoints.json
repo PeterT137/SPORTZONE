@@ -68,6 +68,38 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "SportZone_API.Controllers.BookingController",
+    "Method": "CreateBooking",
+    "RelativePath": "api/Booking",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "bookingDto",
+        "Type": "SportZone_API.DTOs.BookingCreateDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "SportZone_API.Controllers.BookingController",
+    "Method": "GetBookingDetail",
+    "RelativePath": "api/Booking/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "SportZone_API.Controllers.FieldController",
     "Method": "GetAllFields",
     "RelativePath": "api/Field",

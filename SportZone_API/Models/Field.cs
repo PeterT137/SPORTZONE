@@ -19,7 +19,13 @@ public partial class Field
 
     public bool? IsBookingEnable { get; set; }
 
+    public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
     public virtual CategoryField? Category { get; set; }
 
     public virtual Facility? Fac { get; set; }
+
+    public virtual ICollection<FieldBookingSchedule> FieldBookingSchedules { get; set; } = new List<FieldBookingSchedule>();
+
+    public virtual ICollection<OrderFieldId> OrderFieldIds { get; set; } = new List<OrderFieldId>();
 }
