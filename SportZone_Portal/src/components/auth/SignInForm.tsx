@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 import React, { useState } from 'react';
-import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 type ForgotStep = 'email' | 'otp' | 'new-password';
 
@@ -86,9 +86,10 @@ const SignInForm: React.FC = () => {
       });
       const { token, user } = response.data;
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       showToast('Đăng nhập thành công!');
       navigate("/homepage");
-      
+
       console.log('Signed in user:', user);
     } catch (err: any) {
       showToast(err?.response?.data || 'Đăng nhập thất bại!', 'error');
@@ -97,7 +98,7 @@ const SignInForm: React.FC = () => {
     }
   };
 
-  
+
   const handleGoogleLogin = () => {
     window.location.href = 'https://localhost:7057/api/Authentication/googlelogin';
   };

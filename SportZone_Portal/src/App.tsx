@@ -1,14 +1,18 @@
 
+import { config } from '@fortawesome/fontawesome-svg-core';
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
+config.autoAddCss = false;
+
 import React from 'react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import LoginComponent from './components/auth/AuthComponent';
 import FacilityManager from './components/facility/FacilityManager';
 import FieldManager from "./components/field/FieldManager";
-import HomePage from './components/Pages/HomePage';
-import WeeklySchedule from  './components/lich'
 import GoogleAuthCallback from './components/GoogleAuthCallback';
-
+import WeeklySchedule from './components/lich';
+import OrderManager from "./components/order/OrderManager";
+import HomePage from './components/Pages/HomePage';
+import ServiceManager from "./components/services/ServiceManager";
 const AppContent: React.FC = () => {
   return (
     <Routes>
@@ -19,6 +23,8 @@ const AppContent: React.FC = () => {
       <Route path="/field_manager" element={<FieldManager />} />
       <Route path="/weekly_schedule" element={<WeeklySchedule />} />
       <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
+      <Route path="/service_manager" element={<ServiceManager />} />
+      <Route path="/order_manager" element={<OrderManager />} />
 
     </Routes>
   );
