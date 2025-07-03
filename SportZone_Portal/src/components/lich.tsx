@@ -39,7 +39,7 @@ type BookingDetailsModalProps = {
   onClose: () => void;
 };
 
-// Generate mock bookings
+// tạo dữ liệu mẫu để test
 const generateMockBookings = (): Booking[] => {
   const bookings: Booking[] = [];
   const statuses: BookingStatus[] = ["confirmed", "pending", "cancelled"];

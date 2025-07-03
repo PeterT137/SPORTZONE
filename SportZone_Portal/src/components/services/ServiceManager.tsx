@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, type ChangeEvent, type FormEvent } from 'react';
 import Swal from 'sweetalert2';
-import Header from '../Header';
-
+import Sidebar from '../../Sidebar';
 type Service = {
     id: number;
     name: string;
@@ -184,8 +183,8 @@ const ServiceManager: React.FC = () => {
 
     return (
         <>
-            <Header />
-            <div className="min-h-screen flex flex-col bg-gray-50">
+            <Sidebar />
+            <div className="min-h-screen flex flex-col bg-gray-50 pl-64 pt-16">
                 <header className="bg-white shadow-sm">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                         <h1 className="text-2xl font-semibold text-gray-900">Quản lý Dịch vụ</h1>
@@ -214,76 +213,78 @@ const ServiceManager: React.FC = () => {
                     </div>
                 </header>
 
-                <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="bg-white shadow rounded-lg overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên dịch vụ</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mô tả</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá (VND)</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {currentServices.length === 0 ? (
-                                        <tr><td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">Không tìm thấy dịch vụ nào</td></tr>
-                                    ) : (
-                                        currentServices.map(service => (
-                                            <tr key={service.id}>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.id}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.name}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-500">{service.description}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.price.toLocaleString()}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {service.status ? <span className="text-green-600">Hoạt động</span> : <span className="text-red-600">Tạm dừng</span>}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <div className="flex space-x-2">
-                                                        <button className="text-blue-600 hover:text-blue-800" onClick={() => handleEdit(service.id)}>
-                                                            ✏️
-                                                        </button>
-                                                        <button className="text-red-600 hover:text-red-800" onClick={() => { setServiceToDelete(service.id); setShowDeleteModal(true); }}>
-                                                            🗑️
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                            <div className="flex-1 flex justify-between sm:hidden">
-                                <button className={`px-4 py-2 border border-gray-300 text-sm rounded-md text-gray-700 bg-white hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={goToPrevPage} disabled={currentPage === 1}>Trước</button>
-                                <div className="text-sm text-gray-700 py-2">{currentPage} / {totalPages}</div>
-                                <button className={`px-4 py-2 border border-gray-300 text-sm rounded-md text-gray-700 bg-white hover:bg-gray-50 ${currentPage === totalPages || totalPages === 0 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={goToNextPage} disabled={currentPage === totalPages || totalPages === 0}>Sau</button>
+                <main className=" pt-16 min-h-screen bg-gray-50">
+                    <div className="max-w-screen-xl mx-auto px-4">
+                        <div className="bg-white shadow rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên dịch vụ</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mô tả</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá (VND)</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {currentServices.length === 0 ? (
+                                            <tr><td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">Không tìm thấy dịch vụ nào</td></tr>
+                                        ) : (
+                                            currentServices.map(service => (
+                                                <tr key={service.id}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{service.id}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.name}</td>
+                                                    <td className="px-6 py-4 text-sm text-gray-500">{service.description}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.price.toLocaleString()}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {service.status ? <span className="text-green-600">Hoạt động</span> : <span className="text-red-600">Tạm dừng</span>}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div className="flex space-x-2">
+                                                            <button className="text-blue-600 hover:text-blue-800" onClick={() => handleEdit(service.id)}>
+                                                                ✏️
+                                                            </button>
+                                                            <button className="text-red-600 hover:text-red-800" onClick={() => { setServiceToDelete(service.id); setShowDeleteModal(true); }}>
+                                                                🗑️
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                                </div>
                             </div>
-                            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                                <p className="text-sm text-gray-700">Hiển thị {filteredServices.length > 0 ? startIndex + 1 : 0} đến {endIndex} của {filteredServices.length} kết quả</p>
-                                <div className="flex items-center space-x-4">
-                                    <div>
-                                        <label htmlFor="page-size" className="text-sm text-gray-700 mr-2">Hiển thị:</label>
-                                        <select id="page-size" className="border border-gray-300 rounded-md text-sm pr-8 py-1 focus:ring-blue-600 focus:border-blue-600" value={pageSize} onChange={changePageSize}>
-                                            <option value="10">10</option>
-                                            <option value="20">20</option>
-                                            <option value="50">50</option>
-                                        </select>
+
+                            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                                <div className="flex-1 flex justify-between sm:hidden">
+                                    <button className={`px-4 py-2 border border-gray-300 text-sm rounded-md text-gray-700 bg-white hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={goToPrevPage} disabled={currentPage === 1}>Trước</button>
+                                    <div className="text-sm text-gray-700 py-2">{currentPage} / {totalPages}</div>
+                                    <button className={`px-4 py-2 border border-gray-300 text-sm rounded-md text-gray-700 bg-white hover:bg-gray-50 ${currentPage === totalPages || totalPages === 0 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={goToNextPage} disabled={currentPage === totalPages || totalPages === 0}>Sau</button>
+                                </div>
+                                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                    <p className="text-sm text-gray-700">Hiển thị {filteredServices.length > 0 ? startIndex + 1 : 0} đến {endIndex} của {filteredServices.length} kết quả</p>
+                                    <div className="flex items-center space-x-4">
+                                        <div>
+                                            <label htmlFor="page-size" className="text-sm text-gray-700 mr-2">Hiển thị:</label>
+                                            <select id="page-size" className="border border-gray-300 rounded-md text-sm pr-8 py-1 focus:ring-blue-600 focus:border-blue-600" value={pageSize} onChange={changePageSize}>
+                                                <option value="10">10</option>
+                                                <option value="20">20</option>
+                                                <option value="50">50</option>
+                                            </select>
+                                        </div>
+                                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                            <button className={`px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm text-gray-500 hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={goToPrevPage} disabled={currentPage === 1}>⬅️</button>
+                                            <div className="flex">{renderPaginationNumbers()}</div>
+                                            <button className={`px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm text-gray-500 hover:bg-gray-50 ${currentPage === totalPages || totalPages === 0 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={goToNextPage} disabled={currentPage === totalPages || totalPages === 0}>➡️</button>
+                                        </nav>
                                     </div>
-                                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                                        <button className={`px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm text-gray-500 hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={goToPrevPage} disabled={currentPage === 1}>⬅️</button>
-                                        <div className="flex">{renderPaginationNumbers()}</div>
-                                        <button className={`px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm text-gray-500 hover:bg-gray-50 ${currentPage === totalPages || totalPages === 0 ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={goToNextPage} disabled={currentPage === totalPages || totalPages === 0}>➡️</button>
-                                    </nav>
                                 </div>
                             </div>
                         </div>
-                    </div>
                 </main>
 
                 {showModal && (

@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, type ChangeEvent, type FormEvent } from 'react';
 import Swal from 'sweetalert2';
-import Header from '../Header';
-
+import Sidebar from '../../Sidebar';
 type Field = {
     id: number;
     fac_id: number;
@@ -141,9 +140,9 @@ const FieldManager: React.FC = () => {
     };
 
     return (
-        <><Header />
-            <div className="min-h-screen flex flex-col bg-gray-50">
-                <header className="bg-white shadow-sm">
+        <><Sidebar />
+<div className="min-h-screen flex flex-col bg-gray-50 pl-64 pt-16">
+<header className="bg-white shadow-sm">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                         <h1 className="text-2xl font-semibold text-gray-900">Quản lý Sân</h1>
                         <div className="flex items-center space-x-4">
@@ -171,10 +170,11 @@ const FieldManager: React.FC = () => {
                     </div>
                 </header>
 
-                <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="bg-white shadow rounded-lg overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
+                <main className=" pt-16 min-h-screen bg-gray-50">
+                    <div className="max-w-screen-xl mx-auto px-4">
+                        <div className="bg-white shadow rounded-lg overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
@@ -217,6 +217,7 @@ const FieldManager: React.FC = () => {
                                     )}
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                         <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                             <div className="flex-1 flex justify-between sm:hidden">
