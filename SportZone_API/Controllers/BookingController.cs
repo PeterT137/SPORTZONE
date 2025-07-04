@@ -36,6 +36,7 @@ namespace SportZone_API.Controllers
                 }
 
                 var booking = await _bookingService.CreateBookingAsync(bookingDto);
+                 
                 return CreatedAtAction(nameof(GetBookingDetail), new { id = booking.BookingId }, new
                 {
                     success = true,

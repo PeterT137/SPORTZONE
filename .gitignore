@@ -134,3 +134,28 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Ignore Visual Studio / .NET build files
+.vs/
+*.suo
+*.user
+*.cache
+*.db
+*.v2
+*.vsidx
+
+# Build output
+bin/
+obj/
+*.dll
+*.pdb
+
+# Ignore API build artifacts
+SportZone_API/obj/
+SportZone_API/bin/
+SportZone_API/.vs/
+
+# Ignore React frontend build artifacts (optional)
+SportZone_Portal/dist/
+SportZone_Portal/.vite/
+Diagnostic report | Node.js v24.3.0 Documentation

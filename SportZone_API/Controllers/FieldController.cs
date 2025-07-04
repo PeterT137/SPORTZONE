@@ -161,7 +161,7 @@ namespace SportZone_API.Controllers
         /// <summary>
         /// Tạo sân mới
         /// </summary>
-        [HttpPost]
+        [HttpPost("Create-Field")]
         public async Task<IActionResult> CreateField([FromBody] FieldCreateDTO fieldDto)
         {
             try
