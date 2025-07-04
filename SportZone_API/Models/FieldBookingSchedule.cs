@@ -17,6 +17,10 @@ public partial class FieldBookingSchedule
 
     public string? Notes { get; set; }
 
+    public DateOnly? Date { get; set; }
+
+    public string? Status { get; set; }
+
     public virtual Booking? Booking { get; set; }
 
     public virtual Field? Field { get; set; }

@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SportZone_API.Models;
@@ -22,23 +21,17 @@ public partial class User
 
     public bool? IsVerify { get; set; }
 
-    [JsonIgnore]
     public virtual Admin? Admin { get; set; }
 
-    [JsonIgnore]
     public virtual ICollection<Customer> Customers { get; set; } = new List<Customer>();
 
-    [JsonIgnore]
     public virtual ICollection<ExternalLogin> ExternalLogins { get; set; } = new List<ExternalLogin>();
 
-    [JsonIgnore]
     public virtual FieldOwner? FieldOwner { get; set; }
 
-    [JsonIgnore]
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
-    public virtual Role? Role { get; set; } // Có thể giữ nếu không bị vòng lặp
+    public virtual Role? Role { get; set; }
 
-    [JsonIgnore]
     public virtual Staff? Staff { get; set; }
 }

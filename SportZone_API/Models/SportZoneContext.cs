@@ -261,6 +261,7 @@ public partial class SportZoneContext : DbContext
 
             entity.Property(e => e.ScheduleId).HasColumnName("schedule_id");
             entity.Property(e => e.BookingId).HasColumnName("booking_id");
+            entity.Property(e => e.Date).HasColumnName("date");
             entity.Property(e => e.EndTime)
                 .HasColumnType("datetime")
                 .HasColumnName("end_time");
@@ -269,6 +270,9 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.StartTime)
                 .HasColumnType("datetime")
                 .HasColumnName("start_time");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
 
             entity.HasOne(d => d.Booking).WithMany(p => p.FieldBookingSchedules)
                 .HasForeignKey(d => d.BookingId)
