@@ -33,10 +33,12 @@ const Header: React.FC = () => {
     <header className="bg-[#1a3c34] text-white shadow-md sticky top-0 z-50 py-4 px-6 font-inter">
       <nav className="flex items-center justify-between flex-wrap">
         <div className="font-bold text-2xl text-[#1ebd6f] flex items-center gap-2">
-          <span>⚽</span> SportZone
+          <a href="/homepage">
+
+            <span>⚽</span> SportZone</a>
         </div>
         <div className="hidden md:flex items-center gap-8 ml-12 flex-grow">
-          <a href="#" className="text-white hover:text-[#1ebd6f]">Trang chủ</a>
+          <a href="/homepage" className="text-white hover:text-[#1ebd6f]">Trang chủ</a>
           <div className="relative group">
             <button className="text-white hover:text-[#1ebd6f]">Đặt sân</button>
             <div className="absolute hidden group-hover:block top-full bg-white text-[#333] rounded shadow-md w-48">
