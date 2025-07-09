@@ -14,6 +14,9 @@ import WeeklySchedule from './components/lich';
 import OrderManager from "./components/order/OrderManager";
 import HomePage from './components/Pages/HomePage';
 import ServiceManager from "./components/services/ServiceManager";
+import FacilityDetail from "./components/facility/FacilityDetail"
+
+
 const AppContent: React.FC = () => {
   return (
     <Routes>
@@ -27,6 +30,8 @@ const AppContent: React.FC = () => {
           </PublicRoute>
         }
       />
+              <Route path="/facility/:facId" element={<FacilityDetail />} />
+
       <Route path="/facility_manager" element={<FacilityManager />} />
       <Route path="/field_manager" element={<FieldManager />} />
       <Route path="/weekly_schedule" element={<WeeklySchedule />} />

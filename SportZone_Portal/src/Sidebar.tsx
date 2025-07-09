@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Home,
@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Wrench,
   Building2,
+  Bell,
 } from "lucide-react";
 
 const Sidebar: React.FC = () => {
@@ -20,6 +21,9 @@ const Sidebar: React.FC = () => {
         : "text-gray-700 hover:bg-gray-100"
     }`;
 
+  const [showNotifications, setShowNotifications] = useState(false);
+  const unreadNotifications = 3; // Mock unread count; replace with dynamic data if needed
+
   return (
     <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 z-50">
       <div className="p-4 text-lg font-semibold border-b">⚙️ Quản lý</div>
@@ -30,17 +34,33 @@ const Sidebar: React.FC = () => {
         <Link to="/facility_manager" className={linkClasses("/facility_manager")}>
           <Building2 size={18} /> Cơ sở
         </Link>
-        <Link to="/field_manager" className={linkClasses("/field_manager")}>
-          <Layers size={18} /> Sân bóng
-        </Link>
-        {/* <Link to="/weekly_schedule" className={linkClasses("/weekly_schedule")}>
-          <Calendar size={18} /> Lịch đặt sân
-        </Link> */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className={`${linkClasses("/notifications")} w-full text-left`}
+          >
+            <Bell size={18} /> Thông báo
+            {unreadNotifications > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {unreadNotifications}
+              </span>
+            )}
+          </button>
+          {showNotifications && (
+            <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+              <div className="p-2">
+                <p className="text-sm text-gray-600">Thông báo admin</p>
+                <ul className="mt-2 space-y-1">
+                  <li className="text-sm text-gray-800">New facility request received</li>
+                  <li className="text-sm text-gray-800">Order #1234 updated</li>
+                  <li className="text-sm text-gray-800">Maintenance scheduled</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
         <Link to="/order_manager" className={linkClasses("/order_manager")}>
           <ClipboardList size={18} /> Đơn đặt
-        </Link>
-        <Link to="/service_manager" className={linkClasses("/service_manager")}>
-          <Wrench size={18} /> Dịch vụ
         </Link>
       </nav>
     </aside>
