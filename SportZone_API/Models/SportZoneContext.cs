@@ -45,6 +45,8 @@ public partial class SportZoneContext : DbContext
 
     public virtual DbSet<OrderService> OrderServices { get; set; }
 
+    public virtual DbSet<Price> Prices { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<Service> Services { get; set; }
@@ -95,9 +97,8 @@ public partial class SportZoneContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("create_at");
             entity.Property(e => e.CustomerId).HasColumnName("customer_id");
-            entity.Property(e => e.EndTime)
-                .HasColumnType("datetime")
-                .HasColumnName("end_time");
+            entity.Property(e => e.Date).HasColumnName("date");
+            entity.Property(e => e.EndTime).HasColumnName("end_time");
             entity.Property(e => e.FieldId).HasColumnName("field_id");
             entity.Property(e => e.GuestName)
                 .HasMaxLength(100)
@@ -105,9 +106,7 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.GuestPhone)
                 .HasMaxLength(20)
                 .HasColumnName("guest_phone");
-            entity.Property(e => e.StartTime)
-                .HasColumnType("datetime")
-                .HasColumnName("start_time");
+            entity.Property(e => e.StartTime).HasColumnName("start_time");
             entity.Property(e => e.Status)
                 .HasMaxLength(100)
                 .HasColumnName("status");
@@ -249,9 +248,6 @@ public partial class SportZoneContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("field_name");
             entity.Property(e => e.IsBookingEnable).HasColumnName("is_booking_enable");
-            entity.Property(e => e.Price)
-                .HasColumnType("decimal(10, 2)")
-                .HasColumnName("price");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Fields)
                 .HasForeignKey(d => d.CategoryId)
@@ -270,14 +266,14 @@ public partial class SportZoneContext : DbContext
 
             entity.Property(e => e.ScheduleId).HasColumnName("schedule_id");
             entity.Property(e => e.BookingId).HasColumnName("booking_id");
-            entity.Property(e => e.EndTime)
-                .HasColumnType("datetime")
-                .HasColumnName("end_time");
+            entity.Property(e => e.Date).HasColumnName("date");
+            entity.Property(e => e.EndTime).HasColumnName("end_time");
             entity.Property(e => e.FieldId).HasColumnName("field_id");
             entity.Property(e => e.Notes).HasColumnName("notes");
-            entity.Property(e => e.StartTime)
-                .HasColumnType("datetime")
-                .HasColumnName("start_time");
+            entity.Property(e => e.StartTime).HasColumnName("start_time");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
 
             entity.HasOne(d => d.Booking).WithMany(p => p.FieldBookingSchedules)
                 .HasForeignKey(d => d.BookingId)
@@ -442,6 +438,28 @@ public partial class SportZoneContext : DbContext
             entity.HasOne(d => d.Service).WithMany(p => p.OrderServices)
                 .HasForeignKey(d => d.ServiceId)
                 .HasConstraintName("FK__Order_Ser__servi__0E6E26BF");
+        });
+
+        modelBuilder.Entity<Price>(entity =>
+        {
+            entity.HasKey(e => e.PriceId).HasName("PK__Price__1681726DE360B54A");
+
+            entity.ToTable("Price");
+
+            entity.Property(e => e.PriceId).HasColumnName("price_id");
+            entity.Property(e => e.FieldId).HasColumnName("field_id");
+            entity.Property(e => e.Price1)
+                .HasColumnType("decimal(10, 2)")
+                .HasColumnName("price");
+            entity.Property(e => e.ScheduleId).HasColumnName("schedule_id");
+
+            entity.HasOne(d => d.Field).WithMany(p => p.Prices)
+                .HasForeignKey(d => d.FieldId)
+                .HasConstraintName("FK__Price__field_id__160F4887");
+
+            entity.HasOne(d => d.Schedule).WithMany(p => p.Prices)
+                .HasForeignKey(d => d.ScheduleId)
+                .HasConstraintName("FK__Price__schedule___17036CC0");
         });
 
         modelBuilder.Entity<Role>(entity =>

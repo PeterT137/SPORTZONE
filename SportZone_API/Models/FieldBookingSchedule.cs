@@ -11,13 +11,19 @@ public partial class FieldBookingSchedule
 
     public int? BookingId { get; set; }
 
-    public DateTime? StartTime { get; set; }
+    public TimeOnly? StartTime { get; set; }
 
-    public DateTime? EndTime { get; set; }
+    public TimeOnly? EndTime { get; set; }
 
     public string? Notes { get; set; }
+
+    public DateOnly? Date { get; set; }
+
+    public string? Status { get; set; }
 
     public virtual Booking? Booking { get; set; }
 
     public virtual Field? Field { get; set; }
+
+    public virtual ICollection<Price> Prices { get; set; } = new List<Price>();
 }

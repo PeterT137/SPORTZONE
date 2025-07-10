@@ -15,8 +15,6 @@ public partial class Field
 
     public string? Description { get; set; }
 
-    public decimal? Price { get; set; }
-
     public bool? IsBookingEnable { get; set; }
 
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
@@ -28,4 +26,6 @@ public partial class Field
     public virtual ICollection<FieldBookingSchedule> FieldBookingSchedules { get; set; } = new List<FieldBookingSchedule>();
 
     public virtual ICollection<OrderFieldId> OrderFieldIds { get; set; } = new List<OrderFieldId>();
+
+    public virtual ICollection<Price> Prices { get; set; } = new List<Price>();
 }

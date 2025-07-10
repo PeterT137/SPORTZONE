@@ -13,9 +13,9 @@ public partial class Booking
 
     public string? Title { get; set; }
 
-    public DateTime? StartTime { get; set; }
+    public TimeOnly? StartTime { get; set; }
 
-    public DateTime? EndTime { get; set; }
+    public TimeOnly? EndTime { get; set; }
 
     public string? Status { get; set; }
 
@@ -26,6 +26,8 @@ public partial class Booking
     public string? GuestName { get; set; }
 
     public string? GuestPhone { get; set; }
+
+    public DateOnly? Date { get; set; }
 
     public virtual Customer? Customer { get; set; }
 
