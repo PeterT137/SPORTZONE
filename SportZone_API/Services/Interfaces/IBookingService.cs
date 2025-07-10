@@ -19,5 +19,10 @@ namespace SportZone_API.Services.Interfaces
         /// Validate booking business rules
         /// </summary>
         Task<(bool IsValid, string ErrorMessage)> ValidateBookingRulesAsync(BookingCreateDTO bookingDto);
+
+        /// <summary>
+        /// Kiểm tra slot thời gian có trống không với Date và Time riêng biệt
+        /// </summary>
+        Task<bool> CheckTimeSlotAvailabilityAsync(int fieldId, DateOnly date, TimeOnly startTime, TimeOnly endTime);
     }
 }

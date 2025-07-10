@@ -14,8 +14,8 @@ namespace SportZone_API.Repository.Interfaces
         /// </summary>
         Task<BookingDetailDTO?> GetBookingByIdAsync(int bookingId);
         /// <summary>
-        /// Kiểm tra conflict thời gian booking
+        /// Kiểm tra slot thời gian có khả dụng không
         /// </summary>
-        Task<bool> CheckTimeConflictAsync(int fieldId, DateTime startTime, DateTime endTime, int? excludeBookingId = null);
+        Task<bool> CheckTimeSlotAvailabilityAsync(int fieldId, DateOnly date, TimeOnly startTime, TimeOnly endTime);
     }
 }

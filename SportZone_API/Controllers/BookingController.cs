@@ -20,7 +20,7 @@ namespace SportZone_API.Controllers
         /// Tạo booking mới
         /// </summary>
         /// 
-        [HttpPost]
+        [HttpPost("CreateBooking")]
         public async Task<IActionResult> CreateBooking([FromBody] BookingCreateDTO bookingDto)
         {
             try

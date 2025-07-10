@@ -7,19 +7,26 @@ namespace SportZone_API.DTOs
     /// </summary>
     public class BookingCreateDTO
     {
-        [Required(ErrorMessage = "Field ID là bắt buộc")]
-        public int FieldId { get; set; }
+        // FieldId không còn bắt buộc - sẽ được lấy từ slot available trong Field_booking_schedule
+        public int? FieldId { get; set; }
+
+        // Thêm các filter để thu hẹp lựa chọn slot
+        public int? FacilityId { get; set; }
+        public int? CategoryId { get; set; }
 
         public int? CustomerId { get; set; }
 
         [MaxLength(100, ErrorMessage = "Tiêu đề không được quá 100 ký tự")]
         public string? Title { get; set; }
 
+        [Required(ErrorMessage = "Ngày đặt sân là bắt buộc")]
+        public DateOnly Date { get; set; }
+
         [Required(ErrorMessage = "Thời gian bắt đầu là bắt buộc")]
-        public DateTime StartTime { get; set; }
+        public TimeOnly StartTime { get; set; }
 
         [Required(ErrorMessage = "Thời gian kết thúc là bắt buộc")]
-        public DateTime EndTime { get; set; }
+        public TimeOnly EndTime { get; set; }
 
         // Guest booking fields
         [MaxLength(100, ErrorMessage = "Tên khách không được quá 100 ký tự")]
@@ -30,7 +37,7 @@ namespace SportZone_API.DTOs
 
         // Optional services and discount
         public List<int>? ServiceIds { get; set; }
-        public string? DiscountCode { get; set; }
+        public int? DiscountId { get; set; } // Thay DiscountCode bằng DiscountId
 
         public string? Notes { get; set; }
     }
@@ -43,9 +50,11 @@ namespace SportZone_API.DTOs
         [MaxLength(100, ErrorMessage = "Tiêu đề không được quá 100 ký tự")]
         public string? Title { get; set; }
 
-        public DateTime? StartTime { get; set; }
+        public DateOnly? Date { get; set; }
 
-        public DateTime? EndTime { get; set; }
+        public TimeOnly? StartTime { get; set; }
+
+        public TimeOnly? EndTime { get; set; }
 
         public string? Notes { get; set; }
     }
@@ -63,8 +72,9 @@ namespace SportZone_API.DTOs
         public int? CustomerId { get; set; }
         public string? CustomerName { get; set; }
         public string? Title { get; set; }
-        public DateTime? StartTime { get; set; }
-        public DateTime? EndTime { get; set; }
+        public DateOnly? Date { get; set; }
+        public TimeOnly? StartTime { get; set; }
+        public TimeOnly? EndTime { get; set; }
         public string? Status { get; set; }
         public string? StatusPayment { get; set; }
         public DateTime? CreateAt { get; set; }
@@ -167,8 +177,8 @@ namespace SportZone_API.DTOs
     {
         public int? CustomerId { get; set; }
         public string? Status { get; set; }
-        public DateTime? DateFrom { get; set; }
-        public DateTime? DateTo { get; set; }
+        public DateOnly? DateFrom { get; set; }
+        public DateOnly? DateTo { get; set; }
         public int Page { get; set; } = 1;
         public int Limit { get; set; } = 10;
     }
