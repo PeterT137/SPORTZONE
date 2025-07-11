@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect, type ChangeEvent, type FormEvent, type MouseEvent, type KeyboardEvent } from 'react';
+import React, { useEffect, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Sidebar from '../../Sidebar';
@@ -303,11 +303,10 @@ const FacilityManager: React.FC = () => {
       pageNumbers.push(
         <button
           key={i}
-          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium whitespace-nowrap ${
-            i === currentPage
+          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium whitespace-nowrap ${i === currentPage
               ? 'z-10 bg-blue-600 border-blue-600 text-white'
               : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-          }`}
+            }`}
           onClick={() => goToPage(i)}
           disabled={i === currentPage}
         >
@@ -491,9 +490,8 @@ const FacilityManager: React.FC = () => {
             <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
-                  className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap ${
-                    currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
+                  className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   onClick={goToPrevPage}
                   disabled={currentPage === 1}
                 >
@@ -503,11 +501,10 @@ const FacilityManager: React.FC = () => {
                   <span>{currentPage}</span> / <span>{totalPages}</span>
                 </div>
                 <button
-                  className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap ${
-                    currentPage === totalPages || totalPages === 0
+                  className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap ${currentPage === totalPages || totalPages === 0
                       ? 'opacity-50 cursor-not-allowed'
                       : ''
-                  }`}
+                    }`}
                   onClick={goToNextPage}
                   disabled={currentPage === totalPages || totalPages === 0}
                 >
@@ -542,9 +539,8 @@ const FacilityManager: React.FC = () => {
                     aria-label="Pagination"
                   >
                     <button
-                      className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 whitespace-nowrap ${
-                        currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 whitespace-nowrap ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       onClick={goToPrevPage}
                       disabled={currentPage === 1}
                     >
@@ -553,11 +549,10 @@ const FacilityManager: React.FC = () => {
                     </button>
                     <div className="flex">{renderPaginationNumbers()}</div>
                     <button
-                      className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 whitespace-nowrap ${
-                        currentPage === totalPages || totalPages === 0
+                      className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 whitespace-nowrap ${currentPage === totalPages || totalPages === 0
                           ? 'opacity-50 cursor-not-allowed'
                           : ''
-                      }`}
+                        }`}
                       onClick={goToNextPage}
                       disabled={currentPage === totalPages || totalPages === 0}
                     >
@@ -578,7 +573,7 @@ const FacilityManager: React.FC = () => {
                 <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
               </div>
               <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-                ​
+                &#8203;
               </span>
               <div
                 className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
@@ -722,7 +717,7 @@ const FacilityManager: React.FC = () => {
                 <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
               </div>
               <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-                ​
+                &#8203;
               </span>
               <div
                 className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
@@ -771,7 +766,7 @@ const FacilityManager: React.FC = () => {
                 <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
               </div>
               <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-                ​
+                &#8203;
               </span>
               <div
                 className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
