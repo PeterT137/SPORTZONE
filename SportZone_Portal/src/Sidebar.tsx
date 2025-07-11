@@ -1,24 +1,20 @@
+import {
+  Bell,
+  Building2,
+  ClipboardList,
+  Home,
+} from "lucide-react";
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  Home,
-  Calendar,
-  Layers,
-  ClipboardList,
-  Wrench,
-  Building2,
-  Bell,
-} from "lucide-react";
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
 
   const linkClasses = (path: string) =>
-    `flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition ${
-      isActive(path)
-        ? "bg-[#1ebd6f] text-white"
-        : "text-gray-700 hover:bg-gray-100"
+    `flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition ${isActive(path)
+      ? "bg-[#1ebd6f] text-white"
+      : "text-gray-700 hover:bg-gray-100"
     }`;
 
   const [showNotifications, setShowNotifications] = useState(false);
