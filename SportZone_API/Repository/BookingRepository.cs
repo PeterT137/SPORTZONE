@@ -212,6 +212,45 @@ namespace SportZone_API.Repository
             return fieldPrice * hours;
         }
 
+        public async Task<bool> CancelBookingAsync(int bookingId)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.Orders)
+                    .FirstOrDefaultAsync(b => b.BookingId == bookingId);
+                if (booking == null)
+                {
+                    return false;
+                }
+                booking.Status = "Cancelled";
+                booking.StatusPayment = "Cancelled";
+
+                var scheduleSlots = await _context.FieldBookingSchedules
+                    .Where(s => s.BookingId == bookingId)
+                    .ToListAsync();
+                foreach(var slot in scheduleSlots)
+                {
+                    slot.BookingId = null;
+                    slot.Status = "Available";
+                    slot.Notes = null;
+                }
+
+                _context.FieldBookingSchedules.UpdateRange(scheduleSlots);
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
+            }
+        }
+
         private BookingResponseDTO MapToBookingResponseDTO(Booking booking)
         {
             var schedule = booking.FieldBookingSchedules?.FirstOrDefault();
