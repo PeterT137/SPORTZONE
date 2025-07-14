@@ -24,7 +24,7 @@ namespace SportZone_API.DTOs
         public string? Notes { get; set; }
         [Required(ErrorMessage = "Ngày là bắt buộc.")]
         public DateOnly Date { get; set; }
-        public string? Status { get; set; } = "Available"; // Trạng thái mặc định
+        public string? Status { get; set; } = "Available";
     }
     public class FieldBookingScheduleGenerateDto
     {

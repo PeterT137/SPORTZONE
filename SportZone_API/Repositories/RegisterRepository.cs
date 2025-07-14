@@ -27,5 +27,15 @@ namespace SportZone_API.Repositories
             await _context.Customers.AddAsync(customer);
             await _context.SaveChangesAsync();
         }
+
+        public async Task RegisterUserWithFieldOwnerAsync(User user, FieldOwner fieldOwner)
+        {
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+
+            fieldOwner.UId = user.UId;
+            await _context.FieldOwners.AddAsync(fieldOwner);
+            await _context.SaveChangesAsync();
+        }
     }
 }

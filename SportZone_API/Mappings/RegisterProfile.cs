@@ -18,6 +18,10 @@ namespace SportZone_API.Mappings
             CreateMap<RegisterDto, Customer>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone));
+
+            CreateMap<RegisterDto, FieldOwner>()
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone));
         }
     }
 }

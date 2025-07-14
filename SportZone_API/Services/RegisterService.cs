@@ -24,30 +24,37 @@ namespace SportZone_API.Services
         public async Task<ServiceResponse<string>> RegisterAsync(RegisterDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password) || string.IsNullOrWhiteSpace(dto.ConfirmPassword))
-                return Fail("Please enter complete information.");
+                return Fail("Vui lòng nhập đầy đủ thông tin.");
 
             if (!Regex.IsMatch(dto.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-                return Fail("Invalid email format.");
+                return Fail("Định dạng email không hợp lệ.");
 
             if (!IsValidPassword(dto.Password))
-                return Fail("Password must be at least 10 characters long and include uppercase, lowercase letters, numbers, and special characters.");
+                return Fail("Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.");
 
             if (dto.Password != dto.ConfirmPassword)
-                return Fail("Password confirmation does not match.");
+                return Fail("Mật khẩu không khớp.");
 
             var existing = await _repository.GetUserByEmailAsync(dto.Email);
             if (existing != null)
-                return Fail("Email already exists.");
+                return Fail("Email đã tồn tại.");
 
             var user = _mapper.Map<User>(dto);
             user.RoleId = dto.RoleId;
             user.UPassword = _passwordHasher.HashPassword(user, dto.Password);
 
-            var customer = _mapper.Map<Customer>(dto);
-
-            await _repository.RegisterUserWithCustomerAsync(user, customer);
-
-            return new ServiceResponse<string> { Success = true, Message = "Account registration successful." };
+            if (dto.RoleId == 3) 
+            {
+                var fieldOwner = _mapper.Map<FieldOwner>(dto);
+                await _repository.RegisterUserWithFieldOwnerAsync(user, fieldOwner);
+                return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản chủ sân thành công." };
+            }
+            else
+            {
+                var customer = _mapper.Map<Customer>(dto);
+                await _repository.RegisterUserWithCustomerAsync(user, customer);
+                return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản khách hàng thành công." };
+            }
         }
 
         private static ServiceResponse<string> Fail(string msg) => new() { Success = false, Message = msg };

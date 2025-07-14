@@ -9,7 +9,7 @@ namespace SportZone_API.Repositories
 {
     public class FieldBookingScheduleRepository : IFieldBookingScheduleRepository
     {
-        private readonly SportZoneContext _context; // Giả sử DbContext của bạn có tên là SportZoneContext
+        private readonly SportZoneContext _context;
 
         public FieldBookingScheduleRepository(SportZoneContext context)
         {

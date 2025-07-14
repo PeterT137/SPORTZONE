@@ -63,8 +63,8 @@ namespace SportZone_API.Services
                     {
                         FieldId = generateDto.FieldId,
                         Date = DateOnly.FromDateTime(currentDay),
-                        StartTime = slotStartTime,
-                        EndTime = slotEndTime,
+                        //StartTime = slotStartTime,
+                        //EndTime = slotEndTime,
                         Status = "Available", // Trạng thái mặc định cho các slot được tạo tự động
                         Notes = "Slot được tạo tự động"
                     });

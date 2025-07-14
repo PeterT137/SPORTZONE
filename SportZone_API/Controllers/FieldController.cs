@@ -169,7 +169,6 @@ namespace SportZone_API.Controllers
                         field.FieldName,
                         field.FacId,
                         field.CategoryId,
-                        field.Price,
                         field.Description,
                     }
                 });
