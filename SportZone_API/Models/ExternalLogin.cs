@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace SportZone_API.Models;
 
@@ -14,6 +15,6 @@ public partial class ExternalLogin
     public string? ExternalUserId { get; set; }
 
     public string? AccessToken { get; set; }
-
+    [JsonIgnore]
     public virtual User? UIdNavigation { get; set; }
 }
