@@ -29,21 +29,18 @@ const HomePage = () => {
             id: 1,
             name: "Sân Bóng Cỏ Nhân Tạo A1",
             location: "Quận 1, TP.HCM",
-            price: 200000,
             image: "https://images.unsplash.com/photo-1524015368236-cf67f6b5d65c"
         },
         {
             id: 2,
             name: "Sân 5 Người Tân Bình",
             location: "Tân Bình, TP.HCM",
-            price: 150000,
             image: "https://images.unsplash.com/photo-1551958219-acbc608c6377"
         },
         {
             id: 3,
             name: "Sân Cầu Lông Family",
             location: "Quận 10, TP.HCM",
-            price: 100000,
             image: "https://images.unsplash.com/photo-1534889156217-d643df14f14a"
         }
     ];
@@ -65,7 +62,6 @@ const HomePage = () => {
                         Đặt sân ngay
                     </button>
                 </div>
-
             </section>
 
             {/* Demo Field Section */}
@@ -81,7 +77,8 @@ const HomePage = () => {
                                     <p className="text-gray-600 text-sm mb-2">
                                         <FaMapMarkerAlt className="inline mr-1" /> {field.location}
                                     </p>
-                                    <p className="font-semibold text-[#1ec391]">Giá: {field.price.toLocaleString()}đ/giờ</p>
+                                    {/* Bỏ phần hiển thị giá */}
+                                    {/* <p className="font-semibold text-[#1ec391]">Giá: {field.price.toLocaleString()}đ/giờ</p> */}
                                 </div>
                             </div>
                         ))}
@@ -92,38 +89,38 @@ const HomePage = () => {
             {/* Why Choose Us */}
             <section className="py-20 px-6 bg-white animate-fadeInUp">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-3xl font-bold mb-12">Tại sao bạn nên chọn ứng dụng của chúng tôi?</h2>
+                    <h2 className="text-3xl font-bold mb-12">Tại sao nên chọn chúng tôi?</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                         {[
                             {
                                 icon: <FaMobileAlt size={32} className="text-[#1ec391] mx-auto mb-4" />,
-                                title: "Ứng dụng dễ sử dụng",
-                                desc: "Giao diện thân thiện, thao tác nhanh gọn mọi lúc mọi nơi."
+                                title: "Giao diện thân thiện",
+                                desc: "Dễ sử dụng cho mọi lứa tuổi, từ học sinh đến người lớn tuổi."
                             },
                             {
                                 icon: <FaBolt size={32} className="text-[#1ec391] mx-auto mb-4" />,
-                                title: "Xử lý siêu tốc",
-                                desc: "Tốc độ đặt sân nhanh chóng, không cần gọi điện."
+                                title: "Đặt sân chỉ vài giây",
+                                desc: "Chọn sân, chọn giờ, xác nhận – cực kỳ nhanh chóng và tiện lợi."
                             },
                             {
                                 icon: <FaListAlt size={32} className="text-[#1ec391] mx-auto mb-4" />,
-                                title: "Đầy đủ tiện ích",
-                                desc: "Tìm kiếm, đặt sân, thanh toán, quản lý đơn tất cả trong một."
+                                title: "Nhiều lựa chọn sân",
+                                desc: "Hàng trăm sân bóng, cầu lông, tennis… tại mọi quận huyện."
                             },
                             {
                                 icon: <FaShieldAlt size={32} className="text-[#1ec391] mx-auto mb-4" />,
-                                title: "Bảo mật & an toàn",
-                                desc: "Thông tin người dùng và thanh toán luôn được bảo vệ tuyệt đối."
+                                title: "An toàn thông tin",
+                                desc: "Chúng tôi cam kết bảo mật thông tin người dùng và thanh toán."
                             },
                             {
                                 icon: <FaSearchLocation size={32} className="text-[#1ec391] mx-auto mb-4" />,
-                                title: "Tìm sân nhanh chóng",
-                                desc: "Bản đồ và định vị giúp bạn chọn sân gần nhất."
+                                title: "Tìm sân gần bạn",
+                                desc: "Dựa trên vị trí hiện tại, hệ thống gợi ý sân phù hợp nhất."
                             },
                             {
                                 icon: <FaSyncAlt size={32} className="text-[#1ec391] mx-auto mb-4" />,
                                 title: "Linh hoạt & tiện lợi",
-                                desc: "Hủy/đổi lịch nhanh chóng, không mất phí."
+                                desc: "Cho phép thay đổi lịch, hủy sân dễ dàng – không ràng buộc."
                             },
                         ].map((item, index) => (
                             <div
