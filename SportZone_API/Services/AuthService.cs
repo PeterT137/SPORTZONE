@@ -1,12 +1,12 @@
 ﻿using SportZone_API.Models;
 using SportZone_API.Services.Interfaces;
-using SportZone_API.Repository.Interfaces;
 using SportZone_API.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using SportZone_API.Repositories.Interfaces;
 
 namespace SportZone_API.Services
 {

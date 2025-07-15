@@ -57,13 +57,13 @@ public partial class SportZoneContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("server =(local); database = SportZone;uid=sa;pwd=123;TrustServerCertificate=true");
+        => optionsBuilder.UseSqlServer("Server=LAPTOP-O13KTL8A;database=SportZone;Trusted_Connection=SSPI;Encrypt=false;TrustServerCertificate=true");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Admin>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Admin__B51D3DEAEBC5D332");
+            entity.HasKey(e => e.UId).HasName("PK__Admin__B51D3DEA16BA2E58");
 
             entity.ToTable("Admin");
 
@@ -73,11 +73,9 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.Dob).HasColumnName("dob");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
-                .IsUnicode(false)
                 .HasColumnName("name");
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
-                .IsUnicode(false)
                 .HasColumnName("phone");
 
             entity.HasOne(d => d.UIdNavigation).WithOne(p => p.Admin)
@@ -129,7 +127,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<CategoryField>(entity =>
         {
-            entity.HasKey(e => e.CategoryFieldId).HasName("PK__Category__6A073F0974D74F69");
+            entity.HasKey(e => e.CategoryFieldId).HasName("PK__Category__6A073F09B17CB259");
 
             entity.ToTable("Category_field");
 
@@ -141,21 +139,17 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Customer>(entity =>
         {
-            entity.HasKey(e => e.CustomerId).HasName("PK__Customer__CD65CB8512ADF6DE");
+            entity.HasKey(e => e.CustomerId).HasName("PK__Customer__CD65CB856E76EDC6");
 
             entity.ToTable("Customer");
 
-            entity.Property(e => e.CustomerId)
-                .ValueGeneratedNever()
-                .HasColumnName("customer_id");
+            entity.Property(e => e.CustomerId).HasColumnName("customer_id");
             entity.Property(e => e.Dob).HasColumnName("dob");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
-                .IsUnicode(false)
                 .HasColumnName("name");
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
-                .IsUnicode(false)
                 .HasColumnName("phone");
             entity.Property(e => e.UId).HasColumnName("u_id");
 
@@ -189,22 +183,19 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<ExternalLogin>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__External__3213E83F0373EE16");
+            entity.HasKey(e => e.Id).HasName("PK__External__3213E83F7249BD12");
 
             entity.ToTable("External_Logins");
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AccessToken)
                 .HasMaxLength(255)
-                .IsUnicode(false)
                 .HasColumnName("access_token");
             entity.Property(e => e.ExternalProvider)
                 .HasMaxLength(50)
-                .IsUnicode(false)
                 .HasColumnName("external_provider");
             entity.Property(e => e.ExternalUserId)
                 .HasMaxLength(100)
-                .IsUnicode(false)
                 .HasColumnName("external_user_id");
             entity.Property(e => e.UId).HasColumnName("u_id");
 
@@ -215,7 +206,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Facility>(entity =>
         {
-            entity.HasKey(e => e.FacId).HasName("PK__Facility__978BA2C30E816289");
+            entity.HasKey(e => e.FacId).HasName("PK__Facility__978BA2C32C57198C");
 
             entity.ToTable("Facility");
 
@@ -236,7 +227,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Field>(entity =>
         {
-            entity.HasKey(e => e.FieldId).HasName("PK__Field__1BB6F43ED5AF6FC2");
+            entity.HasKey(e => e.FieldId).HasName("PK__Field__1BB6F43E5822B3AF");
 
             entity.ToTable("Field");
 
@@ -286,7 +277,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<FieldOwner>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Field_Ow__B51D3DEAD5116068");
+            entity.HasKey(e => e.UId).HasName("PK__Field_Ow__B51D3DEAFF24F1F1");
 
             entity.ToTable("Field_Owner");
 
@@ -296,11 +287,9 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.Dob).HasColumnName("dob");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
-                .IsUnicode(false)
                 .HasColumnName("name");
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
-                .IsUnicode(false)
                 .HasColumnName("phone");
 
             entity.HasOne(d => d.UIdNavigation).WithOne(p => p.FieldOwner)
@@ -311,7 +300,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Image>(entity =>
         {
-            entity.HasKey(e => e.ImgId).HasName("PK__Image__6F16A71C31863106");
+            entity.HasKey(e => e.ImgId).HasName("PK__Image__6F16A71C6002BCB9");
 
             entity.ToTable("Image");
 
@@ -464,16 +453,13 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Role__760965CC467F450A");
+            entity.HasKey(e => e.RoleId).HasName("PK__Role__760965CCC9472AEA");
 
             entity.ToTable("Role");
 
-            entity.Property(e => e.RoleId)
-                .ValueGeneratedNever()
-                .HasColumnName("role_id");
+            entity.Property(e => e.RoleId).HasColumnName("role_id");
             entity.Property(e => e.RoleName)
                 .HasMaxLength(50)
-                .IsUnicode(false)
                 .HasColumnName("role_name");
         });
 
@@ -536,7 +522,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__User__B51D3DEAB3C7A2A5");
+            entity.HasKey(e => e.UId).HasName("PK__User__B51D3DEAD06A62D1");
 
             entity.ToTable("User");
 
@@ -549,15 +535,12 @@ public partial class SportZoneContext : DbContext
                 .HasColumnName("u_create_date");
             entity.Property(e => e.UEmail)
                 .HasMaxLength(100)
-                .IsUnicode(false)
                 .HasColumnName("u_email");
             entity.Property(e => e.UPassword)
                 .HasMaxLength(255)
-                .IsUnicode(false)
                 .HasColumnName("u_password");
             entity.Property(e => e.UStatus)
                 .HasMaxLength(10)
-                .IsUnicode(false)
                 .HasColumnName("u_status");
 
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
