@@ -65,7 +65,7 @@ namespace SportZone_API.Controllers
         /// <summary>
         /// Lấy chi tiết booking theo ID
         /// </summary>
-        [HttpGet("{id}")]
+        [HttpGet("GetBookingById/{id}")]
         public async Task<IActionResult> GetBookingDetail(int id)
         {
             try
@@ -85,6 +85,48 @@ namespace SportZone_API.Controllers
                     success = true,
                     message = "Lấy chi tiết booking thành công",
                     data = booking
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Hủy booking
+        /// </summary>
+        [HttpDelete("CancelBooking/{id}")]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            try
+            {
+                var result = await _bookingService.CancelBookingAsync(id);
+                if (!result)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy booking để hủy"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Hủy booking thành công"
                 });
             }
             catch (ArgumentException ex)

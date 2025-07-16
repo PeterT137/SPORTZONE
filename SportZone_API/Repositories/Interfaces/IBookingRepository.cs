@@ -17,5 +17,14 @@ namespace SportZone_API.Repository.Interfaces
         /// Kiểm tra slot thời gian có khả dụng không
         /// </summary>
         Task<bool> CheckTimeSlotAvailabilityAsync(int fieldId, DateOnly date, TimeOnly startTime, TimeOnly endTime);
+        /// <summary>
+        /// Hủy booking
+        /// </summary>
+        Task<bool> CancelBookingAsync(int bookingId);
+        /// <summary>
+        /// Lấy booking đơn giản theo ID
+        /// </summary>
+        Task<Booking?> GetBookingEntityByIdAsync(int bookingId);
     }
+
 }

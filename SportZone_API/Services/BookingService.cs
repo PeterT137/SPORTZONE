@@ -55,6 +55,34 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<bool> CancelBookingAsync(int bookingId)
+        {
+            try
+            {
+                if (bookingId <= 0)
+                    throw new ArgumentException("Booking ID không hợp lệ");
+
+                var booking = await _bookingRepository.GetBookingEntityByIdAsync(bookingId);
+                if (booking == null)
+                    throw new KeyNotFoundException("Không tìm thấy booking với ID đã cho");
+
+                var schedule = booking.FieldBookingSchedules?.FirstOrDefault();
+                if (schedule?.Date.HasValue == true && schedule?.StartTime.HasValue == true)
+                {
+                    var bookingDateTime = CombineDateAndTime(schedule.Date.Value, schedule.EndTime.Value);
+                    if (bookingDateTime.AddHours(-2) <= DateTime.Now)
+                    {
+                        throw new InvalidOperationException("Không thể hủy booking trong vòng 2 giờ trước giờ bắt đầu");
+                    }
+                }
+                return await _bookingRepository.CancelBookingAsync(bookingId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi hủy booking: {ex.Message}", ex);
+            }
+        }
+
         public async Task<(bool IsValid, string ErrorMessage)> ValidateBookingRulesAsync(BookingCreateDTO bookingDto)
         {
             try

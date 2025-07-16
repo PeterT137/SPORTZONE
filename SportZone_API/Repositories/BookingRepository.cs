@@ -153,6 +153,20 @@ namespace SportZone_API.Repository
             }
         }
 
+        public async Task<Booking?> GetBookingEntityByIdAsync(int bookingId)
+        {
+            try
+            {
+                return await _context.Bookings
+                    .Include(b => b.Field)
+                    .FirstOrDefaultAsync(b => b.BookingId == bookingId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy booking entity: {ex.Message}", ex);
+            }
+        }
+
         private void ValidateBookingInput(BookingCreateDTO bookingDto)
         {
             if (bookingDto.StartTime >= bookingDto.EndTime)
