@@ -146,5 +146,49 @@ namespace SportZone_API.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Lấy booking theo customer
+        /// </summary>
+        [HttpGet("customer/{customerId}")]
+        public async Task<IActionResult> GetCustomerBookings(int customerId)
+        {
+            try
+            {
+                var bookings = await _bookingService.GetCustomerBookingsAsync(customerId);
+                if (bookings == null || !bookings.Any())
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy booking cho khách hàng này"
+                    });
+                }
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy danh sách booking thành công",
+                    data = bookings,
+                    count = bookings.Count(),
+                    customerId = customerId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
     }
 }

@@ -265,6 +265,28 @@ namespace SportZone_API.Repository
             }
         }
 
+        public async Task<IEnumerable<BookingResponseDTO>> GetBookkingsByCustomerAsync(int customerId)
+        {
+            try
+            {
+                var bookings = await _context.Bookings
+                    .Include(b => b.Field)
+                       .ThenInclude(f => f.Fac)
+                    .Include(b => b.Customer)
+                    .Include(b => b.FieldBookingSchedules)
+                       .ThenInclude(s => s.Prices)
+                    .Where(b => b.CustomerId == customerId)
+                    .OrderByDescending(b => b.CreateAt)
+                    .ToListAsync();
+
+                return bookings.Select(MapToBookingResponseDTO);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách booking của khách hàng: {ex.Message}", ex);
+            }
+        }
+
         private BookingResponseDTO MapToBookingResponseDTO(Booking booking)
         {
             var schedule = booking.FieldBookingSchedules?.FirstOrDefault();

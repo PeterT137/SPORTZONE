@@ -83,6 +83,19 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<IEnumerable<BookingResponseDTO>> GetBookingsByCustomerAsync(int customerId)
+        {
+            try
+            {
+                if (customerId <= 0)
+                    throw new ArgumentException("Customer ID không hợp lệ");
+                return await _bookingRepository.GetBookingsByCustomerAsync(customerId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy bookings của khách hàng: {ex.Message}", ex);
+            }
+        }
         public async Task<(bool IsValid, string ErrorMessage)> ValidateBookingRulesAsync(BookingCreateDTO bookingDto)
         {
             try

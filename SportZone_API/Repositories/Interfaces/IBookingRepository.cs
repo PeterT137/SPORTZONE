@@ -25,6 +25,10 @@ namespace SportZone_API.Repository.Interfaces
         /// Lấy booking đơn giản theo ID
         /// </summary>
         Task<Booking?> GetBookingEntityByIdAsync(int bookingId);
+        /// <summary>
+        /// Lấy booking theo customer
+        /// </summary>
+        Task<IEnumerable<BookingResponseDTO>> GetBookingsByCustomerAsync(int customerId);
     }
 
 }
