@@ -386,5 +386,10 @@ namespace SportZone_API.Repository
                 } : null
             };
         }
+
+        public Task<IEnumerable<BookingResponseDTO>> GetBookingsByCustomerAsync(int customerId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

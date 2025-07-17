@@ -96,6 +96,7 @@ namespace SportZone_API.Services
                 throw new Exception($"Lỗi khi lấy bookings của khách hàng: {ex.Message}", ex);
             }
         }
+
         public async Task<(bool IsValid, string ErrorMessage)> ValidateBookingRulesAsync(BookingCreateDTO bookingDto)
         {
             try
@@ -181,6 +182,11 @@ namespace SportZone_API.Services
             {
                 throw new Exception($"Lỗi khi kiểm tra thời gian trống: {ex.Message}", ex);
             }
+        }
+
+        public Task<IEnumerable<BookingResponseDTO>> GetCustomerBookingsAsync(int customerId)
+        {
+            throw new NotImplementedException();
         }
     }
 }
