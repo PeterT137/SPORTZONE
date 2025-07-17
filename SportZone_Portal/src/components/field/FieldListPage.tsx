@@ -2,7 +2,7 @@ import { Calendar, Clock, Filter, Grid, List, MapPin, Search, Star } from "lucid
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Header from "../Header"
-
+import Swal from 'sweetalert2';
 interface Field {
     id: number
     name: string
@@ -137,11 +137,27 @@ const FieldListPage: React.FC = () => {
         }
         return labels[size] || size
     }
-
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: type,
+            title: message,
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true,
+        });
+    };
     const handleBookField = (field: Field) => {
-        setSelectedField(field)
-        setShowBookingModal(true)
-    }
+        const user = localStorage.getItem("token");
+        if (!user) {
+            showToast("Vui lòng đăng nhập để đặt sân!","error");
+            navigate("/login");
+        } else {
+            setSelectedField(field);
+            setShowBookingModal(true);
+        }
+    };
 
     const handleConfirmBooking = () => {
         if (selectedField && bookingDate && bookingTime && bookingDuration) {

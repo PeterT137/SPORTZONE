@@ -16,6 +16,7 @@ interface OrderListProps {
   onUpdateService: (orderServiceId: string, updates: Partial<OrderServiceType>) => void
   onDeleteService: (orderServiceId: string) => void
   onBookExtension: (orderId: string, hours: number, pricePerHour: number) => void
+  onUpdateOrderStatus: (orderId: string, newStatus: "pending" | "paid" | "cancelled") => void
 }
 
 export function OrderList({
@@ -28,10 +29,13 @@ export function OrderList({
   onUpdateService,
   onDeleteService,
   onBookExtension,
+  onUpdateOrderStatus,
 }: OrderListProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+
+  console.log("OrderList props:", { orders, user, onUpdateOrderStatus }) // Debug log
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -165,6 +169,7 @@ export function OrderList({
           onUpdateService={onUpdateService}
           onDeleteService={onDeleteService}
           onBookExtension={onBookExtension}
+          onUpdateOrderStatus={onUpdateOrderStatus} // Truyền đúng hàm từ props
         />
       )}
     </div>

@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
+import { useState } from "react"
 import type { Order, OrderServiceType, Service, User } from "../interface"
 import { OrderServiceForm } from "./OrderServiceForm"
 import { BookingExtensionForm } from "./BookingExtensionForm"
 import { MdDelete, MdPerson, MdPhone, MdCalendarToday, MdCreditCard } from "react-icons/md"
-
+import Swal from 'sweetalert2';
 interface OrderDetailModalProps {
   order: Order
   orderServices: OrderServiceType[]
@@ -16,6 +18,7 @@ interface OrderDetailModalProps {
   onUpdateService: (orderServiceId: string, updates: Partial<OrderServiceType>) => void
   onDeleteService: (orderServiceId: string) => void
   onBookExtension: (orderId: string, hours: number, pricePerHour: number) => void
+  onUpdateOrderStatus: (orderId: string, newStatus: "pending" | "paid" | "cancelled") => void
 }
 
 export function OrderDetailModal({
@@ -29,7 +32,13 @@ export function OrderDetailModal({
   onUpdateService,
   onDeleteService,
   onBookExtension,
+  onUpdateOrderStatus,
 }: OrderDetailModalProps) {
+  const [isPaying, setIsPaying] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+
+  console.log(`OrderDetailModal - Order ID: ${order.order_id}, Status: ${order.status_payment}, User Role: ${user.role}`) // Debug log
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "paid":
@@ -55,8 +64,56 @@ export function OrderDetailModal({
         return status
     }
   }
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: type,
+      title: message,
+      showConfirmButton: false,
+      timer: 2500,
+      timerProgressBar: true,
+    });
+  };
+  const canModify = order.status_payment === "pending" && user.role === "admin"
 
-  const canModify = user.role === "admin" || order.status_payment === "pending"
+  const handlePayment = async () => {
+    if (canModify && !isPaying) {
+      console.log(`Attempting to confirm payment for order ${order.order_id}`) // Debug log
+      try {
+        setIsPaying(true)
+        await onUpdateOrderStatus(order.order_id, "paid")
+        console.log(`Payment confirmed for order ${order.order_id}`) // Debug log
+        showToast("Xác nhận thanh toán thành công!","success")
+      } catch (error) {
+        console.error("Error confirming payment:", error)
+        showToast("Không thể xác nhận thanh toán. Vui lòng thử lại.","error");
+      } finally {
+        setIsPaying(false)
+      }
+    } else {
+      console.log(`Cannot confirm payment: canModify=${canModify}, isPaying=${isPaying}`) // Debug log
+    }
+  }
+
+  const handleCancel = async () => {
+    if (order.status_payment === "paid" && user.role === "admin" && !isCancelling) {
+      console.log(`Attempting to cancel order ${order.order_id}`) // Debug log
+      try {
+        setIsCancelling(true)
+        await onUpdateOrderStatus(order.order_id, "cancelled")
+        console.log(`Order ${order.order_id} cancelled`) // Debug log
+        alert("Hủy đơn hàng thành công!")
+      } catch (error) {
+        console.error("Error cancelling order:", error)
+        alert("Không thể hủy đơn hàng. Vui lòng thử lại.")
+      } finally {
+        setIsCancelling(false)
+      }
+    } else {
+      console.log(`Cannot cancel: status=${order.status_payment}, role=${user.role}, isCancelling=${isCancelling}`) // Debug log
+    }
+  }
 
   return (
     <div className={`relative ${open ? "block" : "hidden"}`}>
@@ -70,7 +127,6 @@ export function OrderDetailModal({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Order Information */}
           <div className="border border-gray-200 rounded-lg bg-white shadow-sm">
             <div className="p-4">
               <h3 className="flex items-center gap-2 text-lg font-semibold">
@@ -98,7 +154,6 @@ export function OrderDetailModal({
             </div>
           </div>
 
-          {/* Order Summary */}
           <div className="border border-gray-200 rounded-lg bg-white shadow-sm">
             <div className="p-4">
               <h3 className="text-lg font-semibold">Tổng quan đơn hàng</h3>
@@ -117,11 +172,28 @@ export function OrderDetailModal({
                 <span>Tổng tiền:</span>
                 <span>{order.total_amount.toLocaleString("vi-VN")}đ</span>
               </div>
+              {canModify && (
+                <button
+                  onClick={handlePayment}
+                  className="mt-4 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  disabled={isPaying}
+                >
+                  {isPaying ? "Đang xử lý..." : "Xác nhận thanh toán"}
+                </button>
+              )}
+              {order.status_payment === "paid" && user.role === "admin" && (
+                <button
+                  onClick={handleCancel}
+                  className="mt-2 w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? "Đang xử lý..." : "Hủy đơn hàng"}
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Services Section */}
         <div className="border border-gray-200 rounded-lg bg-white shadow-sm mt-6">
           <div className="p-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold">Dịch vụ đã đặt</h3>
@@ -180,11 +252,9 @@ export function OrderDetailModal({
           </div>
         </div>
 
-        {!canModify && (
+        {!canModify && order.status_payment !== "paid" && (
           <div className="text-sm text-gray-500 text-center p-4 bg-gray-100 rounded-lg mt-4">
-            {user.role === "user" && order.status_payment === "paid"
-              ? "Đơn hàng đã được thanh toán, không thể chỉnh sửa"
-              : "Bạn không có quyền chỉnh sửa đơn hàng này"}
+            Đơn hàng đã được thanh toán hoặc hủy, không thể chỉnh sửa
           </div>
         )}
       </div>

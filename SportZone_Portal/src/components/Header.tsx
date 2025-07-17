@@ -58,7 +58,7 @@ const Header: React.FC = () => {
               <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Hủy đặt sân</a>
             </div>
           </div>
-          <a href="#" className="text-white hover:text-[#1ebd6f]">Quản lý sân</a>
+          <a href="/field_list" className="text-white hover:text-[#1ebd6f]">Danh sách sân</a>
           <a href="#" className="text-white hover:text-[#1ebd6f]">Báo cáo</a>
           <a href="#" className="text-white hover:text-[#1ebd6f]">Liên hệ</a>
         </div>
