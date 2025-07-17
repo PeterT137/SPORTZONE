@@ -265,16 +265,16 @@ namespace SportZone_API.Repository
             }
         }
 
-        public async Task<IEnumerable<BookingResponseDTO>> GetBookkingsByCustomerAsync(int customerId)
+        public async Task<IEnumerable<BookingResponseDTO>> GetBookingsByCustomerAsync(int customerId)
         {
             try
             {
                 var bookings = await _context.Bookings
                     .Include(b => b.Field)
-                       .ThenInclude(f => f.Fac)
+                        .ThenInclude(f => f.Fac)
                     .Include(b => b.Customer)
                     .Include(b => b.FieldBookingSchedules)
-                       .ThenInclude(s => s.Prices)
+                        .ThenInclude(s => s.Prices)
                     .Where(b => b.CustomerId == customerId)
                     .OrderByDescending(b => b.CreateAt)
                     .ToListAsync();
@@ -283,7 +283,7 @@ namespace SportZone_API.Repository
             }
             catch (Exception ex)
             {
-                throw new Exception($"Lỗi khi lấy danh sách booking của khách hàng: {ex.Message}", ex);
+                throw new Exception($"Lỗi khi lấy booking theo customer: {ex.Message}", ex);
             }
         }
 
@@ -385,11 +385,6 @@ namespace SportZone_API.Repository
                     } : null
                 } : null
             };
-        }
-
-        public Task<IEnumerable<BookingResponseDTO>> GetBookingsByCustomerAsync(int customerId)
-        {
-            throw new NotImplementedException();
         }
     }
 }
