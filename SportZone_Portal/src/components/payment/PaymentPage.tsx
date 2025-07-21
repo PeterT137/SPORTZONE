@@ -249,12 +249,7 @@ const PaymentPage: React.FC = () => {
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      {method === "credit" ? (
-                        <>
-                          <CreditCard className="w-8 h-8 mx-auto mb-2" />
-                          <p className="font-medium">Thẻ tín dụng</p>
-                        </>
-                      ) : method === "momo" ? (
+                      { method === "momo" ? (
                         <>
                           <div className="w-8 h-8 mx-auto mb-2 bg-pink-600 rounded-full flex items-center justify-center">
                             <span className="text-white font-bold text-sm">M</span>

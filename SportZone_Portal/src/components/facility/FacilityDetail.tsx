@@ -3,8 +3,9 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useParams } from 'react-router-dom';
-import { FiSearch, FiEdit, FiTrash2, FiEye, FiArrowLeft, FiX, FiClock, FiMapPin } from "react-icons/fi"
+import { FiSearch, FiEdit, FiTrash2, FiEye, FiArrowLeft, FiX, FiClock, FiMapPin, FiPlus } from "react-icons/fi"
 import Sidebar from "../../Sidebar";
+
 type Field = {
     field_id: number
     fac_id: number
@@ -57,6 +58,23 @@ const FacilityDetail: React.FC = () => {
     const [editService, setEditService] = useState<Service | null>(null)
     const [fieldFormData, setFieldFormData] = useState<EditField | null>(null)
     const [serviceFormData, setServiceFormData] = useState<EditService | null>(null)
+    const [isAddFieldModalOpen, setIsAddFieldModalOpen] = useState<boolean>(false)
+    const [isAddServiceModalOpen, setIsAddServiceModalOpen] = useState<boolean>(false)
+    const [newFieldFormData, setNewFieldFormData] = useState<EditField>({
+        category_id: 1,
+        field_name: "",
+        description: "",
+        is_booking_enable: true,
+        price: 0,
+        images: ""
+    })
+    const [newServiceFormData, setNewServiceFormData] = useState<EditService>({
+        service_name: "",
+        price: 0,
+        status: "Active",
+        image: "",
+        description: ""
+    })
 
     // Mock data - trong thực tế sẽ fetch từ API
     const mockFacilities: Facility[] = [
@@ -241,6 +259,60 @@ const FacilityDetail: React.FC = () => {
         }
     }
 
+    const handleAddField = () => {
+        if (newFieldFormData.field_name && newFieldFormData.price > 0) {
+            const newField: Field = {
+                field_id: fields.length ? Math.max(...fields.map(f => f.field_id)) + 1 : 1,
+                fac_id: Number.parseInt(facId || "0", 10),
+                category_id: newFieldFormData.category_id,
+                field_name: newFieldFormData.field_name,
+                description: newFieldFormData.description,
+                is_booking_enable: newFieldFormData.is_booking_enable,
+                price: newFieldFormData.price,
+                images: newFieldFormData.images || "https://via.placeholder.com/100",
+            }
+            setFields((prev) => [...prev, newField])
+            setIsAddFieldModalOpen(false)
+            setNewFieldFormData({
+                category_id: 1,
+                field_name: "",
+                description: "",
+                is_booking_enable: true,
+                price: 0,
+                images: ""
+            })
+            alert("Thêm sân thành công!")
+        } else {
+            alert("Vui lòng điền đầy đủ tên sân và giá!")
+        }
+    }
+
+    const handleAddService = () => {
+        if (newServiceFormData.service_name && newServiceFormData.price > 0) {
+            const newService: Service = {
+                service_id: services.length ? Math.max(...services.map(s => s.service_id)) + 1 : 1,
+                fac_id: Number.parseInt(facId || "0", 10),
+                service_name: newServiceFormData.service_name,
+                price: newServiceFormData.price,
+                status: newServiceFormData.status,
+                image: newServiceFormData.image || "https://via.placeholder.com/100",
+                description: newServiceFormData.description,
+            }
+            setServices((prev) => [...prev, newService])
+            setIsAddServiceModalOpen(false)
+            setNewServiceFormData({
+                service_name: "",
+                price: 0,
+                status: "Active",
+                image: "",
+                description: ""
+            })
+            alert("Thêm dịch vụ thành công!")
+        } else {
+            alert("Vui lòng điền đầy đủ tên dịch vụ và giá!")
+        }
+    }
+
     const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target
         if (type === "checkbox") {
@@ -279,6 +351,29 @@ const FacilityDetail: React.FC = () => {
         })
     }
 
+    const handleNewFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type } = e.target
+        if (type === "checkbox") {
+            setNewFieldFormData((prev) => ({
+                ...prev,
+                [name]: (e.target as HTMLInputElement).checked,
+            }))
+        } else {
+            setNewFieldFormData((prev) => ({
+                ...prev,
+                [name]: type === "number" ? Number(value) : value,
+            }))
+        }
+    }
+
+    const handleNewServiceChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target
+        setNewServiceFormData((prev) => ({
+            ...prev,
+            [name]: type === "number" ? Number(value) : value,
+        }))
+    }
+
     const closeModal = () => {
         setSelectedField(null)
         setSelectedService(null)
@@ -286,10 +381,11 @@ const FacilityDetail: React.FC = () => {
         setEditService(null)
         setFieldFormData(null)
         setServiceFormData(null)
+        setIsAddFieldModalOpen(false)
+        setIsAddServiceModalOpen(false)
     }
 
     if (!facility) {
-
         return (
             <>  <Sidebar />
                 <div className="min-h-screen flex flex-col bg-gray-50 pl-64 pt-16">
@@ -310,7 +406,6 @@ const FacilityDetail: React.FC = () => {
 
     return (
         <>  <Sidebar />
-
             <div className="min-h-screen flex flex-col bg-gray-50 pl-64 pt-16">
                 <div className="max-w-6xl mx-auto">
                     {/* Header với nút quay lại */}
@@ -328,7 +423,6 @@ const FacilityDetail: React.FC = () => {
                     {/* Thông tin cơ sở */}
                     <div className="bg-white shadow-lg rounded-lg overflow-hidden mb-6">
                         <div className="md:flex">
-                            {/* Hình ảnh cơ sở */}
                             <div className="md:w-1/3">
                                 <img
                                     src={facility.picture || "https://via.placeholder.com/400x300"}
@@ -336,8 +430,6 @@ const FacilityDetail: React.FC = () => {
                                     className="w-full h-64 md:h-full object-cover"
                                 />
                             </div>
-
-                            {/* Thông tin chi tiết */}
                             <div className="md:w-2/3 p-6">
                                 <div className="flex items-start justify-between mb-4">
                                     <div>
@@ -348,9 +440,7 @@ const FacilityDetail: React.FC = () => {
                                         Đang hoạt động
                                     </span>
                                 </div>
-
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Địa chỉ */}
                                     <div className="flex items-start gap-3">
                                         <FiMapPin className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                                         <div>
@@ -358,8 +448,6 @@ const FacilityDetail: React.FC = () => {
                                             <p className="text-sm text-gray-600">{facility.address}</p>
                                         </div>
                                     </div>
-
-                                    {/* Giờ hoạt động */}
                                     <div className="flex items-start gap-3">
                                         <FiClock className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                                         <div>
@@ -369,8 +457,6 @@ const FacilityDetail: React.FC = () => {
                                             </p>
                                         </div>
                                     </div>
-
-                                    {/* Mô tả phụ */}
                                     {facility.subdescription && (
                                         <div className="md:col-span-2">
                                             <h3 className="text-sm font-medium text-gray-900 mb-1">Mô tả thêm</h3>
@@ -378,8 +464,6 @@ const FacilityDetail: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
-
-                                {/* Thống kê nhanh */}
                                 <div className="mt-6 pt-6 border-t border-gray-200">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="text-center">
@@ -399,9 +483,7 @@ const FacilityDetail: React.FC = () => {
                     {/* Main Content - Tabs và Tables */}
                     <div className="bg-white shadow-lg rounded-lg overflow-hidden">
                         <div className="p-6">
-                            {/* Tab Navigation & Filter */}
                             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-                                {/* Tabs */}
                                 <div className="flex border-b border-gray-200">
                                     <button
                                         onClick={() => setActiveTab("fields")}
@@ -422,9 +504,25 @@ const FacilityDetail: React.FC = () => {
                                         Danh sách dịch vụ ({filteredServices.length})
                                     </button>
                                 </div>
-
-                                {/* Filter Section */}
                                 <div className="flex items-center gap-2 w-full lg:w-auto">
+                                    {activeTab === "fields" && (
+                                        <button
+                                            onClick={() => setIsAddFieldModalOpen(true)}
+                                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                                        >
+                                            <FiPlus className="h-4 w-4" />
+                                            Thêm sân
+                                        </button>
+                                    )}
+                                    {activeTab === "services" && (
+                                        <button
+                                            onClick={() => setIsAddServiceModalOpen(true)}
+                                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                                        >
+                                            <FiPlus className="h-4 w-4" />
+                                            Thêm dịch vụ
+                                        </button>
+                                    )}
                                     <div className="relative flex-1 lg:w-80">
                                         <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                                         <input
@@ -658,7 +756,6 @@ const FacilityDetail: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Modals - giữ nguyên như cũ */}
                     {/* Field Detail Modal */}
                     {selectedField && (
                         <div
@@ -704,7 +801,7 @@ const FacilityDetail: React.FC = () => {
                                     <div>
                                         <span className="text-sm font-medium text-gray-500">Trạng thái đặt sân:</span>
                                         <span
-                                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ml-2 ${selectedField.is_booking_enable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${selectedField.is_booking_enable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                                                 }`}
                                         >
                                             {selectedField.is_booking_enable ? "Có thể đặt" : "Không thể đặt"}
@@ -886,6 +983,196 @@ const FacilityDetail: React.FC = () => {
                         </div>
                     )}
 
+                    {/* Add Field Modal */}
+                    {isAddFieldModalOpen && (
+                        <div
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+                            onClick={closeModal}
+                        >
+                            <div
+                                className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                                    <h3 className="text-xl font-semibold text-gray-900">Thêm sân mới</h3>
+                                    <button
+                                        onClick={closeModal}
+                                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors duration-200"
+                                    >
+                                        <FiX className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Tên sân</label>
+                                        <input
+                                            type="text"
+                                            name="field_name"
+                                            value={newFieldFormData.field_name}
+                                            onChange={handleNewFieldChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Loại sân</label>
+                                        <input
+                                            type="number"
+                                            name="category_id"
+                                            value={newFieldFormData.category_id}
+                                            onChange={handleNewFieldChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                                        <input
+                                            type="text"
+                                            name="description"
+                                            value={newFieldFormData.description}
+                                            onChange={handleNewFieldChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Giá (VND)</label>
+                                        <input
+                                            type="number"
+                                            name="price"
+                                            value={newFieldFormData.price}
+                                            onChange={handleNewFieldChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                        <input
+                                            type="checkbox"
+                                            name="is_booking_enable"
+                                            checked={newFieldFormData.is_booking_enable}
+                                            onChange={handleNewFieldChange}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <label className="text-sm font-medium text-gray-700">Cho phép đặt sân</label>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">URL hình ảnh</label>
+                                        <input
+                                            type="text"
+                                            name="images"
+                                            value={newFieldFormData.images}
+                                            onChange={handleNewFieldChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end space-x-3 pt-4">
+                                        <button
+                                            onClick={closeModal}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                                        >
+                                            Hủy
+                                        </button>
+                                        <button
+                                            onClick={handleAddField}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                                        >
+                                            Thêm sân
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Add Service Modal */}
+                    {isAddServiceModalOpen && (
+                        <div
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+                            onClick={closeModal}
+                        >
+                            <div
+                                className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                                    <h3 className="text-xl font-semibold text-gray-900">Thêm dịch vụ mới</h3>
+                                    <button
+                                        onClick={closeModal}
+                                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors duration-200"
+                                    >
+                                        <FiX className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Tên dịch vụ</label>
+                                        <input
+                                            type="text"
+                                            name="service_name"
+                                            value={newServiceFormData.service_name}
+                                            onChange={handleNewServiceChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Giá (VND)</label>
+                                        <input
+                                            type="number"
+                                            name="price"
+                                            value={newServiceFormData.price}
+                                            onChange={handleNewServiceChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                                        <select
+                                            name="status"
+                                            value={newServiceFormData.status}
+                                            onChange={handleNewServiceChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        >
+                                            <option value="Active">Hoạt động</option>
+                                            <option value="Inactive">Tạm dừng</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                                        <input
+                                            type="text"
+                                            name="description"
+                                            value={newServiceFormData.description}
+                                            onChange={handleNewServiceChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">URL hình ảnh</label>
+                                        <input
+                                            type="text"
+                                            name="image"
+                                            value={newServiceFormData.image}
+                                            onChange={handleNewServiceChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end space-x-3 pt-4">
+                                        <button
+                                            onClick={closeModal}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                                        >
+                                            Hủy
+                                        </button>
+                                        <button
+                                            onClick={handleAddService}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                                        >
+                                            Thêm dịch vụ
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Edit Service Modal */}
                     {editService && serviceFormData && (
                         <div
@@ -979,7 +1266,6 @@ const FacilityDetail: React.FC = () => {
                 </div>
             </div>
         </>
-
     )
 }
 

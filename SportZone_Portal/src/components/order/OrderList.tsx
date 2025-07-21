@@ -37,6 +37,7 @@ export function OrderList({
 
   console.log("OrderList props:", { orders, user, onUpdateOrderStatus }) // Debug log
 
+  //lọc danh sách đơn hàng
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.guest_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

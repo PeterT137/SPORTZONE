@@ -16,6 +16,7 @@ import { OrderManagement } from './components/order/OrderManager'; // Sửa impo
 import HomePage from './components/Pages/HomePage';
 import PaymentPage from './components/payment/PaymentPage';
 import ServiceManager from "./components/services/ServiceManager";
+import StaffManager from "./components/staff/StaffManager";
 const AppContent: React.FC = () => {
   return (
     <Routes>
@@ -38,6 +39,7 @@ const AppContent: React.FC = () => {
       <Route path="/order_manager" element={<OrderManagement />} /> {/* Sửa tên component */}
       <Route path="/field_list" element={<FieldListPage />} />
       <Route path="/payment" element={<PaymentPage />} />
+      <Route path="/staff_manager" element={<StaffManager />} />
     </Routes>
   );
 };

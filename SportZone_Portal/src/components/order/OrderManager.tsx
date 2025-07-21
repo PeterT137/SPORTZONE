@@ -20,7 +20,7 @@ export function OrderManagement() {
     name: "Admin User",
     role: "admin",
   })
-
+  //call API
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -48,6 +48,7 @@ export function OrderManagement() {
     return orderServices.filter((os) => os.order_id === orderId)
   }
 
+  //add service cho đơn hàng
   const addOrderService = async (orderService: Omit<OrderServiceType, "order_service_id">) => {
     try {
       const newOrderService = await OrderService.addOrderService(orderService)
@@ -59,7 +60,7 @@ export function OrderManagement() {
       console.error("Error adding order service:", error)
     }
   }
-
+  //cập nhật dịch vụ đã đặt
   const updateOrderService = async (orderServiceId: string, updates: Partial<OrderServiceType>) => {
     try {
       const updatedOrderService = await OrderService.updateOrderService(orderServiceId, updates)
@@ -100,6 +101,7 @@ export function OrderManagement() {
     }
   }
 
+  //xác nhận thanh toán
   const confirmPayment = async (orderId: string, newStatus: "pending" | "paid" | "cancelled") => {
     console.log(`Confirming payment for order ${orderId} with status ${newStatus}`) // Debug log
     try {
@@ -115,7 +117,7 @@ export function OrderManagement() {
       setPayingOrderId(null)
     }
   }
-
+  // tính tổng đơn hàng
   const stats = {
     totalOrders: orders.length,
     pendingOrders: orders.filter((o) => o.status_payment === "pending").length,
