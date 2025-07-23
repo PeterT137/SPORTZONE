@@ -179,7 +179,7 @@ const SignInForm: React.FC = () => {
 
           <div>
             <label htmlFor="signin-password" className="block text-sm font-medium text-gray-500 mb-1">
-              Password
+              Mật khẩu
             </label>
             <div className="relative">
               <input
@@ -214,14 +214,14 @@ const SignInForm: React.FC = () => {
                 onChange={handleChange}
                 className="w-3.5 h-3.5"
               />
-              <span>Remember me</span>
+              <span>Nhớ mật khẩu</span>
             </label>
             <button
               type="button"
               onClick={() => setShowForgotModal(true)}
               className="text-[#2f4f3f] font-semibold underline"
             >
-              Forgot Password?
+              Quên mật khẩu?
             </button>
           </div>
 
@@ -230,7 +230,7 @@ const SignInForm: React.FC = () => {
             disabled={loading}
             className="w-full bg-[#2f4f3f] text-white py-3 rounded-full text-sm font-semibold hover:bg-[#24412f]"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
 
           <button
@@ -240,7 +240,7 @@ const SignInForm: React.FC = () => {
             className="w-full mt-2 bg-white border border-gray-300 text-gray-800 py-2 rounded-full text-sm font-medium hover:bg-gray-100 flex items-center justify-center space-x-2"
           >
             <i className="fab fa-google"></i>
-            <span>{loading ? 'Please wait...' : 'Sign in with Google'}</span>
+            <span>{loading ? 'Đợi một chút...' : 'Đăng nhập với Google'}</span>
           </button>
         </form>
 
@@ -249,7 +249,7 @@ const SignInForm: React.FC = () => {
             <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-sm">
               {forgotStep === 'email' && (
                 <>
-                  <h2 className="text-lg font-semibold mb-4">Reset Password</h2>
+                  <h2 className="text-lg font-semibold mb-4">Thay đổi mật khẩu</h2>
                   <input
                     type="email"
                     placeholder="Enter your email"
@@ -259,14 +259,14 @@ const SignInForm: React.FC = () => {
                   />
                   <div className="flex justify-end space-x-2">
                     <button onClick={() => setShowForgotModal(false)} className="text-sm px-4 py-2 bg-gray-200 rounded">
-                      Cancel
+                      Hủy
                     </button>
                     <button
                       onClick={handleForgotPasswordSubmit}
                       disabled={loading}
                       className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
                     >
-                      {loading ? 'Sending...' : 'Send Code'}
+                      {loading ? 'Đang gửi...' : 'Gửi mã'}
                     </button>
                   </div>
                 </>
@@ -274,7 +274,7 @@ const SignInForm: React.FC = () => {
 
               {forgotStep === 'otp' && (
                 <>
-                  <h2 className="text-lg font-semibold mb-4">Enter OTP & New Password</h2>
+                  <h2 className="text-lg font-semibold mb-4">Nhập OTP và mật khẩu mới</h2>
                   <input
                     type="text"
                     placeholder="Enter 6-digit code"
@@ -299,14 +299,14 @@ const SignInForm: React.FC = () => {
                   />
                   <div className="flex justify-end space-x-2">
                     <button onClick={() => setForgotStep('email')} className="text-sm px-4 py-2 bg-gray-200 rounded">
-                      Back
+                      Trở lại
                     </button>
                     <button
                       onClick={handleNewPasswordSubmit}
                       disabled={loading}
                       className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
                     >
-                      {loading ? 'Verifying...' : 'Verify & Save'}
+                      {loading ? 'Đang xác nhận...' : 'Xác nhận & Lưu'}
                     </button>
                   </div>
                 </>

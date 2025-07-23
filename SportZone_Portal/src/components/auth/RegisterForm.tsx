@@ -1,33 +1,44 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+
 interface RegisterFormProps {
-  role: 'player';
+  role: 'player' | 'fieldOwner';
+}
+
+interface FormData {
+  name: string;
+  phone: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     phone: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [apiError, setApiError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [apiError, setApiError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const roleId = 2;
+  const roleIdMap: Record<RegisterFormProps['role'], number> = {
+    player: 2,
+    fieldOwner: 3,
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const validateForm = () => {
-    const newErrors: typeof errors = {};
+  const validateForm = (): Partial<FormData> => {
+    const newErrors: Partial<FormData> = {};
     if (!formData.name) newErrors.name = 'Name is required';
     if (!formData.phone) newErrors.phone = 'Phone is required';
     if (!formData.email) newErrors.email = 'Email is required';
@@ -39,9 +50,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
       !/[a-z]/.test(formData.password) ||
       !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
     ) {
-      newErrors.password = 'Password must be at least 10 characters and include uppercase, lowercase, and special character';
+      newErrors.password =
+        'Password must be at least 10 characters and include uppercase, lowercase, and special character';
     }
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords don't match";
+    if (formData.password !== formData.confirmPassword)
+      newErrors.confirmPassword = "Passwords don't match";
     return newErrors;
   };
 
@@ -54,6 +67,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
       setErrors(validationErrors);
       return;
     }
+
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
       Swal.fire({
         toast: true,
@@ -69,7 +83,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
     setLoading(true);
     try {
       await axios.post('https://localhost:7057/api/Register', {
-        roleId,
+        roleId: roleIdMap[role],
         name: formData.name,
         phone: formData.phone,
         email: formData.email,
@@ -79,13 +93,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
 
       setSuccessMessage('Registration successful! You can now sign in.');
       setFormData({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
+      showToast('Registration successful!', 'success');
     } catch (err: any) {
       const errorMessage =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        'Đã xảy ra lỗi không xác định';
+        err?.response?.data?.error || err?.response?.data?.message || 'Đã xảy ra lỗi không xác định';
+      setApiError(errorMessage);
       showToast(errorMessage, 'error');
-
     } finally {
       setLoading(false);
     }
@@ -94,32 +107,36 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
   return (
     <form className="space-y-5 mt-6" onSubmit={handleSubmit}>
       <h2 className="text-lg font-semibold text-[#2f4f3f] capitalize">
-        Register as {role}
+        Đăng ký với vai trò {role === 'fieldOwner' ? 'Chủ sân' : 'Người chơi'}
       </h2>
 
       {apiError && <p className="text-sm text-red-600">{apiError}</p>}
       {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
 
       <div>
-        <label className="block text-sm font-medium text-gray-500 mb-1">Name</label>
+        <label className="block text-sm font-medium text-gray-500 mb-1">Tên</label>
         <input
           type="text"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+          className={`w-full border px-4 py-2 rounded text-sm ${
+            errors.name ? 'border-red-500' : 'border-gray-300'
+          }`}
         />
         {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-500 mb-1">Phone</label>
+        <label className="block text-sm font-medium text-gray-500 mb-1">Số điện thoại</label>
         <input
           type="text"
           name="phone"
           value={formData.phone}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
+          className={`w-full border px-4 py-2 rounded text-sm ${
+            errors.phone ? 'border-red-500' : 'border-gray-300'
+          }`}
         />
         {errors.phone && <p className="text-red-500 text-xs">{errors.phone}</p>}
       </div>
@@ -131,31 +148,37 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
           name="email"
           value={formData.email}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
+          className={`w-full border px-4 py-2 rounded text-sm ${
+            errors.email ? 'border-red-500' : 'border-gray-300'
+          }`}
         />
         {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-500 mb-1">Password</label>
+        <label className="block text-sm font-medium text-gray-500 mb-1">Mật khẩu</label>
         <input
           type="password"
           name="password"
           value={formData.password}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
+          className={`w-full border px-4 py-2 rounded text-sm ${
+            errors.password ? 'border-red-500' : 'border-gray-300'
+          }`}
         />
         {errors.password && <p className="text-red-500 text-xs">{errors.password}</p>}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-500 mb-1">Confirm Password</label>
+        <label className="block text-sm font-medium text-gray-500 mb-1">Xác nhận mật khẩu</label>
         <input
           type="password"
           name="confirmPassword"
           value={formData.confirmPassword}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'}`}
+          className={`w-full border px-4 py-2 rounded text-sm ${
+            errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+          }`}
         />
         {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword}</p>}
       </div>
@@ -163,9 +186,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-[#2f4f3f] text-white py-3 rounded-full text-sm font-semibold hover:bg-[#24412f]"
+        className="w-full bg-[#2f4f3f] text-white py-3 rounded-full text-sm font-semibold hover:bg-[#24412f] disabled:opacity-50"
       >
-        {loading ? 'Registering...' : 'Register'}
+        {loading ? 'Đang đăng ký...' : 'Đăng ký'}
       </button>
     </form>
   );
