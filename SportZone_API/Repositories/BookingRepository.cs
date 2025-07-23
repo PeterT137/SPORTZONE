@@ -229,6 +229,7 @@ namespace SportZone_API.Repository
         public async Task<bool> CancelBookingAsync(int bookingId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
+            // Check Slot dddddd
             try
             {
                 var booking = await _context.Bookings
