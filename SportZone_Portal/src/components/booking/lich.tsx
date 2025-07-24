@@ -153,9 +153,7 @@ const BookingDetailsModal: React.FC<{
   if (!booking) return null
 
   return (
-    
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center  justify-center z-50 p-4">
-      <Sidebar />
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
@@ -407,127 +405,134 @@ const WeeklySchedule: React.FC = () => {
 
   const handleBookingConfirm = (booking: Booking, services: BookingService[], paymentMethod: string) => {
     console.log("Đặt sân đã được xác nhận:", { booking, services, paymentMethod })
-    // Ở đây bạn sẽ gửi dữ liệu này lên backend
     alert(
       `Đặt sân thành công! Tổng tiền: ${(booking.basePrice + services.reduce((sum, s) => sum + s.price * s.quantity, 0)).toLocaleString("vi-VN")}đ`,
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-6">
-      {/* Sport Filter Buttons */}
-            <Sidebar/>
-
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button
-          onClick={() => setSelectedSport("soccer")}
-          className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-            selectedSport === "soccer"
-              ? "bg-blue-500 text-white shadow-lg"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          ⚽ Sân bóng đá
-        </button>
-        <button
-          onClick={() => setSelectedSport("pickleball")}
-          className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-            selectedSport === "pickleball"
-              ? "bg-blue-500 text-white shadow-lg"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          🏓 Sân Pickleball
-        </button>
-        <button
-          onClick={() => setSelectedSport("tennis")}
-          className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-            selectedSport === "tennis"
-              ? "bg-blue-500 text-white shadow-lg"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          🎾 Sân Tennis
-        </button>
-      </div>
-
-      {/* Header Controls */}
-      <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm">
-        <div className="flex items-center space-x-4">
-          <button onClick={() => navigateWeek(-1)} className="p-3 rounded-full hover:bg-gray-100 transition-colors">
-            <FiChevronLeft className="w-5 h-5" />
-          </button>
-          <h2 className="text-xl font-bold text-gray-800">
-            {format(weekStart, "dd/MM", { locale: vi })} - {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
-          </h2>
-          <button onClick={() => navigateWeek(1)} className="p-3 rounded-full hover:bg-gray-100 transition-colors">
-            <FiChevronRight className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setCurrentDate(new Date())}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <FiCalendar className="w-4 h-4" />
-            <span>Hôm nay</span>
-          </button>
-        </div>
-
-        <div className="flex items-center space-x-4 w-full lg:w-auto">
-          <div className="relative flex-1 lg:flex-none">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm đặt sân..."
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full lg:w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <>
+      <Sidebar  />
+<div className="min-h-screen flex flex-col bg-gray-50 pl-32 pt-16">
+      {/* Sidebar */}
+      
+      {/* Main Content */}
+      <div className="flex-1 ml-[256px] p-4">
+        <div className="max-w-7xl w-full space-y-6">
+          {/* Sport Filter Buttons */}
+          <div className="flex flex-wrap gap-2 mb-6 justify-center">
+            <button
+              onClick={() => setSelectedSport("soccer")}
+              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                selectedSport === "soccer"
+                  ? "bg-blue-500 text-white shadow-lg"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              ⚽ Sân bóng đá
+            </button>
+            <button
+              onClick={() => setSelectedSport("pickleball")}
+              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                selectedSport === "pickleball"
+                  ? "bg-blue-500 text-white shadow-lg"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              🏓 Sân Pickleball
+            </button>
+            <button
+              onClick={() => setSelectedSport("tennis")}
+              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                selectedSport === "tennis"
+                  ? "bg-blue-500 text-white shadow-lg"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              🎾 Sân Tennis
+            </button>
           </div>
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Xuất dữ liệu">
-            <FiDownload className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
 
-      {/* Schedule Grid */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <div className="min-w-[768px]">
-            <div className="grid grid-cols-8 gap-1 bg-gray-100 p-1">
-              <div className="bg-white rounded p-2"></div>
-              {daysInWeek.map((day) => (
-                <div key={day.toString()} className="bg-white rounded text-center font-semibold py-3">
-                  <div className="text-sm text-gray-600">{format(day, "EEEE", { locale: vi })}</div>
-                  <div className="text-lg">{format(day, "dd/MM", { locale: vi })}</div>
-                </div>
-              ))}
+          {/* Header Controls */}
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm">
+            <div className="flex items-center space-x-4">
+              <button onClick={() => navigateWeek(-1)} className="p-3 rounded-full hover:bg-gray-100 transition-colors">
+                <FiChevronLeft className="w-5 h-5" />
+              </button>
+              <h2 className="text-xl font-bold text-gray-800">
+                {format(weekStart, "dd/MM", { locale: vi })} - {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
+              </h2>
+              <button onClick={() => navigateWeek(1)} className="p-3 rounded-full hover:bg-gray-100 transition-colors">
+                <FiChevronRight className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setCurrentDate(new Date())}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                <FiCalendar className="w-4 h-4" />
+                <span>Hôm nay</span>
+              </button>
+            </div>
 
-              {timeSlots.map((hour) => (
-                <React.Fragment key={hour}>
-                  <div className="bg-white rounded text-right pr-4 py-4 font-medium text-gray-600">{hour}:00</div>
-                  {daysInWeek.map((day) => (
-                    <div key={`${day}-${hour}`} className="bg-white rounded min-h-[80px] p-1">
-                      {filteredBookings
-                        .filter((booking) => isSameDay(booking.date, day) && booking.date.getHours() === hour)
-                        .map((booking) => (
-                          <BookingCell key={booking.id} booking={booking} onClick={setSelectedBooking} />
-                        ))}
-                    </div>
-                  ))}
-                </React.Fragment>
-              ))}
+            <div className="flex items-center space-x-4 w-full lg:w-auto">
+              <div className="relative flex-1 lg:flex-none">
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm đặt sân..."
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full lg:w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Xuất dữ liệu">
+                <FiDownload className="w-5 h-5" />
+              </button>
             </div>
           </div>
+
+          {/* Schedule Grid */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <div className="min-w-[768px]">
+                <div className="grid grid-cols-8 gap-1 bg-gray-100 p-1">
+                  <div className="bg-white rounded p-2"></div>
+                  {daysInWeek.map((day) => (
+                    <div key={day.toString()} className="bg-white rounded text-center font-semibold py-3">
+                      <div className="text-sm text-gray-600">{format(day, "EEEE", { locale: vi })}</div>
+                      <div className="text-lg">{format(day, "dd/MM", { locale: vi })}</div>
+                    </div>
+                  ))}
+
+                  {timeSlots.map((hour) => (
+                    <React.Fragment key={hour}>
+                      <div className="bg-white rounded text-right pr-4 py-4 font-medium text-gray-600">{hour}:00</div>
+                      {daysInWeek.map((day) => (
+                        <div key={`${day}-${hour}`} className="bg-white rounded min-h-[80px] p-1">
+                          {filteredBookings
+                            .filter((booking) => isSameDay(booking.date, day) && booking.date.getHours() === hour)
+                            .map((booking) => (
+                              <BookingCell key={booking.id} booking={booking} onClick={setSelectedBooking} />
+                            ))}
+                        </div>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Booking Details Modal */}
+          <BookingDetailsModal
+            booking={selectedBooking}
+            onClose={() => setSelectedBooking(null)}
+            onConfirm={handleBookingConfirm}
+          />
         </div>
       </div>
-
-      {/* Booking Details Modal */}
-      <BookingDetailsModal
-        booking={selectedBooking}
-        onClose={() => setSelectedBooking(null)}
-        onConfirm={handleBookingConfirm}
-      />
     </div>
+    </>
   )
 }
 
