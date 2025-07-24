@@ -1,8 +1,8 @@
-import { Calendar, Clock, Filter, Grid, List, MapPin, Search, Star } from "lucide-react"
-import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import Header from "../Header"
+import { Calendar, Clock, Filter, Grid, List, MapPin, Search, Star } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Swal from 'sweetalert2';
+import Header from "../Header";
 interface Field {
     id: number
     name: string
@@ -151,7 +151,7 @@ const FieldListPage: React.FC = () => {
     const handleBookField = (field: Field) => {
         const user = localStorage.getItem("token");
         if (!user) {
-            showToast("Vui lòng đăng nhập để đặt sân!","error");
+            showToast("Vui lòng đăng nhập để đặt sân!", "error");
             navigate("/login");
         } else {
             setSelectedField(field);
@@ -180,18 +180,7 @@ const FieldListPage: React.FC = () => {
             <Header />
             <div className="bg-white shadow-sm border-b">
                 <div className="max-w-7xl mx-auto px-4 py-6">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-4">Tìm sân thể thao</h1>
 
-                    <div className="relative mb-4">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm theo tên sân hoặc địa điểm..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
 
                     <div className="flex justify-between items-center">
                         <button
