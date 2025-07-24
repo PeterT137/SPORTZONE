@@ -11,12 +11,12 @@ import FacilityManager from './components/facility/FacilityManager';
 import FieldListPage from './components/field/FieldListPage';
 import FieldManager from "./components/field/FieldManager";
 import GoogleAuthCallback from './components/GoogleAuthCallback';
-import WeeklySchedule from './components/lich';
+import WeeklySchedule from './components/booking/lich';
+import OrdersTable from './components/order/OrderTable';
 import HomePage from './components/Pages/HomePage';
 import PaymentPage from './components/payment/PaymentPage';
 import ServiceManager from "./components/services/ServiceManager";
 import StaffManager from "./components/staff/StaffManager";
-import OrdersTable from './components/order/OrderTable';
 const AppContent: React.FC = () => {
   return (
     <Routes>

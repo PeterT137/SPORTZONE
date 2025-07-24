@@ -1,4 +1,5 @@
-import { Calendar, Clock, Filter, Grid, List, MapPin, Search, Star } from "lucide-react";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { Calendar, Clock, Grid, List, MapPin, Search, Star } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from 'sweetalert2';
@@ -180,16 +181,20 @@ const FieldListPage: React.FC = () => {
             <Header />
             <div className="bg-white shadow-sm border-b">
                 <div className="max-w-7xl mx-auto px-4 py-6">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-4">Tìm sân thể thao</h1>
 
+                    <div className="relative mb-4">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm theo tên sân hoặc địa điểm..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
 
                     <div className="flex justify-between items-center">
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            <Filter className="w-4 h-4" />
-                            <span>Bộ lọc</span>
-                        </button>
 
                         <div className="flex items-center space-x-2">
                             <span className="text-sm text-gray-600">Hiển thị:</span>
@@ -214,101 +219,6 @@ const FieldListPage: React.FC = () => {
 
             <div className="max-w-7xl mx-auto px-4 py-6">
                 <div className="flex flex-col lg:flex-row gap-6">
-                    {showFilters && (
-                        <div className="lg:w-80">
-                            <div className="bg-white rounded-lg shadow-md p-6 sticky top-6">
-                                <h2 className="text-lg font-semibold mb-4">Bộ lọc tìm kiếm</h2>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Loại sân</label>
-                                    <select
-                                        value={selectedType}
-                                        onChange={(e) => setSelectedType(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="all">Tất cả</option>
-                                        <option value="football">Bóng đá</option>
-                                        <option value="tennis">Tennis</option>
-                                        <option value="badminton">Cầu lông</option>
-                                        <option value="basketball">Bóng rổ</option>
-                                    </select>
-                                </div>
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Cơ sở</label>
-                                    <select
-                                        value={selectedFacility}
-                                        onChange={(e) => setSelectedFacility(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="all">Tất cả</option>
-                                        <option value="Hồ Chí Minh">Hồ Chí Minh</option>
-                                        <option value="Hà Nội">Hà Nội</option>
-                                        <option value="Thanh Hóa">Thanh Hóa</option>
-                                        <option value="Hải Phòng">Hải Phòng</option>
-                                    </select>
-                                </div>
-
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Kích thước</label>
-                                    <select
-                                        value={selectedSize}
-                                        onChange={(e) => setSelectedSize(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="all">Tất cả</option>
-                                        <option value="small">Nhỏ</option>
-                                        <option value="medium">Trung bình</option>
-                                        <option value="large">Lớn</option>
-                                    </select>
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Khoảng giá</label>
-                                    <div className="space-y-2">
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="500000"
-                                            step="10000"
-                                            value={priceRange[1]}
-                                            onChange={(e) => setPriceRange([priceRange[0], Number.parseInt(e.target.value)])}
-                                            className="w-full"
-                                        />
-                                        <div className="flex justify-between text-sm text-gray-600">
-                                            <span>{formatCurrency(0)}</span>
-                                            <span>{formatCurrency(priceRange[1])}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mb-6">
-                                    <label className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={showAvailableOnly}
-                                            onChange={(e) => setShowAvailableOnly(e.target.checked)}
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <span className="ml-2 text-sm text-gray-700">Chỉ hiển thị sân còn trống</span>
-                                    </label>
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        setSelectedType("all")
-                                        setSelectedSize("all")
-                                        setPriceRange([0, 500000])
-                                        setShowAvailableOnly(false)
-                                        setSearchTerm("")
-                                    }}
-                                    className="w-full px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                                >
-                                    Xóa bộ lọc
-                                </button>
-                            </div>
-                        </div>
-                    )}
 
                     <div className="flex-1">
                         <div className="mb-4 flex justify-between items-center">
