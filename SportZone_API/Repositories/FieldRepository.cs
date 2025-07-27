@@ -15,12 +15,13 @@ namespace SportZone_API.Repositories
             _context = context;
             _mapper = mapper;
         }
+
         public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync()
         {
             try
             {
                 var fields = await _context.Fields
-                    .Include(f => f.Fac)
+                    .Include(f => f.Fac) 
                     .Include(f => f.Category)
                     .ToListAsync();
                 return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
@@ -45,6 +46,11 @@ namespace SportZone_API.Repositories
             {
                 throw new Exception($"Lỗi khi lấy sân với ID {fieldId}: {ex.Message}", ex);
             }
+        }
+
+        public async Task<Field?> GetFieldModelByIdAsync(int fieldId)
+        {
+            return await _context.Fields.FirstOrDefaultAsync(f => f.FieldId == fieldId);
         }
 
         public async Task<IEnumerable<FieldResponseDTO>> GetFieldsByFacilityAsync(int facId)

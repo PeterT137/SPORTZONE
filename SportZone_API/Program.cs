@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Repositories;
@@ -10,49 +9,59 @@ using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services;
 using SportZone_API.Services.Interfaces;
 using SportZone_API.Mappings;
-using System.Text.Json.Serialization;
+using SportZone_API.Repository.Interfaces;
+using SportZone_API.Repository;
+using Microsoft.AspNetCore.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container
 var connectionString = builder.Configuration.GetConnectionString("MyCnn");
+
 builder.Services.AddControllers()
-    .AddJsonOptions(x =>
-        x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = true;
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 
 builder.Services.AddDbContext<SportZoneContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Identity password hashing
-builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-
-// AutoMapper (ưu tiên MappingProfile nếu đã tách riêng)
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 builder.Services.AddMemoryCache();
-
-// Configure strongly-typed email settings object
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
 
-// Repositories & Services từ cả hai phía
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IRegisterService, RegisterService>();
 builder.Services.AddScoped<IRegisterRepository, RegisterRepository>();
-
 builder.Services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
 builder.Services.AddScoped<IForgotPasswordRepository, ForgotPasswordRepository>();
-
 builder.Services.AddScoped<IFacilityService, FacilityService>();
 builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
-
 builder.Services.AddScoped<IFieldService, FieldService>();
+
+builder.Services.AddScoped<IBookingService, BookingService>();
+
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
+builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
+builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
 
-// Optional: nếu cần dùng HttpContext (session, token, v.v.)
+builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
+builder.Services.AddScoped<IFieldPricingRepository, FieldPricingRepository>();
+
+builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
+builder.Services.AddScoped<IFieldPricingService, FieldPricingService>();
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, SportZone_API.Services.OrderService>();
+
 builder.Services.AddHttpContextAccessor();
-
-// Authentication: Google + Cookie
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -67,18 +76,6 @@ builder.Services.AddAuthentication(options =>
     options.SaveTokens = true;
 });
 
-// Add Controllers + JSON config
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.WriteIndented = true;
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-    });
-
-// Enable CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -89,24 +86,21 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
-
-app.UseAuthentication(); // đừng quên khi dùng Google Auth
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
+
 app.Run();

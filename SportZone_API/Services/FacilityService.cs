@@ -32,12 +32,12 @@ namespace SportZone_API.Services
             var facility = _mapper.Map<Facility>(dto);
             await _repository.AddAsync(facility);
             await _repository.SaveChangesAsync();
-
+            var createdFacility = await _repository.GetByIdAsync(facility.FacId);
             return new ServiceResponse<Facility>
             {
                 Success = true,
                 Message = "Create facility successful.",
-                Data = facility
+                Data = createdFacility 
             };
         }
 
@@ -46,16 +46,15 @@ namespace SportZone_API.Services
             var facility = await _repository.GetByIdAsync(id);
             if (facility == null)
                 return new ServiceResponse<Facility> { Success = false, Message = "Facility not found." };
-
             _mapper.Map(dto, facility);
             await _repository.UpdateAsync(facility);
             await _repository.SaveChangesAsync();
-
+            var updatedFacility = await _repository.GetByIdAsync(id);
             return new ServiceResponse<Facility>
             {
                 Success = true,
                 Message = "Update facility successful.",
-                Data = facility
+                Data = updatedFacility
             };
         }
 
@@ -77,7 +76,7 @@ namespace SportZone_API.Services
 
         public async Task<List<Facility>> SearchFacilities(string text)
         {
-            return await _repository.SearchAsync(text);
+            return await _repository.SearchAsync(text); // dùng chung hàm get nếu k có data thfi trả null 
         }
     }
 }
