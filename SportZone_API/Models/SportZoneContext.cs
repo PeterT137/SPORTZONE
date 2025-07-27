@@ -35,6 +35,8 @@ public partial class SportZoneContext : DbContext
 
     public virtual DbSet<FieldOwner> FieldOwners { get; set; }
 
+    public virtual DbSet<FieldPricing> FieldPricings { get; set; }
+
     public virtual DbSet<Image> Images { get; set; }
 
     public virtual DbSet<Notification> Notifications { get; set; }
@@ -45,7 +47,7 @@ public partial class SportZoneContext : DbContext
 
     public virtual DbSet<OrderService> OrderServices { get; set; }
 
-    public virtual DbSet<Price> Prices { get; set; }
+    public virtual DbSet<Payment> Payments { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
 
@@ -63,7 +65,7 @@ public partial class SportZoneContext : DbContext
     {
         modelBuilder.Entity<Admin>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Admin__B51D3DEA16BA2E58");
+            entity.HasKey(e => e.UId).HasName("PK__Admin__B51D3DEAF5355CA9");
 
             entity.ToTable("Admin");
 
@@ -81,17 +83,18 @@ public partial class SportZoneContext : DbContext
             entity.HasOne(d => d.UIdNavigation).WithOne(p => p.Admin)
                 .HasForeignKey<Admin>(d => d.UId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Admin__u_id__4316F928");
+                .HasConstraintName("FK__Admin__u_id__44FF419A");
         });
 
         modelBuilder.Entity<Booking>(entity =>
         {
-            entity.HasKey(e => e.BookingId).HasName("PK__Booking__5DE3A5B12B94DC32");
+            entity.HasKey(e => e.BookingId).HasName("PK__Booking__5DE3A5B186627CDC");
 
             entity.ToTable("Booking");
 
             entity.Property(e => e.BookingId).HasColumnName("booking_id");
             entity.Property(e => e.CreateAt)
+                .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("create_at");
             entity.Property(e => e.CustomerId).HasColumnName("customer_id");
@@ -117,19 +120,21 @@ public partial class SportZoneContext : DbContext
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.CustomerId)
-                .HasConstraintName("FK__Booking__custome__787EE5A0");
+                .HasConstraintName("FK__Booking__custome__68487DD7");
 
             entity.HasOne(d => d.Field).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.FieldId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Booking__field_i__778AC167");
+                .HasConstraintName("FK__Booking__field_i__6754599E");
         });
 
         modelBuilder.Entity<CategoryField>(entity =>
         {
-            entity.HasKey(e => e.CategoryFieldId).HasName("PK__Category__6A073F09B17CB259");
+            entity.HasKey(e => e.CategoryFieldId).HasName("PK__Category__6A073F09D147D75F");
 
             entity.ToTable("Category_field");
+
+            entity.HasIndex(e => e.CategoryFieldName, "UQ__Category__A8D2A9800AF5B603").IsUnique();
 
             entity.Property(e => e.CategoryFieldId).HasColumnName("category_field_id");
             entity.Property(e => e.CategoryFieldName)
@@ -139,11 +144,13 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Customer>(entity =>
         {
-            entity.HasKey(e => e.CustomerId).HasName("PK__Customer__CD65CB856E76EDC6");
+            entity.HasKey(e => e.UId).HasName("PK__Customer__B51D3DEA52EBE3DF");
 
             entity.ToTable("Customer");
 
-            entity.Property(e => e.CustomerId).HasColumnName("customer_id");
+            entity.Property(e => e.UId)
+                .ValueGeneratedNever()
+                .HasColumnName("u_id");
             entity.Property(e => e.Dob).HasColumnName("dob");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
@@ -151,16 +158,16 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
                 .HasColumnName("phone");
-            entity.Property(e => e.UId).HasColumnName("u_id");
 
-            entity.HasOne(d => d.UIdNavigation).WithMany(p => p.Customers)
-                .HasForeignKey(d => d.UId)
-                .HasConstraintName("FK__Customer__u_id__3D5E1FD2");
+            entity.HasOne(d => d.UIdNavigation).WithOne(p => p.Customer)
+                .HasForeignKey<Customer>(d => d.UId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Customer__u_id__3F466844");
         });
 
         modelBuilder.Entity<Discount>(entity =>
         {
-            entity.HasKey(e => e.DiscountId).HasName("PK__Discount__BDBE9EF9B7A2BF9F");
+            entity.HasKey(e => e.DiscountId).HasName("PK__Discount__BDBE9EF9D8C50BD8");
 
             entity.ToTable("Discount");
 
@@ -178,16 +185,18 @@ public partial class SportZoneContext : DbContext
             entity.HasOne(d => d.Fac).WithMany(p => p.Discounts)
                 .HasForeignKey(d => d.FacId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Discount__fac_id__03F0984C");
+                .HasConstraintName("FK__Discount__fac_id__6383C8BA");
         });
 
         modelBuilder.Entity<ExternalLogin>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__External__3213E83F7249BD12");
+            entity.HasKey(e => e.UId).HasName("PK__External__B51D3DEAA5829427");
 
             entity.ToTable("External_Logins");
 
-            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UId)
+                .ValueGeneratedNever()
+                .HasColumnName("u_id");
             entity.Property(e => e.AccessToken)
                 .HasMaxLength(255)
                 .HasColumnName("access_token");
@@ -197,16 +206,16 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.ExternalUserId)
                 .HasMaxLength(100)
                 .HasColumnName("external_user_id");
-            entity.Property(e => e.UId).HasColumnName("u_id");
 
-            entity.HasOne(d => d.UIdNavigation).WithMany(p => p.ExternalLogins)
-                .HasForeignKey(d => d.UId)
-                .HasConstraintName("FK__External_L__u_id__45F365D3");
+            entity.HasOne(d => d.UIdNavigation).WithOne(p => p.ExternalLogin)
+                .HasForeignKey<ExternalLogin>(d => d.UId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__External_L__u_id__47DBAE45");
         });
 
         modelBuilder.Entity<Facility>(entity =>
         {
-            entity.HasKey(e => e.FacId).HasName("PK__Facility__978BA2C32C57198C");
+            entity.HasKey(e => e.FacId).HasName("PK__Facility__978BA2C3B0E7D5DB");
 
             entity.ToTable("Facility");
 
@@ -216,18 +225,22 @@ public partial class SportZoneContext : DbContext
                 .HasColumnName("address");
             entity.Property(e => e.CloseTime).HasColumnName("close_time");
             entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
             entity.Property(e => e.OpenTime).HasColumnName("open_time");
             entity.Property(e => e.Subdescription).HasColumnName("subdescription");
             entity.Property(e => e.UId).HasColumnName("u_id");
 
             entity.HasOne(d => d.UIdNavigation).WithMany(p => p.Facilities)
                 .HasForeignKey(d => d.UId)
-                .HasConstraintName("FK__Facility__u_id__5CD6CB2B");
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Facility__u_id__4F7CD00D");
         });
 
         modelBuilder.Entity<Field>(entity =>
         {
-            entity.HasKey(e => e.FieldId).HasName("PK__Field__1BB6F43E5822B3AF");
+            entity.HasKey(e => e.FieldId).HasName("PK__Field__1BB6F43EF6E7FCFE");
 
             entity.ToTable("Field");
 
@@ -242,16 +255,16 @@ public partial class SportZoneContext : DbContext
 
             entity.HasOne(d => d.Category).WithMany(p => p.Fields)
                 .HasForeignKey(d => d.CategoryId)
-                .HasConstraintName("FK__Field__category___628FA481");
+                .HasConstraintName("FK__Field__category___59FA5E80");
 
             entity.HasOne(d => d.Fac).WithMany(p => p.Fields)
                 .HasForeignKey(d => d.FacId)
-                .HasConstraintName("FK__Field__fac_id__619B8048");
+                .HasConstraintName("FK__Field__fac_id__59063A47");
         });
 
         modelBuilder.Entity<FieldBookingSchedule>(entity =>
         {
-            entity.HasKey(e => e.ScheduleId).HasName("PK__Field_bo__C46A8A6F3411879A");
+            entity.HasKey(e => e.ScheduleId).HasName("PK__Field_bo__C46A8A6FFC859824");
 
             entity.ToTable("Field_booking_schedule");
 
@@ -261,6 +274,9 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.EndTime).HasColumnName("end_time");
             entity.Property(e => e.FieldId).HasColumnName("field_id");
             entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.Price)
+                .HasColumnType("decimal(10, 2)")
+                .HasColumnName("price");
             entity.Property(e => e.StartTime).HasColumnName("start_time");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
@@ -268,16 +284,16 @@ public partial class SportZoneContext : DbContext
 
             entity.HasOne(d => d.Booking).WithMany(p => p.FieldBookingSchedules)
                 .HasForeignKey(d => d.BookingId)
-                .HasConstraintName("FK__Field_boo__booki__7D439ABD");
+                .HasConstraintName("FK__Field_boo__booki__6D0D32F4");
 
             entity.HasOne(d => d.Field).WithMany(p => p.FieldBookingSchedules)
                 .HasForeignKey(d => d.FieldId)
-                .HasConstraintName("FK__Field_boo__field__7C4F7684");
+                .HasConstraintName("FK__Field_boo__field__6C190EBB");
         });
 
         modelBuilder.Entity<FieldOwner>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Field_Ow__B51D3DEAFF24F1F1");
+            entity.HasKey(e => e.UId).HasName("PK__Field_Ow__B51D3DEA07500D3B");
 
             entity.ToTable("Field_Owner");
 
@@ -295,12 +311,32 @@ public partial class SportZoneContext : DbContext
             entity.HasOne(d => d.UIdNavigation).WithOne(p => p.FieldOwner)
                 .HasForeignKey<FieldOwner>(d => d.UId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Field_Owne__u_id__403A8C7D");
+                .HasConstraintName("FK__Field_Owne__u_id__4222D4EF");
+        });
+
+        modelBuilder.Entity<FieldPricing>(entity =>
+        {
+            entity.HasKey(e => e.PricingId).HasName("PK__Field_Pr__A25A9FB7D256BC8E");
+
+            entity.ToTable("Field_Pricing");
+
+            entity.Property(e => e.PricingId).HasColumnName("pricing_id");
+            entity.Property(e => e.EndTime).HasColumnName("end_time");
+            entity.Property(e => e.FieldId).HasColumnName("field_id");
+            entity.Property(e => e.Price)
+                .HasColumnType("decimal(10, 2)")
+                .HasColumnName("price");
+            entity.Property(e => e.StartTime).HasColumnName("start_time");
+
+            entity.HasOne(d => d.Field).WithMany(p => p.FieldPricings)
+                .HasForeignKey(d => d.FieldId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Field_Pri__field__7F2BE32F");
         });
 
         modelBuilder.Entity<Image>(entity =>
         {
-            entity.HasKey(e => e.ImgId).HasName("PK__Image__6F16A71C6002BCB9");
+            entity.HasKey(e => e.ImgId).HasName("PK__Image__6F16A71C23AA6CB3");
 
             entity.ToTable("Image");
 
@@ -312,12 +348,12 @@ public partial class SportZoneContext : DbContext
 
             entity.HasOne(d => d.Fac).WithMany(p => p.Images)
                 .HasForeignKey(d => d.FacId)
-                .HasConstraintName("FK__Image__fac_id__656C112C");
+                .HasConstraintName("FK__Image__fac_id__5CD6CB2B");
         });
 
         modelBuilder.Entity<Notification>(entity =>
         {
-            entity.HasKey(e => e.NotiId).HasName("PK__Notifica__FDA4F30A041D0B66");
+            entity.HasKey(e => e.NotiId).HasName("PK__Notifica__FDA4F30A6239EE46");
 
             entity.ToTable("Notification");
 
@@ -333,24 +369,27 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.Type)
                 .HasMaxLength(50)
                 .HasColumnName("type");
-            entity.Property(e => e.Uid).HasColumnName("uid");
+            entity.Property(e => e.UId).HasColumnName("u_id");
 
-            entity.HasOne(d => d.UidNavigation).WithMany(p => p.Notifications)
-                .HasForeignKey(d => d.Uid)
+            entity.HasOne(d => d.UIdNavigation).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.UId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Notificatio__uid__74AE54BC");
+                .HasConstraintName("FK__Notificati__u_id__4CA06362");
         });
 
         modelBuilder.Entity<Order>(entity =>
         {
-            entity.HasKey(e => e.OrderId).HasName("PK__Order__46596229B3B2F0E1");
+            entity.HasKey(e => e.OrderId).HasName("PK__Order__465962298BB8BDEE");
 
             entity.ToTable("Order");
 
             entity.Property(e => e.OrderId).HasColumnName("order_id");
             entity.Property(e => e.BookingId).HasColumnName("booking_id");
-            entity.Property(e => e.ContentPayment).HasColumnName("content_payment");
+            entity.Property(e => e.ContentPayment)
+                .HasMaxLength(50)
+                .HasColumnName("content_payment");
             entity.Property(e => e.CreateAt)
+                .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("create_at");
             entity.Property(e => e.CustomerId).HasColumnName("customer_id");
@@ -365,31 +404,34 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.StatusPayment)
                 .HasMaxLength(50)
                 .HasColumnName("status_payment");
-            entity.Property(e => e.TotalAmount)
+            entity.Property(e => e.TotalPrice)
                 .HasColumnType("decimal(10, 2)")
-                .HasColumnName("total_amount");
+                .HasColumnName("total_price");
+            entity.Property(e => e.TotalServicePrice)
+                .HasColumnType("decimal(10, 2)")
+                .HasColumnName("total_service_price");
 
             entity.HasOne(d => d.Booking).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.BookingId)
-                .HasConstraintName("FK__Order__booking_i__09A971A2");
+                .HasConstraintName("FK__Order__booking_i__73BA3083");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.CustomerId)
-                .HasConstraintName("FK__Order__customer___06CD04F7");
+                .HasConstraintName("FK__Order__customer___70DDC3D8");
 
             entity.HasOne(d => d.Discount).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.DiscountId)
-                .HasConstraintName("FK__Order__discount___08B54D69");
+                .HasConstraintName("FK__Order__discount___72C60C4A");
 
             entity.HasOne(d => d.Fac).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.FacId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Order__fac_id__07C12930");
+                .HasConstraintName("FK__Order__fac_id__71D1E811");
         });
 
         modelBuilder.Entity<OrderFieldId>(entity =>
         {
-            entity.HasKey(e => e.OrderFieldId1).HasName("PK__Order_fi__3E76E2B5B80470B9");
+            entity.HasKey(e => e.OrderFieldId1).HasName("PK__Order_fi__3E76E2B509FCB143");
 
             entity.ToTable("Order_field_id");
 
@@ -399,16 +441,16 @@ public partial class SportZoneContext : DbContext
 
             entity.HasOne(d => d.Field).WithMany(p => p.OrderFieldIds)
                 .HasForeignKey(d => d.FieldId)
-                .HasConstraintName("FK__Order_fie__field__123EB7A3");
+                .HasConstraintName("FK__Order_fie__field__7C4F7684");
 
             entity.HasOne(d => d.Order).WithMany(p => p.OrderFieldIds)
                 .HasForeignKey(d => d.OrderId)
-                .HasConstraintName("FK__Order_fie__order__114A936A");
+                .HasConstraintName("FK__Order_fie__order__7B5B524B");
         });
 
         modelBuilder.Entity<OrderService>(entity =>
         {
-            entity.HasKey(e => e.OrderServiceId).HasName("PK__Order_Se__88196EDDA9DCE202");
+            entity.HasKey(e => e.OrderServiceId).HasName("PK__Order_Se__88196EDDAEECC1B5");
 
             entity.ToTable("Order_Service");
 
@@ -422,38 +464,43 @@ public partial class SportZoneContext : DbContext
 
             entity.HasOne(d => d.Order).WithMany(p => p.OrderServices)
                 .HasForeignKey(d => d.OrderId)
-                .HasConstraintName("FK__Order_Ser__order__0D7A0286");
+                .HasConstraintName("FK__Order_Ser__order__778AC167");
 
             entity.HasOne(d => d.Service).WithMany(p => p.OrderServices)
                 .HasForeignKey(d => d.ServiceId)
-                .HasConstraintName("FK__Order_Ser__servi__0E6E26BF");
+                .HasConstraintName("FK__Order_Ser__servi__787EE5A0");
         });
 
-        modelBuilder.Entity<Price>(entity =>
+        modelBuilder.Entity<Payment>(entity =>
         {
-            entity.HasKey(e => e.PriceId).HasName("PK__Price__1681726DE360B54A");
+            entity.HasKey(e => e.PaymentId).HasName("PK__Payment__ED1FC9EA7C0154CD");
 
-            entity.ToTable("Price");
+            entity.ToTable("Payment");
 
-            entity.Property(e => e.PriceId).HasColumnName("price_id");
-            entity.Property(e => e.FieldId).HasColumnName("field_id");
-            entity.Property(e => e.Price1)
-                .HasColumnType("decimal(10, 2)")
-                .HasColumnName("price");
-            entity.Property(e => e.ScheduleId).HasColumnName("schedule_id");
+            entity.Property(e => e.PaymentId).HasColumnName("payment_id");
+            entity.Property(e => e.AccountName)
+                .HasMaxLength(100)
+                .HasColumnName("account_name");
+            entity.Property(e => e.BankCode)
+                .HasMaxLength(50)
+                .HasColumnName("bank_code");
+            entity.Property(e => e.BankNum)
+                .HasMaxLength(50)
+                .HasColumnName("bank_num");
+            entity.Property(e => e.ImageQr)
+                .HasMaxLength(255)
+                .HasColumnName("image_qr");
+            entity.Property(e => e.UId).HasColumnName("u_id");
 
-            entity.HasOne(d => d.Field).WithMany(p => p.Prices)
-                .HasForeignKey(d => d.FieldId)
-                .HasConstraintName("FK__Price__field_id__160F4887");
-
-            entity.HasOne(d => d.Schedule).WithMany(p => p.Prices)
-                .HasForeignKey(d => d.ScheduleId)
-                .HasConstraintName("FK__Price__schedule___17036CC0");
+            entity.HasOne(d => d.UIdNavigation).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.UId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Payment__u_id__02084FDA");
         });
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Role__760965CCC9472AEA");
+            entity.HasKey(e => e.RoleId).HasName("PK__Role__760965CC6FCC3E54");
 
             entity.ToTable("Role");
 
@@ -465,7 +512,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Service>(entity =>
         {
-            entity.HasKey(e => e.ServiceId).HasName("PK__Service__3E0DB8AF597A3E39");
+            entity.HasKey(e => e.ServiceId).HasName("PK__Service__3E0DB8AF3943A730");
 
             entity.ToTable("Service");
 
@@ -487,20 +534,19 @@ public partial class SportZoneContext : DbContext
 
             entity.HasOne(d => d.Fac).WithMany(p => p.Services)
                 .HasForeignKey(d => d.FacId)
-                .HasConstraintName("FK__Service__fac_id__00200768");
+                .HasConstraintName("FK__Service__fac_id__5FB337D6");
         });
 
         modelBuilder.Entity<Staff>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Staff__B51D3DEACC3A20CE");
+            entity.HasKey(e => e.UId).HasName("PK__Staff__B51D3DEA3E4679B1");
 
             entity.Property(e => e.UId)
                 .ValueGeneratedNever()
                 .HasColumnName("u_id");
             entity.Property(e => e.Dob).HasColumnName("dob");
-            entity.Property(e => e.EndTime)
-                .HasColumnType("datetime")
-                .HasColumnName("end_time");
+            entity.Property(e => e.EndTime).HasColumnName("end_time");
+            entity.Property(e => e.FacId).HasColumnName("fac_id");
             entity.Property(e => e.Image)
                 .HasMaxLength(255)
                 .HasColumnName("image");
@@ -510,27 +556,32 @@ public partial class SportZoneContext : DbContext
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
                 .HasColumnName("phone");
-            entity.Property(e => e.StartTime)
-                .HasColumnType("datetime")
-                .HasColumnName("start_time");
+            entity.Property(e => e.StartTime).HasColumnName("start_time");
+
+            entity.HasOne(d => d.Fac).WithMany(p => p.Staff)
+                .HasForeignKey(d => d.FacId)
+                .HasConstraintName("FK__Staff__fac_id__534D60F1");
 
             entity.HasOne(d => d.UIdNavigation).WithOne(p => p.Staff)
                 .HasForeignKey<Staff>(d => d.UId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Staff__u_id__6FE99F9F");
+                .HasConstraintName("FK__Staff__u_id__52593CB8");
         });
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__User__B51D3DEAD06A62D1");
+            entity.HasKey(e => e.UId).HasName("PK__User__B51D3DEAC32A44AB");
 
             entity.ToTable("User");
+
+            entity.HasIndex(e => e.UEmail, "UQ__User__3DF9EF2217358806").IsUnique();
 
             entity.Property(e => e.UId).HasColumnName("u_id");
             entity.Property(e => e.IsExternalLogin).HasColumnName("is_external_login");
             entity.Property(e => e.IsVerify).HasColumnName("is_verify");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
             entity.Property(e => e.UCreateDate)
+                .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("u_create_date");
             entity.Property(e => e.UEmail)
@@ -545,7 +596,7 @@ public partial class SportZoneContext : DbContext
 
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)
-                .HasConstraintName("FK__User__role_id__3A81B327");
+                .HasConstraintName("FK__User__role_id__3C69FB99");
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -11,6 +11,7 @@ using SportZone_API.Services.Interfaces;
 using SportZone_API.Mappings;
 using SportZone_API.Repository.Interfaces;
 using SportZone_API.Repository;
+using Microsoft.AspNetCore.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("MyCnn");
@@ -51,6 +52,14 @@ builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
 
+builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
+builder.Services.AddScoped<IFieldPricingRepository, FieldPricingRepository>();
+
+builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
+builder.Services.AddScoped<IFieldPricingService, FieldPricingService>();
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, SportZone_API.Services.OrderService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(options =>
@@ -87,7 +96,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();

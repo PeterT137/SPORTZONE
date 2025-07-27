@@ -24,8 +24,8 @@ namespace SportZone_API.Mappings
                .ForMember(dest => dest.FacilityName, opt => opt.MapFrom(src => src.Field != null && src.Field.Fac != null ? $"Cơ sở {src.Field.FacId}" : null))
                .ForMember(dest => dest.FacilityAddress, opt => opt.MapFrom(src => src.Field != null && src.Field.Fac != null ? src.Field.Fac.Address : null))
                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null))
-               .ForMember(dest => dest.FieldPrice, opt => opt.MapFrom(src => src.FieldBookingSchedules != null && src.FieldBookingSchedules.Any() && src.FieldBookingSchedules.First().Prices != null && src.FieldBookingSchedules.First().Prices.Any() ? src.FieldBookingSchedules.First().Prices.First().Price1 : null))
-               .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Orders != null && src.Orders.Any() ? src.Orders.First().TotalAmount : null))
+               //.ForMember(dest => dest.FieldPrice, opt => opt.MapFrom(src => src.FieldBookingSchedules != null && src.FieldBookingSchedules.Any() && src.FieldBookingSchedules.First().Prices != null && src.FieldBookingSchedules.First().Prices.Any() ? src.FieldBookingSchedules.First().Prices.First().Price1 : null))
+               .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Orders != null && src.Orders.Any() ? src.Orders.First().TotalPrice : null))
                .ForMember(dest => dest.Services, opt => opt.Ignore()) // Complex mapping - handled in repository
                .ForMember(dest => dest.Notes, opt => opt.MapFrom(src => src.FieldBookingSchedules != null && src.FieldBookingSchedules.Any() ? src.FieldBookingSchedules.First().Notes : null));
         }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
+using System.Threading.Tasks;
 
 namespace SportZone_API.Controllers
 {
@@ -9,15 +10,26 @@ namespace SportZone_API.Controllers
     public class RegisterController : ControllerBase
     {
         private readonly IRegisterService _registerService;
+
         public RegisterController(IRegisterService registerService)
         {
             _registerService = registerService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+        [HttpPost("general")] 
+        public async Task<IActionResult> RegisterGeneral([FromBody] RegisterDto dto)
         {
             var result = await _registerService.RegisterAsync(dto);
+            if (result.Success)
+                return Ok(new { message = result.Message });
+            else
+                return BadRequest(new { error = result.Message });
+        }
+
+        [HttpPost("staff")] 
+        public async Task<IActionResult> RegisterStaff([FromBody] RegisterStaffDto dto)
+        {
+            var result = await _registerService.RegisterStaffAsync(dto);
             if (result.Success)
                 return Ok(new { message = result.Message });
             else

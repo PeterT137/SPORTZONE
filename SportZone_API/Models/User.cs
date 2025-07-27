@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace SportZone_API.Models;
 
@@ -24,13 +23,15 @@ public partial class User
 
     public virtual Admin? Admin { get; set; }
 
-    public virtual ICollection<Customer> Customers { get; set; } = new List<Customer>();
-    [JsonIgnore]
-    public virtual ICollection<ExternalLogin> ExternalLogins { get; set; } = new List<ExternalLogin>();
+    public virtual Customer? Customer { get; set; }
+
+    public virtual ExternalLogin? ExternalLogin { get; set; }
 
     public virtual FieldOwner? FieldOwner { get; set; }
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual Role? Role { get; set; }
 

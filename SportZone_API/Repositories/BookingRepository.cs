@@ -139,7 +139,7 @@ namespace SportZone_API.Repository
                     .Include(b => b.Orders)
                         .ThenInclude(o => o.Discount)
                     .Include(b => b.FieldBookingSchedules)
-                        .ThenInclude(s => s.Prices)
+                        .ThenInclude(s => s.Price)
                     .FirstOrDefaultAsync(b => b.BookingId == bookingId);
 
                 if (booking == null)
@@ -272,7 +272,7 @@ namespace SportZone_API.Repository
                 CreateAt = booking.CreateAt,
                 GuestName = booking.GuestName,
                 GuestPhone = booking.GuestPhone,
-                FieldPrice = schedule?.Prices?.FirstOrDefault()?.Price1,
+                //FieldPrice = schedule?.Prices?.FirstOrDefault()?.Price1,
                 Notes = schedule?.Notes
             };
         }
@@ -306,7 +306,7 @@ namespace SportZone_API.Repository
                     FieldId = booking.Field.FieldId,
                     FieldName = booking.Field.FieldName,
                     Description = booking.Field.Description,
-                    Price = booking.FieldBookingSchedules?.FirstOrDefault()?.Prices?.FirstOrDefault()?.Price1,
+                    //Price = booking.FieldBookingSchedules?.FirstOrDefault()?.Prices?.FirstOrDefault()?.Price1,
                     CategoryName = booking.Field.Category?.CategoryFieldName,
                     Facility = booking.Field.Fac != null ? new FacilityInfoDTO
                     {
@@ -320,7 +320,7 @@ namespace SportZone_API.Repository
 
                 Customer = booking.Customer != null ? new CustomerInfoDTO
                 {
-                    CustomerId = booking.Customer.CustomerId,
+                    CustomerId = booking.Customer.UId,
                     Name = booking.Customer.Name,
                     Phone = booking.Customer.Phone,
                     Email = booking.Customer.UIdNavigation?.UEmail
@@ -329,7 +329,7 @@ namespace SportZone_API.Repository
                 Order = booking.Orders?.FirstOrDefault() != null ? new OrderInfoDTO
                 {
                     OrderId = booking.Orders.First().OrderId,
-                    TotalAmount = booking.Orders.First().TotalAmount,
+                    TotalAmount = booking.Orders.First().TotalPrice,
                     StatusPayment = booking.Orders.First().StatusPayment,
                     ContentPayment = booking.Orders.First().ContentPayment,
                     CreateAt = booking.Orders.First().CreateAt,

@@ -7,5 +7,6 @@ namespace SportZone_API.Repositories.Interfaces
         Task<User?> GetUserByEmailAsync(string email);
         Task RegisterUserWithCustomerAsync(User user, Customer customer);
         Task RegisterUserWithFieldOwnerAsync(User user, FieldOwner fieldOwner);
+        Task RegisterUserWithStaffAsync(User user, Staff staff);
     }
 }

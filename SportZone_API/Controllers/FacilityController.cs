@@ -77,14 +77,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        //// GET: api/Facility/search?text=abc
-        //[HttpGet("search")]
-        //public async Task<IActionResult> Search(string text)
-        //{
-        //    var results = await _facilityService.SearchFacilities(text);
-        //    return Ok(results);
-        //}
-
         // GET: api/Facility/search?text=abc
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string text)
