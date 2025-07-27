@@ -137,7 +137,8 @@ namespace SportZone_API.Repositories
                 {
                     return false;
                 }
-                _context.Fields.Remove(field);
+                field.IsBookingEnable = false; // Disable booking instead of deleting
+                //_context.Fields.Remove(field);
                 await _context.SaveChangesAsync();
                 return true;
             }
