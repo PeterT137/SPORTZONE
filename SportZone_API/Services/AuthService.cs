@@ -84,7 +84,11 @@ namespace SportZone_API.Services
 
                 // Check if user already exists with Google login
                 var existingUser = await _authRepository.GetUserByEmailAsync(googleLoginDto.Email, isExternalLogin: true);
-
+                var roleCustomer = await _authRepository.GetCustomerRoleIdByNameAsync();
+                if (roleCustomer == null)
+                {
+                    throw new Exception("Không tìm thấy vai trò khách hàng");
+                }
                 if (existingUser == null)
                 {
                     // Auto-register new Google user
@@ -92,7 +96,7 @@ namespace SportZone_API.Services
                     {
                         UEmail = googleLoginDto.Email,
                         UPassword = "GoogleLogin",
-                        RoleId = 2, // Default to Customer role
+                        RoleId = roleCustomer.RoleId,
                         UStatus = "Active",
                         UCreateDate = DateTime.UtcNow,
                         IsExternalLogin = true,
