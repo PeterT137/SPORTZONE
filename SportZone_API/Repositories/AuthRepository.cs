@@ -28,6 +28,19 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<User?> GetUserByIdAsync(int userId)
+        {
+            try
+            {
+                return await _context.Users
+                    .FirstOrDefaultAsync(u => u.UId == userId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tìm user theo ID: {ex.Message}", ex);
+            }
+        }
+
         public async Task<User> CreateUserAsync(User user)
         {
             try

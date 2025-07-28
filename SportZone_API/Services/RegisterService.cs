@@ -5,6 +5,9 @@ using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services.Interfaces;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace SportZone_API.Services
 {
@@ -13,41 +16,102 @@ namespace SportZone_API.Services
         private readonly IRegisterRepository _repository;
         private readonly IPasswordHasher<User> _passwordHasher;
         private readonly IMapper _mapper;
+        private readonly IFacilityRepository _facilityRepository;
+        private readonly SportZoneContext _context;
 
-        public RegisterService(IRegisterRepository repository, IPasswordHasher<User> passwordHasher, IMapper mapper)
+        public RegisterService(
+            IRegisterRepository repository,
+            IPasswordHasher<User> passwordHasher,
+            IMapper mapper,
+            IFacilityRepository facilityRepository,
+            SportZoneContext context)
         {
             _repository = repository;
             _passwordHasher = passwordHasher;
             _mapper = mapper;
+            _facilityRepository = facilityRepository;
+            _context = context;
         }
 
-        public async Task<ServiceResponse<string>> RegisterAsync(RegisterDto dto)
+        public async Task<ServiceResponse<string>> RegisterUserAsync(RegisterDto dto) 
         {
-            if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password) || string.IsNullOrWhiteSpace(dto.ConfirmPassword))
-                return Fail("Please enter complete information.");
-
-            if (!Regex.IsMatch(dto.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-                return Fail("Invalid email format.");
-
             if (!IsValidPassword(dto.Password))
-                return Fail("Password must be at least 10 characters long and include uppercase, lowercase letters, numbers, and special characters.");
-
-            if (dto.Password != dto.ConfirmPassword)
-                return Fail("Password confirmation does not match.");
-
+            {
+                return Fail("Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.");
+            }
             var existing = await _repository.GetUserByEmailAsync(dto.Email);
             if (existing != null)
-                return Fail("Email already exists.");
+            {
+                return Fail("Email đã tồn tại.");
+            }
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == dto.RoleName);
+            if (role == null)
+            {
+                return Fail($"Tên vai trò '{dto.RoleName}' không hợp lệ. Vui lòng chọn 'Customer', 'FieldOwner' hoặc 'Staff'.");
+            }
+            if (dto.RoleName == "Customer")
+            {
+                if (dto.FacId.HasValue || dto.Dob.HasValue || !string.IsNullOrEmpty(dto.Image) || dto.StartTime.HasValue || dto.EndTime.HasValue)
+                {
+                    return Fail("Vai trò 'Customer' không được phép nhập các thông tin của nhân viên.");
+                }
+                var user = _mapper.Map<User>(dto);
+                user.RoleId = role.RoleId;
+                user.UPassword = _passwordHasher.HashPassword(user, dto.Password);
+                var customer = _mapper.Map<Customer>(dto);
+                await _repository.RegisterUserWithCustomerAsync(user, customer);
+                return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản khách hàng thành công." };
+            }
+            else if (dto.RoleName == "Field Owner")
+            {
+                if (dto.FacId.HasValue || dto.Dob.HasValue || !string.IsNullOrEmpty(dto.Image) || dto.StartTime.HasValue || dto.EndTime.HasValue)
+                {
+                    return Fail("Vai trò 'FieldOwner' không được phép nhập các thông tin của nhân viên.");
+                }
+                var user = _mapper.Map<User>(dto);
+                user.RoleId = role.RoleId;
+                user.UPassword = _passwordHasher.HashPassword(user, dto.Password);
+                var fieldOwner = _mapper.Map<FieldOwner>(dto);
+                await _repository.RegisterUserWithFieldOwnerAsync(user, fieldOwner);
+                return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản chủ sân thành công." };
+            }
+            else if (dto.RoleName == "Staff")
+            {
+                if (!dto.FacId.HasValue || dto.FacId.Value <= 0)
+                {
+                    return Fail("Vui lòng cung cấp FacId hợp lệ cho nhân viên.");
+                }
+                if (!dto.Dob.HasValue)
+                {
+                    return Fail("Ngày sinh không được để trống cho nhân viên.");
+                }
+                if (!dto.StartTime.HasValue)
+                {
+                    return Fail("Thời gian bắt đầu làm việc không được để trống cho nhân viên.");
+                }
+                if (dto.StartTime.HasValue && dto.EndTime.HasValue && dto.StartTime.Value > dto.EndTime.Value)
+                {
+                    return Fail("Thời gian bắt đầu không thể sau thời gian kết thúc.");
+                }
 
-            var user = _mapper.Map<User>(dto);
-            user.RoleId = dto.RoleId;
-            user.UPassword = _passwordHasher.HashPassword(user, dto.Password);
+                var facility = await _facilityRepository.GetByIdAsync(dto.FacId.Value);
+                if (facility == null)
+                {
+                    return Fail($"Không tìm thấy cơ sở với FacId '{dto.FacId.Value}'. Vui lòng cung cấp FacId hợp lệ.");
+                }
 
-            var customer = _mapper.Map<Customer>(dto);
+                var user = _mapper.Map<User>(dto);
+                user.RoleId = role.RoleId;
+                user.UPassword = _passwordHasher.HashPassword(user, dto.Password);
 
-            await _repository.RegisterUserWithCustomerAsync(user, customer);
-
-            return new ServiceResponse<string> { Success = true, Message = "Account registration successful." };
+                var staff = _mapper.Map<Staff>(dto);
+                await _repository.RegisterUserWithStaffAsync(user, staff);
+                return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản nhân viên thành công." };
+            }
+            else
+            {
+                return Fail("Tên vai trò không hợp lệ.");
+            }
         }
 
         private static ServiceResponse<string> Fail(string msg) => new() { Success = false, Message = msg };

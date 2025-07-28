@@ -15,12 +15,16 @@ namespace SportZone_API.Repositories
 
         public async Task<List<Facility>> GetAllAsync()
         {
-            return await _context.Facilities.ToListAsync();
+            return await _context.Facilities
+                                 .Include(f => f.Images) 
+                                 .ToListAsync();
         }
 
         public async Task<Facility?> GetByIdAsync(int id)
         {
-            return await _context.Facilities.FindAsync(id);
+            return await _context.Facilities
+                                 .Include(f => f.Images)
+                                 .FirstOrDefaultAsync(f => f.FacId == id); 
         }
 
         public async Task AddAsync(Facility facility)
@@ -30,7 +34,28 @@ namespace SportZone_API.Repositories
 
         public async Task UpdateAsync(Facility facility)
         {
-            _context.Facilities.Update(facility);
+            var existingFacility = await _context.Facilities
+                                                 .Include(f => f.Images)
+                                                 .AsNoTracking() 
+                                                 .FirstOrDefaultAsync(f => f.FacId == facility.FacId);
+            if (existingFacility != null)
+            {
+                foreach (var existingImage in existingFacility.Images)
+                {
+                    if (!facility.Images.Any(i => i.ImgId == existingImage.ImgId))
+                    {
+                        _context.Images.Remove(existingImage);
+                    }
+                }
+                foreach (var newImage in facility.Images)
+                {
+                    if (newImage.ImgId == 0) 
+                    {
+                        _context.Images.Add(newImage);
+                    }
+                }
+                _context.Entry(facility).State = EntityState.Modified;
+            }
         }
 
         public async Task DeleteAsync(Facility facility)
@@ -41,10 +66,12 @@ namespace SportZone_API.Repositories
         public async Task<List<Facility>> SearchAsync(string text)
         {
             return await _context.Facilities
-                .Where(f => (f.Address ?? "").Contains(text) ||
-                            (f.Description ?? "").Contains(text) ||
-                            (f.Subdescription ?? "").Contains(text))
-                .ToListAsync();
+                                 .Include(f => f.Images)
+                                 .Where(f => (f.Name ?? "").Contains(text) ||
+                                             (f.Address ?? "").Contains(text) ||
+                                             (f.Description ?? "").Contains(text) ||
+                                             (f.Subdescription ?? "").Contains(text))
+                                 .ToListAsync();
         }
 
         public async Task SaveChangesAsync()

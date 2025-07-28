@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
+using System.Threading.Tasks;
 
 namespace SportZone_API.Controllers
 {
@@ -9,15 +10,23 @@ namespace SportZone_API.Controllers
     public class RegisterController : ControllerBase
     {
         private readonly IRegisterService _registerService;
+
         public RegisterController(IRegisterService registerService)
         {
             _registerService = registerService;
         }
 
         [HttpPost]
-        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+        [Route("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto) // Đã đổi tên DTO
         {
-            var result = await _registerService.RegisterAsync(dto);
+            // Kiểm tra Data Annotations validation
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Trả về chi tiết lỗi validation
+            }
+
+            var result = await _registerService.RegisterUserAsync(dto);
             if (result.Success)
                 return Ok(new { message = result.Message });
             else

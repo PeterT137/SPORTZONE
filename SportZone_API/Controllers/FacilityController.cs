@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
@@ -13,10 +14,12 @@ namespace SportZone_API.Controllers
     public class FacilityController : ControllerBase
     {
         private readonly IFacilityService _facilityService;
+        private readonly RoleAuthorizeAttribute _roleAuthorizeAttribute;
 
-        public FacilityController(IFacilityService facilityService)
+        public FacilityController(IFacilityService facilityService, RoleAuthorizeAttribute roleAuthorizeAttribute)
         {
             _facilityService = facilityService;
+            _roleAuthorizeAttribute = roleAuthorizeAttribute;
         }
 
         // GET: api/Facility
@@ -40,6 +43,7 @@ namespace SportZone_API.Controllers
 
         // POST: api/Facility
         [HttpPost]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> Create([FromBody] FacilityDto dto)
         {
             var create = await _facilityService.CreateFacility(dto);
@@ -47,12 +51,13 @@ namespace SportZone_API.Controllers
                 return Ok(new { create.Message, create.Data });
             else
             {
-               return BadRequest(new { create.Message });
+                return BadRequest(new { create.Message });
             }
         }
 
         // PUT: api/Facility/{id}
         [HttpPut("{id}")]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> Update(int id, [FromBody] FacilityDto dto)
         {
             var update = await _facilityService.UpdateFacility(id, dto);
@@ -66,24 +71,17 @@ namespace SportZone_API.Controllers
 
         // DELETE: api/Facility/{id}
         [HttpDelete("{id}")]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> Delete(int id)
         {
             var delete = await _facilityService.DeleteFacility(id);
             if (delete.Success)
-                return Ok(new { delete.Message});
+                return Ok(new { delete.Message });
             else
             {
                 return BadRequest(new { delete.Message });
             }
         }
-
-        //// GET: api/Facility/search?text=abc
-        //[HttpGet("search")]
-        //public async Task<IActionResult> Search(string text)
-        //{
-        //    var results = await _facilityService.SearchFacilities(text);
-        //    return Ok(results);
-        //}
 
         // GET: api/Facility/search?text=abc
         [HttpGet("search")]
