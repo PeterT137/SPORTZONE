@@ -156,7 +156,7 @@ namespace SportZone_API.Repository
                 if (booking == null)
                     return null;
 
-                return MapToBookingDetailDTO(booking);
+                return BookingMapper.MapToBookingDetailDTO(booking);
             }
             catch (Exception ex)
             {
@@ -289,123 +289,12 @@ namespace SportZone_API.Repository
                     .OrderByDescending(b => b.CreateAt)
                     .ToListAsync();
 
-                return bookings.Select(MapToBookingResponseDTO);
+                return bookings.Select(BookingMapper.MapToBookingResponseDTO);
             }
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi lấy booking theo customer: {ex.Message}", ex);
             }
-        }
-
-        private BookingResponseDTO MapToBookingResponseDTO(Booking booking)
-        {
-            var schedule = booking.FieldBookingSchedules?.FirstOrDefault();
-
-            // Calculate FieldPrice from FieldPricing
-            decimal? fieldPrice = null;
-            if (booking.StartTime.HasValue && booking.EndTime.HasValue && booking.Field?.FieldPricings != null)
-            {
-                var pricing = booking.Field.FieldPricings.FirstOrDefault(p =>
-                    p.StartTime == booking.StartTime.Value &&
-                    p.EndTime == booking.EndTime.Value);
-                fieldPrice = pricing?.Price;
-            }
-
-            return new BookingResponseDTO
-            {
-                BookingId = booking.BookingId,
-                FieldId = booking.FieldId,
-                FieldName = booking.Field?.FieldName,
-                FacilityName = booking.Field?.Fac != null ? $"Cơ sở {booking.Field.FacId}" : null,
-                FacilityAddress = booking.Field?.Fac?.Address,
-                UserId = booking.UserId,
-                CustomerName = booking.User?.Customer?.Name,
-                Title = booking.Title,
-                Date = booking.Date,
-                StartTime = booking.StartTime,
-                EndTime = booking.EndTime,
-                Status = booking.Status,
-                StatusPayment = booking.StatusPayment,
-                CreateAt = booking.CreateAt,
-                GuestName = booking.GuestName,
-                GuestPhone = booking.GuestPhone,
-                FieldPrice = fieldPrice,
-                Notes = schedule?.Notes
-            };
-        }
-        private BookingDetailDTO MapToBookingDetailDTO(Booking booking)
-        {
-            var responseDto = MapToBookingResponseDTO(booking);
-
-            return new BookingDetailDTO
-            {
-                BookingId = responseDto.BookingId,
-                FieldId = responseDto.FieldId,
-                FieldName = responseDto.FieldName,
-                FacilityName = responseDto.FacilityName,
-                FacilityAddress = responseDto.FacilityAddress,
-                UserId = responseDto.UserId,
-                CustomerName = responseDto.CustomerName,
-                Title = responseDto.Title,
-                Date = responseDto.Date,
-                StartTime = responseDto.StartTime,
-                EndTime = responseDto.EndTime,
-                Status = responseDto.Status,
-                StatusPayment = responseDto.StatusPayment,
-                CreateAt = responseDto.CreateAt,
-                GuestName = responseDto.GuestName,
-                GuestPhone = responseDto.GuestPhone,
-                FieldPrice = responseDto.FieldPrice,
-                Notes = responseDto.Notes,
-
-                Field = booking.Field != null ? new FieldInfoDTO
-                {
-                    FieldId = booking.Field.FieldId,
-                    FieldName = booking.Field.FieldName,
-                    Description = booking.Field.Description,
-                    Price = responseDto.FieldPrice, // Use the calculated FieldPrice
-                    CategoryName = booking.Field.Category?.CategoryFieldName,
-                    Facility = booking.Field.Fac != null ? new FacilityInfoDTO
-                    {
-                        FacId = booking.Field.Fac.FacId,
-                        Address = booking.Field.Fac.Address,
-                        OpenTime = booking.Field.Fac.OpenTime,
-                        CloseTime = booking.Field.Fac.CloseTime,
-                        Description = booking.Field.Fac.Description
-                    } : null
-                } : null,
-
-                Customer = booking.User?.Customer != null ? new CustomerInfoDTO
-                {
-                    UserId = booking.UserId ?? 0, // Safe cast since User is not null
-                    Name = booking.User.Customer?.Name,
-                    Phone = booking.User.Customer?.Phone,
-                    Email = booking.User?.UEmail
-                } : null,
-
-                Order = booking.Orders?.FirstOrDefault() != null ? new OrderInfoDTO
-                {
-                    OrderId = booking.Orders.First().OrderId,
-                    TotalAmount = booking.Orders.First().TotalPrice,
-                    StatusPayment = booking.Orders.First().StatusPayment,
-                    ContentPayment = booking.Orders.First().ContentPayment,
-                    CreateAt = booking.Orders.First().CreateAt,
-                    Services = booking.Orders.First().OrderServices?.Select(os => new BookingServiceDTO
-                    {
-                        ServiceId = os.Service?.ServiceId ?? 0,
-                        ServiceName = os.Service?.ServiceName,
-                        Price = os.Service?.Price,
-                        Quantity = os.Quantity,
-                        TotalPrice = (os.Service?.Price ?? 0) * (os.Quantity ?? 1)
-                    }).ToList(),
-                    Discount = booking.Orders.First().Discount != null ? new DiscountInfoDTO
-                    {
-                        DiscountId = booking.Orders.First().Discount.DiscountId,
-                        DiscountPercentage = booking.Orders.First().Discount.DiscountPercentage,
-                        Description = booking.Orders.First().Discount.Description
-                    } : null
-                } : null
-            };
         }
     }
 }
