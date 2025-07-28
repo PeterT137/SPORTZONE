@@ -17,6 +17,8 @@ public partial class Booking
 
     public TimeOnly? EndTime { get; set; }
 
+    public DateOnly? Date { get; set; }
+
     public string? Status { get; set; }
 
     public string? StatusPayment { get; set; }
@@ -26,8 +28,6 @@ public partial class Booking
     public string? GuestName { get; set; }
 
     public string? GuestPhone { get; set; }
-
-    public DateOnly? Date { get; set; }
 
     public virtual Customer? Customer { get; set; }
 

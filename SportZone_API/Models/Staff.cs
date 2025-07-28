@@ -7,6 +7,8 @@ public partial class Staff
 {
     public int UId { get; set; }
 
+    public int? FacId { get; set; }
+
     public string? Name { get; set; }
 
     public string? Phone { get; set; }
@@ -15,9 +17,11 @@ public partial class Staff
 
     public string? Image { get; set; }
 
-    public DateTime? StartTime { get; set; }
+    public DateOnly? StartTime { get; set; }
 
-    public DateTime? EndTime { get; set; }
+    public DateOnly? EndTime { get; set; }
+
+    public virtual Facility? Fac { get; set; }
 
     public virtual User UIdNavigation { get; set; } = null!;
 }

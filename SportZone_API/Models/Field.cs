@@ -25,7 +25,7 @@ public partial class Field
 
     public virtual ICollection<FieldBookingSchedule> FieldBookingSchedules { get; set; } = new List<FieldBookingSchedule>();
 
-    public virtual ICollection<OrderFieldId> OrderFieldIds { get; set; } = new List<OrderFieldId>();
+    public virtual ICollection<FieldPricing> FieldPricings { get; set; } = new List<FieldPricing>();
 
-    public virtual ICollection<Price> Prices { get; set; } = new List<Price>();
+    public virtual ICollection<OrderFieldId> OrderFieldIds { get; set; } = new List<OrderFieldId>();
 }

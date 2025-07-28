@@ -17,18 +17,11 @@ namespace SportZone_API.Repositories
         }
         public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync()
         {
-            try
-            {
-                var fields = await _context.Fields
-                    .Include(f => f.Fac)
-                    .Include(f => f.Category)
-                    .ToListAsync();
-                return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Lỗi khi lấy danh sách sân: {ex.Message}", ex);
-            }
+            var fields = await _context.Fields
+                .Include(f => f.Fac)
+                .Include(f => f.Category)
+                .ToListAsync();
+            return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
         }
 
         public async Task<FieldResponseDTO?> GetFieldByIdAsync(int fieldId)

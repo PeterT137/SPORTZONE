@@ -19,7 +19,9 @@ public partial class Order
 
     public string? GuestPhone { get; set; }
 
-    public decimal? TotalAmount { get; set; }
+    public decimal? TotalPrice { get; set; }
+
+    public decimal? TotalServicePrice { get; set; }
 
     public string? ContentPayment { get; set; }
 
