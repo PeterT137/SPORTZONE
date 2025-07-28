@@ -23,6 +23,8 @@ public partial class User
 
     public virtual Admin? Admin { get; set; }
 
+    public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
     public virtual Customer? Customer { get; set; }
 
     public virtual ExternalLogin? ExternalLogin { get; set; }

@@ -28,7 +28,7 @@ namespace SportZone_API.Repository.Interfaces
         /// <summary>
         /// Lấy booking theo customer
         /// </summary>
-        Task<IEnumerable<BookingResponseDTO>> GetBookingsByCustomerAsync(int customerId);
+        Task<IEnumerable<BookingResponseDTO>> GetBookingsByUserAsync(int userId);
     }
 
 }

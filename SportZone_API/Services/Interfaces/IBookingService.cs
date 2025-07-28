@@ -23,7 +23,7 @@ namespace SportZone_API.Services.Interfaces
         /// <summary>
         /// Lấy danh sách booking theo customer
         /// </summary>
-        Task<IEnumerable<BookingResponseDTO>> GetCustomerBookingsAsync(int customerId);
+        Task<IEnumerable<BookingResponseDTO>> GetUserBookingsAsync(int userId);
         /// <summary>
         /// Validate booking business rules
         /// </summary>

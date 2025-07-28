@@ -97,7 +97,7 @@ public partial class SportZoneContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("create_at");
-            entity.Property(e => e.CustomerId).HasColumnName("customer_id");
+            entity.Property(e => e.UserId).HasColumnName("customer_id");
             entity.Property(e => e.Date).HasColumnName("date");
             entity.Property(e => e.EndTime).HasColumnName("end_time");
             entity.Property(e => e.FieldId).HasColumnName("field_id");
@@ -118,9 +118,9 @@ public partial class SportZoneContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("title");
 
-            entity.HasOne(d => d.Customer).WithMany(p => p.Bookings)
-                .HasForeignKey(d => d.CustomerId)
-                .HasConstraintName("FK__Booking__custome__68487DD7");
+            entity.HasOne(d => d.User).WithMany(p => p.Bookings)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK__Booking__user_id__68487DD7");
 
             entity.HasOne(d => d.Field).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.FieldId)

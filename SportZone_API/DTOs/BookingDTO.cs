@@ -14,7 +14,7 @@ namespace SportZone_API.DTOs
         public int? FacilityId { get; set; }
         public int? CategoryId { get; set; }
 
-        public int? CustomerId { get; set; }
+        public int? UserId { get; set; }
 
         [MaxLength(100, ErrorMessage = "Tiêu đề không được quá 100 ký tự")]
         public string? Title { get; set; }
@@ -69,7 +69,7 @@ namespace SportZone_API.DTOs
         public string? FieldName { get; set; }
         public string? FacilityName { get; set; }
         public string? FacilityAddress { get; set; }
-        public int? CustomerId { get; set; }
+        public int? UserId { get; set; }
         public string? CustomerName { get; set; }
         public string? Title { get; set; }
         public DateOnly? Date { get; set; }
@@ -128,7 +128,7 @@ namespace SportZone_API.DTOs
     /// </summary>
     public class CustomerInfoDTO
     {
-        public int CustomerId { get; set; }
+        public int UserId { get; set; }
         public string? Name { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }
@@ -175,7 +175,7 @@ namespace SportZone_API.DTOs
     /// </summary>
     public class BookingHistoryFilterDTO
     {
-        public int? CustomerId { get; set; }
+        public int? UserId { get; set; }
         public string? Status { get; set; }
         public DateOnly? DateFrom { get; set; }
         public DateOnly? DateTo { get; set; }

@@ -9,7 +9,7 @@ public partial class Booking
 
     public int FieldId { get; set; }
 
-    public int? CustomerId { get; set; }
+    public int? UserId { get; set; }
 
     public string? Title { get; set; }
 
@@ -29,7 +29,7 @@ public partial class Booking
 
     public string? GuestPhone { get; set; }
 
-    public virtual Customer? Customer { get; set; }
+     public virtual User? User { get; set; }
 
     public virtual Field Field { get; set; } = null!;
 

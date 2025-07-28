@@ -30,13 +30,12 @@ namespace SportZone_API.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = "Thông tin booking không hợp lệ",
+                        message = "Dữ liệu không hợp lệ",
                         errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
                     });
                 }
 
                 var booking = await _bookingService.CreateBookingAsync(bookingDto);
-                 
                 return CreatedAtAction(nameof(GetBookingDetail), new { id = booking.BookingId }, new
                 {
                     success = true,
@@ -119,7 +118,7 @@ namespace SportZone_API.Controllers
                     return NotFound(new
                     {
                         success = false,
-                        message = "Không tìm thấy booking để hủy"
+                        message = "Không tìm thấy booking hoặc không thể hủy"
                     });
                 }
 
@@ -150,12 +149,12 @@ namespace SportZone_API.Controllers
         /// <summary>
         /// Lấy booking theo customer
         /// </summary>
-        [HttpGet("customer/{customerId}")]
-        public async Task<IActionResult> GetCustomerBookings(int customerId)
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetUserBookings(int userId)
         {
             try
             {
-                var bookings = await _bookingService.GetCustomerBookingsAsync(customerId);
+                var bookings = await _bookingService.GetUserBookingsAsync(userId);
                 if (bookings == null || !bookings.Any())
                 {
                     return NotFound(new
@@ -170,7 +169,7 @@ namespace SportZone_API.Controllers
                     message = "Lấy danh sách booking thành công",
                     data = bookings,
                     count = bookings.Count(),
-                    customerId = customerId
+                    usersId = userId
                 });
             }
             catch (ArgumentException ex)

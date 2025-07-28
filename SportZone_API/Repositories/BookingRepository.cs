@@ -32,57 +32,65 @@ namespace SportZone_API.Repository
                 // Tìm slot available trong Field_booking_schedule với Date và Time riêng biệt
                 var slotsQuery = _context.FieldBookingSchedules
                     .Include(s => s.Field)
-                    .ThenInclude(f => f.Fac)
+                        .ThenInclude(f => f.Fac)
                     .Where(s => s.Date == bookingDto.Date &&
-                           s.StartTime == bookingDto.StartTime &&
-                           s.EndTime == bookingDto.EndTime &&
-                           (s.BookingId == null || s.Status == "Available"));
+                               s.StartTime == bookingDto.StartTime &&
+                               s.EndTime == bookingDto.EndTime &&
+                               (s.BookingId == null || s.Status == "Available")); // Slot chưa được đặt
 
+                // Apply filters nếu có
                 if (bookingDto.FieldId.HasValue)
                 {
+                    // Nếu chỉ định sân cụ thể
                     slotsQuery = slotsQuery.Where(s => s.FieldId == bookingDto.FieldId.Value);
                 }
                 else
                 {
+                    // Apply filters để thu hẹp lựa chọn
                     if (bookingDto.FacilityId.HasValue)
-                    {
                         slotsQuery = slotsQuery.Where(s => s.Field.FacId == bookingDto.FacilityId.Value);
-                    }
+
                     if (bookingDto.CategoryId.HasValue)
-                    {
                         slotsQuery = slotsQuery.Where(s => s.Field.CategoryId == bookingDto.CategoryId.Value);
-                    }
                 }
+
                 var availableSlots = await slotsQuery.ToListAsync();
 
                 if (!availableSlots.Any())
                 {
-                    throw new ArgumentException("Sân đã có người đặt tại thời gian này");
-                }
-                
-                var selectedSlot = availableSlots.FirstOrDefault();
-                if (selectedSlot?.FieldId == null)
-                {
-                    throw new ArgumentException("Không tìm thấy sân phù hợp");
+                    // Log để debug
+                    var debugInfo = $"Không tìm thấy slot available cho Date={bookingDto.Date}, StartTime={bookingDto.StartTime}, EndTime={bookingDto.EndTime}";
+                    if (bookingDto.FieldId.HasValue) debugInfo += $", FieldId={bookingDto.FieldId}";
+                    if (bookingDto.FacilityId.HasValue) debugInfo += $", FacilityId={bookingDto.FacilityId}";
+                    if (bookingDto.CategoryId.HasValue) debugInfo += $", CategoryId={bookingDto.CategoryId}";
+
+                    throw new ArgumentException($"Không tìm thấy sân trống tại thời gian này. {debugInfo}");
                 }
 
+                // Lấy slot đầu tiên (nếu có nhiều sân cùng thời gian)
+                var selectedSlot = availableSlots.FirstOrDefault();
+                if (selectedSlot?.FieldId == null)
+                    throw new ArgumentException("Slot được chọn không có FieldId hợp lệ");
+
+                // Kiểm tra field có tồn tại và cho phép booking không
                 var field = await _context.Fields
                     .Include(f => f.Fac)
                     .FirstOrDefaultAsync(f => f.FieldId == selectedSlot.FieldId);
 
                 if (field == null)
-                {
-                    throw new ArgumentException("Sân không tồn tại");
-                }
-                if (field.IsBookingEnable != true)
-                {
-                    throw new ArgumentException("Sân này không cho phép đặt chỗ");
-                }
+                    throw new ArgumentException($"Sân với ID {selectedSlot.FieldId} không tồn tại");
 
+                if (field.IsBookingEnable != true)
+                    throw new ArgumentException($"Sân '{field.FieldName}' không cho phép đặt chỗ");
+
+                if (field.Fac == null)
+                    throw new ArgumentException($"Sân '{field.FieldName}' không có thông tin cơ sở");
+
+                // Tạo booking với field_id từ slot, lưu Date và Time riêng biệt
                 var booking = new Booking
                 {
                     FieldId = selectedSlot.FieldId.Value,
-                    CustomerId = bookingDto.CustomerId,
+                    UserId = bookingDto.UserId,
                     Title = bookingDto.Title,
                     Date = bookingDto.Date,
                     StartTime = bookingDto.StartTime,
@@ -90,17 +98,19 @@ namespace SportZone_API.Repository
                     Status = "Pending",
                     StatusPayment = "Pending",
                     CreateAt = DateTime.Now,
-                    // Nếu có CustomerId thì không lưu guest info (database constraint)
-                    GuestName = bookingDto.CustomerId.HasValue ? null : bookingDto.GuestName,
-                    GuestPhone = bookingDto.CustomerId.HasValue ? null : bookingDto.GuestPhone
+                    // Nếu có UserId thì không lưu guest info (database constraint) 
+                    // Note: UserId maps to customer_id column in database
+                    GuestName = bookingDto.UserId.HasValue ? null : bookingDto.GuestName,
+                    GuestPhone = bookingDto.UserId.HasValue ? null : bookingDto.GuestPhone
                 };
 
                 _context.Bookings.Add(booking);
                 await _context.SaveChangesAsync();
 
+                // Update BookingId và Status vào slot đã chọn
                 selectedSlot.BookingId = booking.BookingId;
                 selectedSlot.Status = "Booked";
-                selectedSlot.Notes = bookingDto.Notes;
+                selectedSlot.Notes = bookingDto.Notes; // Có thể thêm notes từ booking
                 _context.FieldBookingSchedules.Update(selectedSlot);
 
                 await _context.SaveChangesAsync();
@@ -131,15 +141,16 @@ namespace SportZone_API.Repository
                         .ThenInclude(f => f.Fac)
                     .Include(b => b.Field)
                         .ThenInclude(f => f.Category)
-                    .Include(b => b.Customer)
-                        .ThenInclude(c => c.UIdNavigation)
+                    .Include(b => b.Field)
+                        .ThenInclude(f => f.FieldPricings)
+                    .Include(b => b.User)
+                        .ThenInclude(u => u.Customer)
                     .Include(b => b.Orders)
                         .ThenInclude(o => o.OrderServices)
                             .ThenInclude(os => os.Service)
                     .Include(b => b.Orders)
                         .ThenInclude(o => o.Discount)
                     .Include(b => b.FieldBookingSchedules)
-                        .ThenInclude(s => s.Prices)
                     .FirstOrDefaultAsync(b => b.BookingId == bookingId);
 
                 if (booking == null)
@@ -178,7 +189,7 @@ namespace SportZone_API.Repository
                 throw new ArgumentException("Không thể đặt sân trong quá khứ");
 
             // Validate customer vs guest
-            if (!bookingDto.CustomerId.HasValue)
+            if (!bookingDto.UserId.HasValue)
             {
                 // Chỉ yêu cầu thông tin guest khi không có customer
                 if (string.IsNullOrEmpty(bookingDto.GuestName) || string.IsNullOrEmpty(bookingDto.GuestPhone))
@@ -189,9 +200,7 @@ namespace SportZone_API.Repository
             // Validate filter logic
             if (!bookingDto.FieldId.HasValue && !bookingDto.FacilityId.HasValue && !bookingDto.CategoryId.HasValue)
             {
-                // Nếu không chỉ định sân cụ thể thì phải có ít nhất một filter
-                // hoặc cho phép tìm bất kỳ sân nào available (tuỳ business logic)
-                // Ở đây tôi cho phép không có filter nào (tìm sân bất kỳ)
+                
             }
         }
 
@@ -266,17 +275,17 @@ namespace SportZone_API.Repository
             }
         }
 
-        public async Task<IEnumerable<BookingResponseDTO>> GetBookingsByCustomerAsync(int customerId)
+        public async Task<IEnumerable<BookingResponseDTO>> GetBookingsByUserAsync(int userId)
         {
             try
             {
                 var bookings = await _context.Bookings
                     .Include(b => b.Field)
                         .ThenInclude(f => f.Fac)
-                    .Include(b => b.Customer)
+                    .Include(b => b.User)
                     .Include(b => b.FieldBookingSchedules)
-                        .ThenInclude(s => s.Prices)
-                    .Where(b => b.CustomerId == customerId)
+                        .ThenInclude(s => s.Price)
+                    .Where(b => b.UserId == userId)
                     .OrderByDescending(b => b.CreateAt)
                     .ToListAsync();
 
@@ -291,6 +300,17 @@ namespace SportZone_API.Repository
         private BookingResponseDTO MapToBookingResponseDTO(Booking booking)
         {
             var schedule = booking.FieldBookingSchedules?.FirstOrDefault();
+
+            // Calculate FieldPrice from FieldPricing
+            decimal? fieldPrice = null;
+            if (booking.StartTime.HasValue && booking.EndTime.HasValue && booking.Field?.FieldPricings != null)
+            {
+                var pricing = booking.Field.FieldPricings.FirstOrDefault(p =>
+                    p.StartTime == booking.StartTime.Value &&
+                    p.EndTime == booking.EndTime.Value);
+                fieldPrice = pricing?.Price;
+            }
+
             return new BookingResponseDTO
             {
                 BookingId = booking.BookingId,
@@ -298,8 +318,8 @@ namespace SportZone_API.Repository
                 FieldName = booking.Field?.FieldName,
                 FacilityName = booking.Field?.Fac != null ? $"Cơ sở {booking.Field.FacId}" : null,
                 FacilityAddress = booking.Field?.Fac?.Address,
-                CustomerId = booking.CustomerId,
-                CustomerName = booking.Customer?.Name,
+                UserId = booking.UserId,
+                CustomerName = booking.User?.Customer?.Name,
                 Title = booking.Title,
                 Date = booking.Date,
                 StartTime = booking.StartTime,
@@ -309,7 +329,7 @@ namespace SportZone_API.Repository
                 CreateAt = booking.CreateAt,
                 GuestName = booking.GuestName,
                 GuestPhone = booking.GuestPhone,
-                FieldPrice = schedule?.Prices?.FirstOrDefault()?.Price1,
+                FieldPrice = fieldPrice,
                 Notes = schedule?.Notes
             };
         }
@@ -324,7 +344,7 @@ namespace SportZone_API.Repository
                 FieldName = responseDto.FieldName,
                 FacilityName = responseDto.FacilityName,
                 FacilityAddress = responseDto.FacilityAddress,
-                CustomerId = responseDto.CustomerId,
+                UserId = responseDto.UserId,
                 CustomerName = responseDto.CustomerName,
                 Title = responseDto.Title,
                 Date = responseDto.Date,
@@ -343,7 +363,7 @@ namespace SportZone_API.Repository
                     FieldId = booking.Field.FieldId,
                     FieldName = booking.Field.FieldName,
                     Description = booking.Field.Description,
-                    Price = booking.FieldBookingSchedules?.FirstOrDefault()?.Prices?.FirstOrDefault()?.Price1,
+                    Price = responseDto.FieldPrice, // Use the calculated FieldPrice
                     CategoryName = booking.Field.Category?.CategoryFieldName,
                     Facility = booking.Field.Fac != null ? new FacilityInfoDTO
                     {
@@ -355,18 +375,18 @@ namespace SportZone_API.Repository
                     } : null
                 } : null,
 
-                Customer = booking.Customer != null ? new CustomerInfoDTO
+                Customer = booking.User?.Customer != null ? new CustomerInfoDTO
                 {
-                    CustomerId = booking.Customer.CustomerId,
-                    Name = booking.Customer.Name,
-                    Phone = booking.Customer.Phone,
-                    Email = booking.Customer.UIdNavigation?.UEmail
+                    UserId = booking.UserId ?? 0, // Safe cast since User is not null
+                    Name = booking.User.Customer?.Name,
+                    Phone = booking.User.Customer?.Phone,
+                    Email = booking.User?.UEmail
                 } : null,
 
                 Order = booking.Orders?.FirstOrDefault() != null ? new OrderInfoDTO
                 {
                     OrderId = booking.Orders.First().OrderId,
-                    TotalAmount = booking.Orders.First().TotalAmount,
+                    TotalAmount = booking.Orders.First().TotalPrice,
                     StatusPayment = booking.Orders.First().StatusPayment,
                     ContentPayment = booking.Orders.First().ContentPayment,
                     CreateAt = booking.Orders.First().CreateAt,
