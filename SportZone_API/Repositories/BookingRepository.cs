@@ -282,9 +282,11 @@ namespace SportZone_API.Repository
                 var bookings = await _context.Bookings
                     .Include(b => b.Field)
                         .ThenInclude(f => f.Fac)
+                    .Include(b => b.Field)
+                        .ThenInclude(f => f.FieldPricings)
                     .Include(b => b.User)
+                        .ThenInclude(u => u.Customer)
                     .Include(b => b.FieldBookingSchedules)
-                        .ThenInclude(s => s.Price)
                     .Where(b => b.UserId == userId)
                     .OrderByDescending(b => b.CreateAt)
                     .ToListAsync();
@@ -293,7 +295,7 @@ namespace SportZone_API.Repository
             }
             catch (Exception ex)
             {
-                throw new Exception($"Lỗi khi lấy booking theo customer: {ex.Message}", ex);
+                throw new Exception($"Lỗi khi lấy booking theo user: {ex.Message}", ex);
             }
         }
     }
