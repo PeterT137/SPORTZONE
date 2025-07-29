@@ -13,7 +13,5 @@ public partial class Customer
 
     public DateOnly? Dob { get; set; }
 
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-
     public virtual User UIdNavigation { get; set; } = null!;
 }

@@ -7,7 +7,7 @@ public partial class Order
 {
     public int OrderId { get; set; }
 
-    public int? CustomerId { get; set; }
+    public int? UId { get; set; }
 
     public int FacId { get; set; }
 
@@ -31,8 +31,6 @@ public partial class Order
 
     public virtual Booking? Booking { get; set; }
 
-    public virtual Customer? Customer { get; set; }
-
     public virtual Discount? Discount { get; set; }
 
     public virtual Facility Fac { get; set; } = null!;
@@ -40,4 +38,6 @@ public partial class Order
     public virtual ICollection<OrderFieldId> OrderFieldIds { get; set; } = new List<OrderFieldId>();
 
     public virtual ICollection<OrderService> OrderServices { get; set; } = new List<OrderService>();
+
+    public virtual User? UIdNavigation { get; set; }
 }

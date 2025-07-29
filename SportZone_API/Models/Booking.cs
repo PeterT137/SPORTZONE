@@ -9,7 +9,7 @@ public partial class Booking
 
     public int FieldId { get; set; }
 
-    public int? UserId { get; set; }
+    public int? UId { get; set; }
 
     public string? Title { get; set; }
 
@@ -29,11 +29,11 @@ public partial class Booking
 
     public string? GuestPhone { get; set; }
 
-     public virtual User? User { get; set; }
-
     public virtual Field Field { get; set; } = null!;
 
     public virtual ICollection<FieldBookingSchedule> FieldBookingSchedules { get; set; } = new List<FieldBookingSchedule>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+    public virtual User? UIdNavigation { get; set; }
 }

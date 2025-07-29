@@ -14,7 +14,7 @@ namespace SportZone_API.Mappings
                 .ForMember(dest => dest.Status, opt => opt.Ignore()) // Set in service
                 .ForMember(dest => dest.StatusPayment, opt => opt.Ignore()) // Set in service
                 .ForMember(dest => dest.CreateAt, opt => opt.Ignore()) // Set in service
-                .ForMember(dest => dest.User, opt => opt.Ignore()) // Navigation property
+                .ForMember(dest => dest.UIdNavigation, opt => opt.Ignore()) // Navigation property
                 .ForMember(dest => dest.Field, opt => opt.Ignore()) // Navigation property
                 .ForMember(dest => dest.FieldBookingSchedules, opt => opt.Ignore()) // Navigation property
                 .ForMember(dest => dest.Orders, opt => opt.Ignore()); // Navigation property
@@ -23,7 +23,7 @@ namespace SportZone_API.Mappings
                 .ForMember(dest => dest.FieldName, opt => opt.MapFrom(src => src.Field != null ? src.Field.FieldName : null))
                 .ForMember(dest => dest.FacilityName, opt => opt.MapFrom(src => src.Field != null && src.Field.Fac != null ? $"Cơ sở {src.Field.FacId}" : null))
                 .ForMember(dest => dest.FacilityAddress, opt => opt.MapFrom(src => src.Field != null && src.Field.Fac != null ? src.Field.Fac.Address : null))
-                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User != null && src.User.Customer != null ? src.User.Customer.Name : null))
+                .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.UIdNavigation != null && src.UIdNavigation.Customer != null ? src.UIdNavigation.Customer.Name : null))
                 .ForMember(dest => dest.FieldPrice, opt => opt.Ignore()) // Will be calculated from FieldPricing in repository
                 .ForMember(dest => dest.TotalAmount, opt => opt.MapFrom(src => src.Orders != null && src.Orders.Any() ? src.Orders.First().TotalPrice : null))
                 .ForMember(dest => dest.Services, opt => opt.Ignore()) // Complex mapping - handled in repository

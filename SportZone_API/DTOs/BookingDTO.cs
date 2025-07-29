@@ -214,8 +214,8 @@ namespace SportZone_API.DTOs
                 FieldName = booking.Field?.FieldName,
                 FacilityName = booking.Field?.Fac != null ? $"Cơ sở {booking.Field.FacId}" : null,
                 FacilityAddress = booking.Field?.Fac?.Address,
-                UserId = booking.UserId,
-                CustomerName = booking.User?.Customer?.Name,
+                UserId = booking.UId,
+                CustomerName = booking.UIdNavigation?.Customer?.Name,
                 Title = booking.Title,
                 Date = booking.Date,
                 StartTime = booking.StartTime,
@@ -275,12 +275,12 @@ namespace SportZone_API.DTOs
                     } : null
                 } : null,
 
-                Customer = booking.User?.Customer != null ? new CustomerInfoDTO
+                Customer = booking.UIdNavigation?.Customer != null ? new CustomerInfoDTO
                 {
-                    UserId = booking.UserId ?? 0, // Safe cast since User is not null
-                    Name = booking.User.Customer?.Name,
-                    Phone = booking.User.Customer?.Phone,
-                    Email = booking.User?.UEmail
+                    UserId = booking.UId ?? 0, // Safe cast since UIdNavigation is not null
+                    Name = booking.UIdNavigation.Customer?.Name,
+                    Phone = booking.UIdNavigation.Customer?.Phone,
+                    Email = booking.UIdNavigation?.UEmail
                 } : null,
 
                 Order = booking.Orders?.FirstOrDefault() != null ? new OrderInfoDTO

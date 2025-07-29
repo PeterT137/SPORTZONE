@@ -90,7 +90,7 @@ namespace SportZone_API.Repository
                 var booking = new Booking
                 {
                     FieldId = selectedSlot.FieldId.Value,
-                    UserId = bookingDto.UserId,
+                    UId = bookingDto.UserId,
                     Title = bookingDto.Title,
                     Date = bookingDto.Date,
                     StartTime = bookingDto.StartTime,
@@ -143,7 +143,7 @@ namespace SportZone_API.Repository
                         .ThenInclude(f => f.Category)
                     .Include(b => b.Field)
                         .ThenInclude(f => f.FieldPricings)
-                    .Include(b => b.User)
+                    .Include(b => b.UIdNavigation)
                         .ThenInclude(u => u.Customer)
                     .Include(b => b.Orders)
                         .ThenInclude(o => o.OrderServices)
@@ -284,10 +284,10 @@ namespace SportZone_API.Repository
                         .ThenInclude(f => f.Fac)
                     .Include(b => b.Field)
                         .ThenInclude(f => f.FieldPricings)
-                    .Include(b => b.User)
+                    .Include(b => b.UIdNavigation)
                         .ThenInclude(u => u.Customer)
                     .Include(b => b.FieldBookingSchedules)
-                    .Where(b => b.UserId == userId)
+                    .Where(b => b.UId == userId)
                     .OrderByDescending(b => b.CreateAt)
                     .ToListAsync();
 
