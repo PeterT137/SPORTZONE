@@ -16,20 +16,17 @@ namespace SportZone_API.Controllers
             _registerService = registerService;
         }
 
-        [HttpPost("general")] 
-        public async Task<IActionResult> RegisterGeneral([FromBody] RegisterDto dto)
+        [HttpPost]
+        [Route("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto) // Đã đổi tên DTO
         {
-            var result = await _registerService.RegisterAsync(dto);
-            if (result.Success)
-                return Ok(new { message = result.Message });
-            else
-                return BadRequest(new { error = result.Message });
-        }
+            // Kiểm tra Data Annotations validation
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Trả về chi tiết lỗi validation
+            }
 
-        [HttpPost("staff")] 
-        public async Task<IActionResult> RegisterStaff([FromBody] RegisterStaffDto dto)
-        {
-            var result = await _registerService.RegisterStaffAsync(dto);
+            var result = await _registerService.RegisterUserAsync(dto);
             if (result.Success)
                 return Ok(new { message = result.Message });
             else

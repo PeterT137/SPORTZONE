@@ -76,7 +76,7 @@ namespace SportZone_API.Services
 
         public async Task<List<Facility>> SearchFacilities(string text)
         {
-            return await _repository.SearchAsync(text); // dùng chung hàm get nếu k có data thfi trả null 
+            return await _repository.SearchAsync(text); 
         }
     }
 }

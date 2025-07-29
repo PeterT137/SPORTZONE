@@ -12,9 +12,30 @@ using SportZone_API.Mappings;
 using SportZone_API.Repository.Interfaces;
 using SportZone_API.Repository;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("MyCnn");
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"] ?? "your-256-bit-secret-key-for-sportzone-application")),
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -90,6 +111,23 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+app.UseExceptionHandler(appBuilder =>
+{
+    appBuilder.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var error = context.Features.Get<IExceptionHandlerFeature>();
+        if (error != null)
+        {
+            await context.Response.WriteAsync(new
+            {
+                error = error.Error.Message
+            }.ToString());
+        }
+    });
+});
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -104,3 +142,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+

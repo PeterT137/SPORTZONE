@@ -5,7 +5,6 @@ namespace SportZone_API.Services.Interfaces
 {
     public interface IRegisterService
     {
-        Task<ServiceResponse<string>> RegisterAsync(RegisterDto dto); 
-        Task<ServiceResponse<string>> RegisterStaffAsync(RegisterStaffDto dto); 
+        Task<ServiceResponse<string>> RegisterUserAsync(RegisterDto dto);
     }
 }
