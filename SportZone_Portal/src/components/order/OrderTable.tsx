@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from '../../Sidebar';
 
 interface Order {
@@ -15,6 +17,12 @@ interface Order {
 const OrdersTable: React.FC = () => {
   const [ordersPerPage, setOrdersPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Lấy tham số từ query string
+  const fieldId = searchParams.get('fieldId') ? parseInt(searchParams.get('fieldId')!, 10) : null;
+  const fieldName = searchParams.get('fieldName') || '';
 
   // Dữ liệu mẫu
   const orders: Order[] = [
@@ -30,9 +38,12 @@ const OrdersTable: React.FC = () => {
     { id: 10, facility: 'Sân đấu MT Minh Trung', customer: 'Phan Thị J', amount: 370000, status: 'Cọc xong khoản chốt', paymentStatus: 'Chưa thanh toán', date: '21/07/2025', action: 'Chi tiết' },
   ];
 
+  // Lọc orders dựa trên fieldName
+  const filteredOrders = fieldName ? orders.filter(order => order.facility.includes(fieldName)) : orders;
+
   // Tính phân trang
-  const totalPages = Math.ceil(orders.length / ordersPerPage);
-  const paginatedOrders = orders.slice(
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const paginatedOrders = filteredOrders.slice(
     (currentPage - 1) * ordersPerPage,
     currentPage * ordersPerPage
   );
@@ -55,7 +66,7 @@ const OrdersTable: React.FC = () => {
       <Sidebar />
       <div className="min-h-screen bg-gray-50 pl-64 pt-10 pr-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h2 className="text-lg font-semibold mb-3">Quản lý đơn đặt sân</h2>
+          <h2 className="text-lg font-semibold mb-3">Quản lý đơn đặt sân {fieldName ? ` - ${fieldName}` : ''}</h2>
 
           {/* Filters */}
           <div className="flex space-x-2 mb-4 text-xs font-medium text-gray-500 select-none">
@@ -145,11 +156,10 @@ const OrdersTable: React.FC = () => {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className={`w-8 h-8 flex items-center justify-center rounded border border-gray-300 ${
-                currentPage === 1
+              className={`w-8 h-8 flex items-center justify-center rounded border border-gray-300 ${currentPage === 1
                   ? 'text-gray-400 cursor-not-allowed'
                   : 'text-gray-700 hover:bg-gray-100'
-              }`}
+                }`}
               aria-label="Trang trước"
             >
               &larr;
@@ -167,11 +177,10 @@ const OrdersTable: React.FC = () => {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className={`w-8 h-8 flex items-center justify-center rounded border border-gray-300 ${
-                currentPage === totalPages
+              className={`w-8 h-8 flex items-center justify-center rounded border border-gray-300 ${currentPage === totalPages
                   ? 'text-gray-400 cursor-not-allowed'
                   : 'text-gray-700 hover:bg-gray-100'
-              }`}
+                }`}
               aria-label="Trang tiếp"
             >
               &rarr;
