@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { FiSearch, FiEdit, FiTrash2, FiEye, FiArrowLeft, FiX, FiClock, FiMapPin, FiPlus } from "react-icons/fi"
 import Sidebar from "../../Sidebar";
 
@@ -27,6 +27,12 @@ type Service = {
     description: string
 }
 
+type Image = {
+    img_id: number
+    fac_id: number
+    imageUrl: string
+}
+
 type Facility = {
     fac_id: number
     open_time: string
@@ -35,15 +41,18 @@ type Facility = {
     description: string
     subdescription?: string
     picture?: string
+    fields: Field[]
+    services: Service[]
+    images: Image[]
 }
 
 type EditField = Omit<Field, "field_id" | "fac_id">
 type EditService = Omit<Service, "service_id" | "fac_id">
 
 const FacilityDetail: React.FC = () => {
-    const params = useParams()
-    const facId = params?.facId as string
-
+    const { facId } = useParams<{ facId: string }>()
+    const location = useLocation()
+    const navigate = useNavigate()
     const [facility, setFacility] = useState<Facility | null>(null)
     const [activeTab, setActiveTab] = useState<string>("fields")
     const [fields, setFields] = useState<Field[]>([])
@@ -75,123 +84,104 @@ const FacilityDetail: React.FC = () => {
         image: "",
         description: ""
     })
+    const [error, setError] = useState<string | null>(null)
 
-    // Mock data - trong thực tế sẽ fetch từ API
-    const mockFacilities: Facility[] = [
-        {
-            fac_id: 1,
-            open_time: "08:00",
-            close_time: "17:00",
-            address: "123 Đường A, Hà Nội",
-            description: "Cơ sở chính",
-            subdescription: "Gần trung tâm",
-            picture: "https://co-nhan-tao.com/wp-content/uploads/2020/03/san-co-nhan-tao-1-1024x768.jpg",
-        },
-        {
-            fac_id: 2,
-            open_time: "09:00",
-            close_time: "18:00",
-            address: "456 Đường B, TP.HCM",
-            description: "Chi nhánh phía Nam",
-            subdescription: "Văn phòng tầng 2",
-            picture: "https://co-nhan-tao.com/wp-content/uploads/2020/03/san-co-nhan-tao-1-1024x768.jpg",
-        },
-    ]
+    // Hàm hiển thị toast (giả định đã được định nghĩa)
+    const showToast = (message: string, type: 'success' | 'error') => {
+        console.log(`[${type}] ${message}`); // Thay bằng implement toast thực tế
+    }
 
-    const mockFields: Field[] = [
-        {
-            field_id: 1,
-            fac_id: 1,
-            category_id: 1,
-            field_name: "Sân 5",
-            description: "Sân cỏ nhân tạo",
-            is_booking_enable: true,
-            price: 300000,
-            images: "https://via.placeholder.com/100",
-        },
-        {
-            field_id: 2,
-            fac_id: 1,
-            category_id: 2,
-            field_name: "Sân 7",
-            description: "Sân cỏ tự nhiên",
-            is_booking_enable: false,
-            price: 500000,
-            images: "https://via.placeholder.com/100",
-        },
-        {
-            field_id: 3,
-            fac_id: 2,
-            category_id: 1,
-            field_name: "Sân 11",
-            description: "Sân cỏ nhân tạo lớn",
-            is_booking_enable: true,
-            price: 700000,
-            images: "https://via.placeholder.com/100",
-        },
-    ]
-
-    const mockServices: Service[] = [
-        {
-            service_id: 1,
-            fac_id: 1,
-            service_name: "Dịch vụ cho thuê giày",
-            price: 50000,
-            status: "Active",
-            image: "https://via.placeholder.com/100",
-            description: "Cho thuê giày đá bóng các loại",
-        },
-        {
-            service_id: 2,
-            fac_id: 1,
-            service_name: "Dịch vụ nước uống",
-            price: 20000,
-            status: "Active",
-            image: "https://via.placeholder.com/100",
-            description: "Cung cấp nước uống và đồ ăn nhẹ",
-        },
-        {
-            service_id: 3,
-            fac_id: 2,
-            service_name: "Dịch vụ trọng tài",
-            price: 200000,
-            status: "Inactive",
-            image: "https://via.placeholder.com/100",
-            description: "Cung cấp trọng tài chuyên nghiệp",
-        },
-    ]
-
+    // Lấy dữ liệu từ API nếu không có state
     useEffect(() => {
-        const facIdNum = Number.parseInt(facId || "0", 10)
+        const fetchFacility = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showToast('Không tìm thấy token xác thực. Vui lòng đăng nhập.', 'error');
+                setError('Yêu cầu xác thực');
+                return;
+            }
 
-        // Tìm thông tin cơ sở
-        const currentFacility = mockFacilities.find((f) => f.fac_id === facIdNum)
-        setFacility(currentFacility || null)
+            try {
+                const response = await fetch(`https://localhost:7057/api/Facility/${facId}`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
 
-        // Lọc fields và services theo fac_id
-        const facilityFields = mockFields.filter((f) => f.fac_id === facIdNum)
-        const facilityServices = mockServices.filter((s) => s.fac_id === facIdNum)
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.log('Lỗi khi lấy chi tiết cơ sở:', response.status, errorText);
+                    if (response.status === 401) {
+                        showToast('Không được phép truy cập. Vui lòng đăng nhập lại.', 'error');
+                        setError('Không được phép truy cập');
+                        return;
+                    } else if (response.status === 403) {
+                        showToast('Bạn không có quyền truy cập cơ sở này.', 'error');
+                        setError('Bị cấm');
+                        return;
+                    }
+                    throw new Error(`Lỗi HTTP: ${response.status}`);
+                }
 
-        setFields(facilityFields)
-        setServices(facilityServices)
-        setFilteredFields(facilityFields)
-        setFilteredServices(facilityServices)
-    }, [facId])
+                const apiFacility = await response.json();
+                const mappedFacility: Facility = {
+                    fac_id: apiFacility.facId,
+                    open_time: apiFacility.openTime.slice(0, 5),
+                    close_time: apiFacility.closeTime.slice(0, 5),
+                    address: apiFacility.address,
+                    description: apiFacility.description,
+                    subdescription: apiFacility.subdescription,
+                    picture: apiFacility.images[0]?.imageUrl || '',
+                    fields: apiFacility.fields || [],
+                    services: apiFacility.services || [],
+                    images: apiFacility.images.map((img: any) => ({
+                        img_id: img.imgId,
+                        fac_id: img.facId,
+                        imageUrl: img.imageUrl,
+                    })),
+                };
+
+                setFacility(mappedFacility);
+                setFields(mappedFacility.fields);
+                setServices(mappedFacility.services);
+                setFilteredFields(mappedFacility.fields);
+                setFilteredServices(mappedFacility.services);
+            } catch (err) {
+                showToast('Không thể lấy chi tiết cơ sở. Vui lòng thử lại.', 'error');
+                setError(err instanceof Error ? err.message : 'Lỗi không xác định');
+            }
+        };
+
+        // Kiểm tra dữ liệu từ state (từ handleViewDetails)
+        const stateFacility = location.state?.facility as Facility | undefined;
+        if (stateFacility && stateFacility.fac_id === Number(facId)) {
+            setFacility(stateFacility);
+            setFields(stateFacility.fields);
+            setServices(stateFacility.services);
+            setFilteredFields(stateFacility.fields);
+            setFilteredServices(stateFacility.services);
+        } else {
+            // Nếu không có state hoặc fac_id không khớp, gọi API
+            fetchFacility();
+        }
+    }, [facId, location.state]);
 
     // Filter effects
     useEffect(() => {
-        const lowerCaseFilter = fieldFilter.toLowerCase()
+        const lowerCaseFilter = fieldFilter.toLowerCase();
         setFilteredFields(
             fields.filter(
                 (field) =>
                     field.field_name.toLowerCase().includes(lowerCaseFilter) ||
                     field.description.toLowerCase().includes(lowerCaseFilter),
             ),
-        )
-    }, [fieldFilter, fields])
+        );
+    }, [fieldFilter, fields]);
 
     useEffect(() => {
-        const lowerCaseFilter = serviceFilter.toLowerCase()
+        const lowerCaseFilter = serviceFilter.toLowerCase();
         setFilteredServices(
             services.filter(
                 (service) =>
@@ -199,25 +189,71 @@ const FacilityDetail: React.FC = () => {
                     service.description.toLowerCase().includes(lowerCaseFilter) ||
                     service.status.toLowerCase().includes(lowerCaseFilter),
             ),
-        )
-    }, [serviceFilter, services])
+        );
+    }, [serviceFilter, services]);
 
-    const handleDeleteField = (fieldId: number) => {
+    const handleDeleteField = async (fieldId: number) => {
         if (window.confirm("Bạn có chắc chắn muốn xóa sân này?")) {
-            setFields((prev) => prev.filter((f) => f.field_id !== fieldId))
-            alert("Xóa sân thành công!")
-        }
-    }
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showToast('Không tìm thấy token xác thực. Vui lòng đăng nhập.', 'error');
+                return;
+            }
 
-    const handleDeleteService = (serviceId: number) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này?")) {
-            setServices((prev) => prev.filter((s) => s.service_id !== serviceId))
-            alert("Xóa dịch vụ thành công!")
+            try {
+                const response = await fetch(`https://localhost:7057/api/Field/${fieldId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Lỗi khi xóa sân: ${response.statusText}`);
+                }
+
+                setFields((prev) => prev.filter((f) => f.field_id !== fieldId));
+                setFilteredFields((prev) => prev.filter((f) => f.field_id !== fieldId));
+                showToast("Xóa sân thành công!", 'success');
+            } catch (err) {
+                showToast('Không thể xóa sân. Vui lòng thử lại.', 'error');
+            }
         }
-    }
+    };
+
+    const handleDeleteService = async (serviceId: number) => {
+        if (window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này?")) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showToast('Không tìm thấy token xác thực. Vui lòng đăng nhập.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://localhost:7057/api/Service/${serviceId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Lỗi khi xóa dịch vụ: ${response.statusText}`);
+                }
+
+                setServices((prev) => prev.filter((s) => s.service_id !== serviceId));
+                setFilteredServices((prev) => prev.filter((s) => s.service_id !== serviceId));
+                showToast("Xóa dịch vụ thành công!", 'success');
+            } catch (err) {
+                showToast('Không thể xóa dịch vụ. Vui lòng thử lại.', 'error');
+            }
+        }
+    };
 
     const handleEditField = (field: Field) => {
-        setEditField(field)
+        setEditField(field);
         setFieldFormData({
             category_id: field.category_id,
             field_name: field.field_name,
@@ -225,174 +261,308 @@ const FacilityDetail: React.FC = () => {
             is_booking_enable: field.is_booking_enable,
             price: field.price,
             images: field.images,
-        })
-    }
+        });
+    };
 
     const handleEditService = (service: Service) => {
-        setEditService(service)
+        setEditService(service);
         setServiceFormData({
             service_name: service.service_name,
             price: service.price,
             status: service.status,
             image: service.image,
             description: service.description,
-        })
-    }
+        });
+    };
 
-    const handleSaveFieldEdit = () => {
+    const handleSaveFieldEdit = async () => {
         if (editField && fieldFormData) {
-            const updatedField = { ...editField, ...fieldFormData } as Field
-            setFields((prev) => prev.map((f) => (f.field_id === editField.field_id ? updatedField : f)))
-            setEditField(null)
-            setFieldFormData(null)
-            alert("Cập nhật sân thành công!")
-        }
-    }
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showToast('Không tìm thấy token xác thực. Vui lòng đăng nhập.', 'error');
+                return;
+            }
 
-    const handleSaveServiceEdit = () => {
+            try {
+                const response = await fetch(`https://localhost:7057/api/Field/${editField.field_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ...fieldFormData,
+                        fac_id: editField.fac_id,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Lỗi khi cập nhật sân: ${response.statusText}`);
+                }
+
+                const updatedField = await response.json();
+                const mappedField: Field = {
+                    field_id: updatedField.fieldId,
+                    fac_id: updatedField.facId,
+                    category_id: updatedField.categoryId,
+                    field_name: updatedField.fieldName,
+                    description: updatedField.description,
+                    is_booking_enable: updatedField.isBookingEnable,
+                    price: updatedField.price,
+                    images: updatedField.images,
+                };
+
+                setFields((prev) => prev.map((f) => (f.field_id === editField.field_id ? mappedField : f)));
+                setFilteredFields((prev) => prev.map((f) => (f.field_id === editField.field_id ? mappedField : f)));
+                setEditField(null);
+                setFieldFormData(null);
+                showToast("Cập nhật sân thành công!", 'success');
+            } catch (err) {
+                showToast('Không thể cập nhật sân. Vui lòng thử lại.', 'error');
+            }
+        }
+    };
+
+    const handleSaveServiceEdit = async () => {
         if (editService && serviceFormData) {
-            const updatedService = { ...editService, ...serviceFormData } as Service
-            setServices((prev) => prev.map((s) => (s.service_id === editService.service_id ? updatedService : s)))
-            setEditService(null)
-            setServiceFormData(null)
-            alert("Cập nhật dịch vụ thành công!")
-        }
-    }
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showToast('Không tìm thấy token xác thực. Vui lòng đăng nhập.', 'error');
+                return;
+            }
 
-    const handleAddField = () => {
+            try {
+                const response = await fetch(`https://localhost:7057/api/Service/${editService.service_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ...serviceFormData,
+                        fac_id: editService.fac_id,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Lỗi khi cập nhật dịch vụ: ${response.statusText}`);
+                }
+
+                const updatedService = await response.json();
+                const mappedService: Service = {
+                    service_id: updatedService.serviceId,
+                    fac_id: updatedService.facId,
+                    service_name: updatedService.serviceName,
+                    price: updatedService.price,
+                    status: updatedService.status,
+                    image: updatedService.image,
+                    description: updatedService.description,
+                };
+
+                setServices((prev) => prev.map((s) => (s.service_id === editService.service_id ? mappedService : s)));
+                setFilteredServices((prev) => prev.map((s) => (s.service_id === editService.service_id ? mappedService : s)));
+                setEditService(null);
+                setServiceFormData(null);
+                showToast("Cập nhật dịch vụ thành công!", 'success');
+            } catch (err) {
+                showToast('Không thể cập nhật dịch vụ. Vui lòng thử lại.', 'error');
+            }
+        }
+    };
+
+    const handleAddField = async () => {
         if (newFieldFormData.field_name && newFieldFormData.price > 0) {
-            const newField: Field = {
-                field_id: fields.length ? Math.max(...fields.map(f => f.field_id)) + 1 : 1,
-                fac_id: Number.parseInt(facId || "0", 10),
-                category_id: newFieldFormData.category_id,
-                field_name: newFieldFormData.field_name,
-                description: newFieldFormData.description,
-                is_booking_enable: newFieldFormData.is_booking_enable,
-                price: newFieldFormData.price,
-                images: newFieldFormData.images || "https://via.placeholder.com/100",
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showToast('Không tìm thấy token xác thực. Vui lòng đăng nhập.', 'error');
+                return;
             }
-            setFields((prev) => [...prev, newField])
-            setIsAddFieldModalOpen(false)
-            setNewFieldFormData({
-                category_id: 1,
-                field_name: "",
-                description: "",
-                is_booking_enable: true,
-                price: 0,
-                images: ""
-            })
-            alert("Thêm sân thành công!")
-        } else {
-            alert("Vui lòng điền đầy đủ tên sân và giá!")
-        }
-    }
 
-    const handleAddService = () => {
-        if (newServiceFormData.service_name && newServiceFormData.price > 0) {
-            const newService: Service = {
-                service_id: services.length ? Math.max(...services.map(s => s.service_id)) + 1 : 1,
-                fac_id: Number.parseInt(facId || "0", 10),
-                service_name: newServiceFormData.service_name,
-                price: newServiceFormData.price,
-                status: newServiceFormData.status,
-                image: newServiceFormData.image || "https://via.placeholder.com/100",
-                description: newServiceFormData.description,
+            try {
+                const response = await fetch(`https://localhost:7057/api/Field`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ...newFieldFormData,
+                        fac_id: Number(facId),
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Lỗi khi thêm sân: ${response.statusText}`);
+                }
+
+                const newField = await response.json();
+                const mappedField: Field = {
+                    field_id: newField.fieldId,
+                    fac_id: newField.facId,
+                    category_id: newField.categoryId,
+                    field_name: newField.fieldName,
+                    description: newField.description,
+                    is_booking_enable: newField.isBookingEnable,
+                    price: newField.price,
+                    images: newField.images || "https://via.placeholder.com/100",
+                };
+
+                setFields((prev) => [...prev, mappedField]);
+                setFilteredFields((prev) => [...prev, mappedField]);
+                setIsAddFieldModalOpen(false);
+                setNewFieldFormData({
+                    category_id: 1,
+                    field_name: "",
+                    description: "",
+                    is_booking_enable: true,
+                    price: 0,
+                    images: ""
+                });
+                showToast("Thêm sân thành công!", 'success');
+            } catch (err) {
+                showToast('Không thể thêm sân. Vui lòng thử lại.', 'error');
             }
-            setServices((prev) => [...prev, newService])
-            setIsAddServiceModalOpen(false)
-            setNewServiceFormData({
-                service_name: "",
-                price: 0,
-                status: "Active",
-                image: "",
-                description: ""
-            })
-            alert("Thêm dịch vụ thành công!")
         } else {
-            alert("Vui lòng điền đầy đủ tên dịch vụ và giá!")
+            showToast("Vui lòng điền đầy đủ tên sân và giá!", 'error');
         }
-    }
+    };
+
+    const handleAddService = async () => {
+        if (newServiceFormData.service_name && newServiceFormData.price > 0) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showToast('Không tìm thấy token xác thực. Vui lòng đăng nhập.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://localhost:7057/api/Service`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ...newServiceFormData,
+                        fac_id: Number(facId),
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Lỗi khi thêm dịch vụ: ${response.statusText}`);
+                }
+
+                const newService = await response.json();
+                const mappedService: Service = {
+                    service_id: newService.serviceId,
+                    fac_id: newService.facId,
+                    service_name: newService.serviceName,
+                    price: newService.price,
+                    status: newService.status,
+                    image: newService.image || "https://via.placeholder.com/100",
+                    description: newService.description,
+                };
+
+                setServices((prev) => [...prev, newService]);
+                setFilteredServices((prev) => [...prev, newService]);
+                setIsAddServiceModalOpen(false);
+                setNewServiceFormData({
+                    service_name: "",
+                    price: 0,
+                    status: "Active",
+                    image: "",
+                    description: ""
+                });
+                showToast("Thêm dịch vụ thành công!", 'success');
+            } catch (err) {
+                showToast('Không thể thêm dịch vụ. Vui lòng thử lại.', 'error');
+            }
+        } else {
+            showToast("Vui lòng điền đầy đủ tên dịch vụ và giá!", 'error');
+        }
+    };
 
     const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type } = e.target
+        const { name, value, type } = e.target;
         if (type === "checkbox") {
             setFieldFormData((prev) => {
                 if (prev) {
                     return {
                         ...prev,
                         [name]: (e.target as HTMLInputElement).checked,
-                    }
+                    };
                 }
-                return prev
-            })
+                return prev;
+            });
         } else {
             setFieldFormData((prev) => {
                 if (prev) {
                     return {
                         ...prev,
                         [name]: type === "number" ? Number(value) : value,
-                    }
+                    };
                 }
-                return prev
-            })
+                return prev;
+            });
         }
-    }
+    };
 
     const handleServiceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type } = e.target
+        const { name, value, type } = e.target;
         setServiceFormData((prev) => {
             if (prev) {
                 return {
                     ...prev,
                     [name]: type === "number" ? Number(value) : value,
-                }
+                };
             }
-            return prev
-        })
-    }
+            return prev;
+        });
+    };
 
     const handleNewFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type } = e.target
+        const { name, value, type } = e.target;
         if (type === "checkbox") {
             setNewFieldFormData((prev) => ({
                 ...prev,
                 [name]: (e.target as HTMLInputElement).checked,
-            }))
+            }));
         } else {
             setNewFieldFormData((prev) => ({
                 ...prev,
                 [name]: type === "number" ? Number(value) : value,
-            }))
+            }));
         }
-    }
+    };
 
     const handleNewServiceChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value, type } = e.target
+        const { name, value, type } = e.target;
         setNewServiceFormData((prev) => ({
             ...prev,
             [name]: type === "number" ? Number(value) : value,
-        }))
-    }
+        }));
+    };
 
     const closeModal = () => {
-        setSelectedField(null)
-        setSelectedService(null)
-        setEditField(null)
-        setEditService(null)
-        setFieldFormData(null)
-        setServiceFormData(null)
-        setIsAddFieldModalOpen(false)
-        setIsAddServiceModalOpen(false)
-    }
+        setSelectedField(null);
+        setSelectedService(null);
+        setEditField(null);
+        setEditService(null);
+        setFieldFormData(null);
+        setServiceFormData(null);
+        setIsAddFieldModalOpen(false);
+        setIsAddServiceModalOpen(false);
+    };
 
     if (!facility) {
         return (
-            <>  <Sidebar />
+            <>
+                <Sidebar />
                 <div className="min-h-screen flex flex-col bg-gray-50 pl-64 pt-16">
                     <div className="text-center">
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">Không tìm thấy cơ sở</h2>
                         <button
-                            onClick={() => window.history.back()}
+                            onClick={() => navigate(-1)}
                             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
                         >
                             <FiArrowLeft className="h-4 w-4" />
@@ -401,17 +571,18 @@ const FacilityDetail: React.FC = () => {
                     </div>
                 </div>
             </>
-        )
+        );
     }
 
     return (
-        <>  <Sidebar />
+        <>
+            <Sidebar />
             <div className="min-h-screen flex flex-col bg-gray-50 pl-64 pt-16">
                 <div className="max-w-6xl mx-auto">
                     {/* Header với nút quay lại */}
                     <div className="flex items-center gap-4 mb-6">
                         <button
-                            onClick={() => window.history.back()}
+                            onClick={() => navigate(-1)}
                             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
                         >
                             <FiArrowLeft className="h-4 w-4" />
@@ -1266,7 +1437,7 @@ const FacilityDetail: React.FC = () => {
                 </div>
             </div>
         </>
-    )
-}
+    );
+};
 
-export default FacilityDetail
+export default FacilityDetail;
