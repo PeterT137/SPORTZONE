@@ -5,21 +5,21 @@ using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Services;
 using SportZone_API.Services.Interfaces;
+using SportZone_API.Attributes;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SportZone_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class FacilityController : ControllerBase
     {
         private readonly IFacilityService _facilityService;
-        private readonly RoleAuthorizeAttribute _roleAuthorizeAttribute;
 
-        public FacilityController(IFacilityService facilityService, RoleAuthorizeAttribute roleAuthorizeAttribute)
+        public FacilityController(IFacilityService facilityService)
         {
             _facilityService = facilityService;
-            _roleAuthorizeAttribute = roleAuthorizeAttribute;
         }
 
         // GET: api/Facility
@@ -41,19 +41,26 @@ namespace SportZone_API.Controllers
             return Ok(result);
         }
 
-        // POST: api/Facility
         [HttpPost]
         [RoleAuthorize("3")]
         public async Task<IActionResult> Create([FromBody] FacilityDto dto)
         {
-            var create = await _facilityService.CreateFacility(dto);
-            if (create.Success)
-                return Ok(new { create.Message, create.Data });
-            else
+            try
             {
+                var create = await _facilityService.CreateFacility(dto);
+                if (create.Success)
+                    return Ok(new { create.Message, create.Data });
+
                 return BadRequest(new { create.Message });
             }
+            catch (Exception ex)
+            {
+                // log ra lỗi để biết chính xác
+                Console.WriteLine("Error creating facility: " + ex.Message);
+                return StatusCode(500, "Server error: " + ex.Message);
+            }
         }
+
 
         // PUT: api/Facility/{id}
         [HttpPut("{id}")]
