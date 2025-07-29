@@ -42,7 +42,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPost]
-        [RoleAuthorize("3")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> Create([FromBody] FacilityDto dto)
         {
             try
@@ -64,7 +64,7 @@ namespace SportZone_API.Controllers
 
         // PUT: api/Facility/{id}
         [HttpPut("{id}")]
-        [RoleAuthorize("3")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> Update(int id, [FromBody] FacilityDto dto)
         {
             var update = await _facilityService.UpdateFacility(id, dto);
@@ -78,7 +78,7 @@ namespace SportZone_API.Controllers
 
         // DELETE: api/Facility/{id}
         [HttpDelete("{id}")]
-        [RoleAuthorize("3")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> Delete(int id)
         {
             var delete = await _facilityService.DeleteFacility(id);
