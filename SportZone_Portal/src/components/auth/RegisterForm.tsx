@@ -3,7 +3,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 interface RegisterFormProps {
-  role: 'player' | 'fieldOwner';
+  role: 'player' | 'fieldOwner'; // 'player' -> Customer, 'fieldOwner' -> Field Owner
 }
 
 interface FormData {
@@ -22,28 +22,31 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
     password: '',
     confirmPassword: '',
   });
+
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [apiError, setApiError] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  const roleIdMap: Record<RegisterFormProps['role'], number> = {
-    player: 2,
-    fieldOwner: 3,
+  const roleNameMap: Record<RegisterFormProps['role'], string> = {
+    player: 'Customer',
+    fieldOwner: 'Field_Owner',
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Xóa lỗi của trường đang thay đổi
+    setErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
   const validateForm = (): Partial<FormData> => {
     const newErrors: Partial<FormData> = {};
-    if (!formData.name) newErrors.name = 'Name is required';
-    if (!formData.phone) newErrors.phone = 'Phone is required';
-    if (!formData.email) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email';
-    if (!formData.password) newErrors.password = 'Password is required';
+    if (!formData.name) newErrors.name = 'Tên không được để trống';
+    if (!formData.phone) newErrors.phone = 'Số điện thoại không được để trống';
+    if (!formData.email) newErrors.email = 'Email không được để trống';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email không hợp lệ';
+    if (!formData.password) newErrors.password = 'Mật khẩu không được để trống';
     else if (
       formData.password.length < 10 ||
       !/[A-Z]/.test(formData.password) ||
@@ -51,10 +54,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
       !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
     ) {
       newErrors.password =
-        'Password must be at least 10 characters and include uppercase, lowercase, and special character';
+        'Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường và ký tự đặc biệt';
     }
-    if (formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Passwords don't match";
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Xác nhận mật khẩu không khớp';
+    }
     return newErrors;
   };
 
@@ -62,6 +66,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
     e.preventDefault();
     setApiError('');
     setSuccessMessage('');
+
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors);
@@ -81,19 +86,27 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
     };
 
     setLoading(true);
+
     try {
-      await axios.post('https://localhost:7057/api/Register', {
-        roleId: roleIdMap[role],
+      await axios.post('https://localhost:7057/api/Register/register', {
+        roleName: roleNameMap[role],
         name: formData.name,
         phone: formData.phone,
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
+        dob: null,
+        facId: null,
+        image: null,
+        startTime: null,
+        endTime: null,
       });
 
-      setSuccessMessage('Registration successful! You can now sign in.');
+      // Reset form và xóa lỗi sau khi đăng ký thành công
       setFormData({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
-      showToast('Registration successful!', 'success');
+      setErrors({}); // ✅ Xóa tất cả lỗi xác thực
+      setSuccessMessage('Đăng ký thành công! Bạn có thể đăng nhập.');
+      showToast('Đăng ký thành công!', 'success');
     } catch (err: any) {
       const errorMessage =
         err?.response?.data?.error || err?.response?.data?.message || 'Đã xảy ra lỗi không xác định';
@@ -113,6 +126,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
       {apiError && <p className="text-sm text-red-600">{apiError}</p>}
       {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
 
+      {/* Tên */}
       <div>
         <label className="block text-sm font-medium text-gray-500 mb-1">Tên</label>
         <input
@@ -127,6 +141,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
       </div>
 
+      {/* Số điện thoại */}
       <div>
         <label className="block text-sm font-medium text-gray-500 mb-1">Số điện thoại</label>
         <input
@@ -141,6 +156,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         {errors.phone && <p className="text-red-500 text-xs">{errors.phone}</p>}
       </div>
 
+      {/* Email */}
       <div>
         <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
         <input
@@ -155,6 +171,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
       </div>
 
+      {/* Mật khẩu */}
       <div>
         <label className="block text-sm font-medium text-gray-500 mb-1">Mật khẩu</label>
         <input
@@ -169,6 +186,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         {errors.password && <p className="text-red-500 text-xs">{errors.password}</p>}
       </div>
 
+      {/* Xác nhận mật khẩu */}
       <div>
         <label className="block text-sm font-medium text-gray-500 mb-1">Xác nhận mật khẩu</label>
         <input
@@ -180,9 +198,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
             errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword}</p>}
+        {errors.confirmPassword && (
+          <p className="text-red-500 text-xs">{errors.confirmPassword}</p>
+        )}
       </div>
 
+      {/* Nút đăng ký */}
       <button
         type="submit"
         disabled={loading}

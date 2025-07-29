@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -14,7 +15,6 @@ interface User {
   UId: number;
   RoleId: number;
   UEmail: string;
-  UPassword: string;
   UStatus: string;
   UCreateDate: string;
   IsExternalLogin: boolean;
@@ -26,7 +26,7 @@ interface User {
   Notifications: any[];
   Role: null | any;
   Staff: null | any;
-  avatarUrl?: string; // Optional for compatibility with existing UI
+  avatarUrl?: string;
 }
 
 const Header: React.FC = () => {
@@ -37,17 +37,32 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    console.log("Stored user from localStorage:", storedUser); // Debug log
+    console.log("Stored user from localStorage:", storedUser);
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        console.log("Parsed user:", parsedUser); // Debug log
-        if (parsedUser.UId && parsedUser.UEmail) {
-          // Add avatarUrl for compatibility with existing UI, using a fallback if not present
-          setUser({
-            ...parsedUser,
-            avatarUrl: parsedUser.avatarUrl || "https://www.vietnamworks.com/hrinsider/wp-content/uploads/2023/12/anh-den-ngau.jpeg",
-          });
+        console.log("Parsed user:", parsedUser);
+
+        const transformedUser: User = {
+          UId: parsedUser.uId || parsedUser.UId,
+          RoleId: parsedUser.roleId || parsedUser.RoleId,
+          UEmail: parsedUser.uEmail || parsedUser.UEmail,
+          UStatus: parsedUser.uStatus || parsedUser.UStatus || "Active",
+          UCreateDate: parsedUser.uCreateDate || parsedUser.UCreateDate || new Date().toISOString(),
+          IsExternalLogin: parsedUser.isExternalLogin ?? false,
+          IsVerify: parsedUser.isVerify ?? false,
+          Admin: parsedUser.Admin ?? null,
+          Customers: parsedUser.Customers ?? [],
+          ExternalLogins: parsedUser.ExternalLogins ?? [],
+          FieldOwner: parsedUser.FieldOwner ?? null,
+          Notifications: parsedUser.notifications ?? parsedUser.Notifications ?? [],
+          Role: parsedUser.Role ?? null,
+          Staff: parsedUser.Staff ?? null,
+          avatarUrl: parsedUser.avatarUrl || "https://www.vietnamworks.com/hrinsider/wp-content/uploads/2023/12/anh-den-ngau.jpeg",
+        };
+
+        if (transformedUser.UId && transformedUser.UEmail) {
+          setUser(transformedUser);
         } else {
           console.warn("Invalid user data format:", parsedUser);
           setUser(null);
@@ -95,6 +110,11 @@ const Header: React.FC = () => {
           <a href="/field_list" className="text-white hover:text-[#1ebd6f]">
             Danh sách sân
           </a>
+          {user && (user.RoleId === 4 || user.RoleId ===2|| user.RoleId ===3) && (
+            <a href="/facility_manager" className="text-white hover:text-[#1ebd6f]">
+              Quản lý chủ sân
+            </a>
+          )}
           <a href="#" className="text-white hover:text-[#1ebd6f]">
             Báo cáo
           </a>
