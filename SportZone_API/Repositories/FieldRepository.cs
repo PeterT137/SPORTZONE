@@ -87,6 +87,7 @@ namespace SportZone_API.Repositories
                     throw new ArgumentException($"Loại sân với ID {fieldDto.CategoryId} không tồn tại.");
                 }
                 var field = _mapper.Map<Field>(fieldDto);
+                field.IsBookingEnable = false; 
                 _context.Fields.Add(field);
                 await _context.SaveChangesAsync();
                 return field;
@@ -130,8 +131,7 @@ namespace SportZone_API.Repositories
                 {
                     return false;
                 }
-                field.IsBookingEnable = false; // Disable booking instead of deleting
-                //_context.Fields.Remove(field);
+                _context.Fields.Remove(field);
                 await _context.SaveChangesAsync();
                 return true;
             }
