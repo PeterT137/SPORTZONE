@@ -55,7 +55,6 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                // log ra lỗi để biết chính xác
                 Console.WriteLine("Error creating facility: " + ex.Message);
                 return StatusCode(500, "Server error: " + ex.Message);
             }

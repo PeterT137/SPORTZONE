@@ -55,7 +55,7 @@ builder.Services.AddMemoryCache();
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+//builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IRegisterService, RegisterService>();
 builder.Services.AddScoped<IRegisterRepository, RegisterRepository>();
 builder.Services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
@@ -79,7 +79,7 @@ builder.Services.AddScoped<IFieldPricingRepository, FieldPricingRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
 builder.Services.AddScoped<IFieldPricingService, FieldPricingService>();
 
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+//builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, SportZone_API.Services.OrderService>();
 
 builder.Services.AddHttpContextAccessor();
