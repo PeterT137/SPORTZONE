@@ -16,6 +16,15 @@ namespace SportZone_API.Services.Interfaces
         Task<BookingDetailDTO?> GetBookingDetailAsync(int bookingId);
 
         /// <summary>
+        /// Hủy booking
+        /// </summary>
+        Task<bool> CancelBookingAsync(int bookingId);
+
+        /// <summary>
+        /// Lấy danh sách booking theo customer
+        /// </summary>
+        Task<IEnumerable<BookingResponseDTO>> GetUserBookingsAsync(int userId);
+        /// <summary>
         /// Validate booking business rules
         /// </summary>
         Task<(bool IsValid, string ErrorMessage)> ValidateBookingRulesAsync(BookingCreateDTO bookingDto);

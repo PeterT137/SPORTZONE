@@ -109,5 +109,18 @@ namespace SportZone_API.Repositories
                 throw new Exception($"Lỗi khi cập nhật external login: {ex.Message}", ex);
             }
         }
+
+       public async Task<Role?> GetCustomerRoleIdByNameAsync()
+        {
+            try
+            {
+                return await _context.Roles
+                    .FirstOrDefaultAsync(r => r.RoleName == "Customer");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tìm role theo tên: {ex.Message}", ex);
+            }
+        }
     }
 }

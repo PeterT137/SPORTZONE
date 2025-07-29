@@ -65,7 +65,7 @@ namespace SportZone_API.Services
                 };
             }
 
-            var field = await _fieldRepository.GetFieldModelByIdAsync(generateDto.FieldId);
+            var field = await _fieldRepository.GetFieldByIdAsync(generateDto.FieldId);
             if (field == null)
             {
                 return new ScheduleGenerationResponseDto

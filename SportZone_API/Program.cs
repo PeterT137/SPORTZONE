@@ -55,23 +55,22 @@ builder.Services.AddMemoryCache();
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-//builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IRegisterService, RegisterService>();
 builder.Services.AddScoped<IRegisterRepository, RegisterRepository>();
 builder.Services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
 builder.Services.AddScoped<IForgotPasswordRepository, ForgotPasswordRepository>();
 builder.Services.AddScoped<IFacilityService, FacilityService>();
 builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
-
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IFieldService, FieldService>();
-
 builder.Services.AddScoped<IBookingService, BookingService>();
-
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
+builder.Services.AddScoped<IServiceService, ServiceService>();
+builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 
 builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
 builder.Services.AddScoped<IFieldPricingRepository, FieldPricingRepository>();
@@ -79,7 +78,7 @@ builder.Services.AddScoped<IFieldPricingRepository, FieldPricingRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
 builder.Services.AddScoped<IFieldPricingService, FieldPricingService>();
 
-//builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, SportZone_API.Services.OrderService>();
 
 builder.Services.AddHttpContextAccessor();

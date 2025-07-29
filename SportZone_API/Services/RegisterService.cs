@@ -62,7 +62,7 @@ namespace SportZone_API.Services
                 await _repository.RegisterUserWithCustomerAsync(user, customer);
                 return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản khách hàng thành công." };
             }
-            else if (dto.RoleName == "Field Owner")
+            else if (dto.RoleName == "Field_Owner")
             {
                 if (dto.FacId.HasValue || dto.Dob.HasValue || !string.IsNullOrEmpty(dto.Image) || dto.StartTime.HasValue || dto.EndTime.HasValue)
                 {
