@@ -40,7 +40,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("GetAllFields/Search/")]
-        public async Task<IActionResult> GetAllFields([FromBody] string? search = null)
+        public async Task<IActionResult> GetAllFields([FromQuery] string? search = null)
         {
             try
             {
