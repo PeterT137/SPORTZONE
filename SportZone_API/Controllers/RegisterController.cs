@@ -18,12 +18,11 @@ namespace SportZone_API.Controllers
 
         [HttpPost]
         [Route("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto dto) // Đã đổi tên DTO
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto) 
         {
-            // Kiểm tra Data Annotations validation
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState); // Trả về chi tiết lỗi validation
+                return BadRequest(ModelState); 
             }
 
             var result = await _registerService.RegisterUserAsync(dto);

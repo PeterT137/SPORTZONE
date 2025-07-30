@@ -9,31 +9,27 @@ namespace SportZone_API.Mappings
     {
         public RegisterProfile()
         {
-            // Ánh xạ từ RegisterDto sang User (chung cho tất cả)
             CreateMap<RegisterDto, User>()
                 .ForMember(dest => dest.UEmail, opt => opt.MapFrom(src => src.Email))
                 .ForMember(dest => dest.UStatus, opt => opt.MapFrom(_ => "Active"))
                 .ForMember(dest => dest.UCreateDate, opt => opt.MapFrom(_ => DateTime.Now))
                 .ForMember(dest => dest.IsExternalLogin, opt => opt.MapFrom(_ => false))
                 .ForMember(dest => dest.IsVerify, opt => opt.MapFrom(_ => true))
-                .ForMember(dest => dest.RoleId, opt => opt.Ignore()) // RoleId sẽ được gán trong Service
-                .ForMember(dest => dest.UPassword, opt => opt.Ignore()); // Mật khẩu được hash trong Service
+                .ForMember(dest => dest.RoleId, opt => opt.Ignore()) 
+                .ForMember(dest => dest.UPassword, opt => opt.Ignore()); 
 
-            // Ánh xạ từ RegisterDto sang Customer
             CreateMap<RegisterDto, Customer>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
-                .ForMember(dest => dest.Dob, opt => opt.Ignore()) // Customer không có Dob mặc định
-                .ForMember(dest => dest.UId, opt => opt.Ignore()); // UId sẽ được gán sau khi User được tạo
+                .ForMember(dest => dest.Dob, opt => opt.Ignore())
+                .ForMember(dest => dest.UId, opt => opt.Ignore()); 
 
-            // Ánh xạ từ RegisterDto sang FieldOwner
             CreateMap<RegisterDto, FieldOwner>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
-                .ForMember(dest => dest.Dob, opt => opt.Ignore()) // FieldOwner không có Dob mặc định
-                .ForMember(dest => dest.UId, opt => opt.Ignore()); // UId sẽ được gán sau khi User được tạo
+                .ForMember(dest => dest.Dob, opt => opt.Ignore()) 
+                .ForMember(dest => dest.UId, opt => opt.Ignore()); 
 
-            // Ánh xạ từ RegisterDto sang Staff
             CreateMap<RegisterDto, Staff>()
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
@@ -42,7 +38,7 @@ namespace SportZone_API.Mappings
                 .ForMember(dest => dest.FacId, opt => opt.MapFrom(src => src.FacId))
                 .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartTime))
                 .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndTime))
-                .ForMember(dest => dest.UId, opt => opt.Ignore()); // UId sẽ được gán sau khi User được tạo
+                .ForMember(dest => dest.UId, opt => opt.Ignore()); 
         }
     }
 }

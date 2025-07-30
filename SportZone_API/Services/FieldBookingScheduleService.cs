@@ -142,16 +142,13 @@ namespace SportZone_API.Services
                 {
                     TimeOnly slotEndTime = slotStartTime.Add(FixedSlotDuration);
 
-                    // Nếu slot kết thúc vượt quá DailyEndTime, cắt ngắn slot đó
                     if (slotEndTime > dailyEndTime)
                     {
-                        // Nếu phần còn lại của thời gian ít hơn FixedSlotDuration, không tạo slot này
                         if ((dailyEndTime - slotStartTime) < FixedSlotDuration)
                         {
-                            // Bỏ qua phần thời gian lẻ cuối cùng nếu không đủ 30 phút
                             break;
                         }
-                        slotEndTime = dailyEndTime; // Cắt ngắn slot cuối cùng
+                        slotEndTime = dailyEndTime; 
                     }
 
                     if (currentDate == todayLocal)
