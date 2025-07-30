@@ -49,6 +49,10 @@ public partial class SportZoneContext : DbContext
 
     public virtual DbSet<Payment> Payments { get; set; }
 
+    public virtual DbSet<RegulationFacility> RegulationFacilities { get; set; }
+
+    public virtual DbSet<RegulationSystem> RegulationSystems { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<Service> Services { get; set; }
@@ -496,6 +500,62 @@ public partial class SportZoneContext : DbContext
                 .HasForeignKey(d => d.UId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Payment__u_id__02084FDA");
+        });
+
+        modelBuilder.Entity<RegulationFacility>(entity =>
+        {
+            entity.HasKey(e => e.RegulationFacilityId).HasName("PK__Regulati__B2AC1BDDEC11AC4E");
+
+            entity.ToTable("RegulationFacility");
+
+            entity.Property(e => e.RegulationFacilityId).HasColumnName("regulation_facility_id");
+            entity.Property(e => e.CreateAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("create_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.FacId).HasColumnName("fac_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(10)
+                .HasDefaultValue("Active")
+                .HasColumnName("status");
+            entity.Property(e => e.Title)
+                .HasMaxLength(100)
+                .HasColumnName("title");
+            entity.Property(e => e.UpdateAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("update_at");
+
+            entity.HasOne(d => d.Fac).WithMany(p => p.RegulationFacilities)
+                .HasForeignKey(d => d.FacId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Regulatio__fac_i__1F98B2C1");
+        });
+
+        modelBuilder.Entity<RegulationSystem>(entity =>
+        {
+            entity.HasKey(e => e.RegulationSystemId).HasName("PK__Regulati__A01CA95FF75765F7");
+
+            entity.ToTable("RegulationSystem");
+
+            entity.Property(e => e.RegulationSystemId).HasColumnName("regulation_system_id");
+            entity.Property(e => e.CreateAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("create_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Status)
+                .HasMaxLength(10)
+                .HasDefaultValue("Active")
+                .HasColumnName("status");
+            entity.Property(e => e.Title)
+                .HasMaxLength(100)
+                .HasColumnName("title");
+            entity.Property(e => e.UpdateAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("update_at");
         });
 
         modelBuilder.Entity<Role>(entity =>

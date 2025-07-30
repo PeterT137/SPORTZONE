@@ -50,7 +50,7 @@ builder.Services.AddControllers()
 builder.Services.AddDbContext<SportZoneContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
+builder.Services.AddAutoMapper(typeof(MappingField).Assembly);
 builder.Services.AddMemoryCache();
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
 
