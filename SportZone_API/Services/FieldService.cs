@@ -100,6 +100,25 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<IEnumerable<FieldScheduleDTO>> GetFieldScheduleByFieldIdAsync(int fieldId)
+        {
+            try
+            {
+                if (fieldId <= 0)
+                    throw new ArgumentException("ID sân không hợp lệ");
+
+                // Kiểm tra sân có tồn tại không
+                if (!await _fieldRepository.FieldExistsAsync(fieldId))
+                    throw new ArgumentException("Sân không tồn tại");
+
+                return await _fieldRepository.GetFieldScheduleByFieldIdAsync(fieldId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi service khi lấy lịch sân: {ex.Message}", ex);
+            }
+        }
+
         public async Task<Field> CreateFieldAsync(FieldCreateDTO fieldDto)
         {
             try

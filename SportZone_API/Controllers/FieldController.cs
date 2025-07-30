@@ -213,6 +213,42 @@ namespace SportZone_API.Controllers
             }
         }
 
+        /// <summary>
+        /// Lấy lịch sân theo Field ID
+        /// </summary>
+        [HttpGet("{fieldId}/schedule")]
+        public async Task<IActionResult> GetFieldSchedule(int fieldId)
+        {
+            try
+            {
+                var schedules = await _fieldService.GetFieldScheduleByFieldIdAsync(fieldId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy lịch sân thành công",
+                    data = schedules,
+                    count = schedules.Count(),
+                    fieldId = fieldId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
         [HttpPost("Create-Field")]
         public async Task<IActionResult> CreateField([FromBody] FieldCreateDTO fieldDto)
         {

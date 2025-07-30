@@ -121,6 +121,41 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<IEnumerable<FieldScheduleDTO>> GetFieldScheduleByFieldIdAsync(int fieldId)
+        {
+            try
+            {
+                var schedule = await _context.FieldBookingSchedules
+                    .Include(fbs => fbs.Field)
+                    .Include(fbs => fbs.Booking)
+                    .Where(fbs => fbs.FieldId == fieldId)
+                    .OrderBy(fbs => fbs.Date)
+                    .ThenBy(fbs => fbs.StartTime)
+                    .ToListAsync();
+
+                var scheduleDto = schedule.Select(s => new FieldScheduleDTO
+                {
+                    ScheduleId = s.ScheduleId,
+                    FieldId = s.FieldId,
+                    FieldName = s.Field?.FieldName,
+                    BookingId = s.BookingId,
+                    BookingTitle = s.Booking?.Title,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    Date = s.Date,
+                    Notes = s.Notes,
+                    Status = s.Status,
+                    Price = s.Price
+                });
+
+                return scheduleDto;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy lịch sân với ID {fieldId}: {ex.Message}", ex);
+            }
+        }
+
         public async Task<Field> CreateFieldAsync(FieldCreateDTO fieldDto)
         {
             try
