@@ -6,6 +6,7 @@ namespace SportZone_API.Repositories.Interfaces
     public interface IFieldRepository
     {
         Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync();
+        Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync(string? searchTerm);
         Task<FieldResponseDTO?> GetFieldByIdAsync(int fieldId);
         Task<IEnumerable<FieldResponseDTO>> GetFieldsByFacilityAsync(int facId);
         Task<IEnumerable<FieldResponseDTO>> GetFieldsByCategoryAsync(int categoryId);

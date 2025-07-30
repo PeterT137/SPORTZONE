@@ -29,6 +29,18 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync(string? searchTerm)
+        {
+            try
+            {
+                return await _fieldRepository.GetAllFieldsAsync(searchTerm);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi service khi tìm kiếm sân: {ex.Message}", ex);
+            }
+        }
+
         public async Task<FieldResponseDTO> GetFieldByIdAsync(int fieldId)
         {
             try

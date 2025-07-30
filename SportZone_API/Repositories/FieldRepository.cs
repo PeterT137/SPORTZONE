@@ -24,6 +24,34 @@ namespace SportZone_API.Repositories
             return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
         }
 
+        public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync(string? searchTerm)
+        {
+            try
+            {
+                var query =_context.Fields
+                    .Include(f => f.Fac)
+                    .Include(f => f.Category)
+                    .AsQueryable();
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    searchTerm = searchTerm.Trim().ToLower();
+                    query = query.Where(f =>
+                        f.FieldName!.ToLower().Contains(searchTerm) ||
+                        f.Description!.ToLower().Contains(searchTerm) ||
+                        f.Fac!.Name!.ToLower().Contains(searchTerm) ||
+                        f.Fac!.Address!.ToLower().Contains(searchTerm) ||
+                        f.Category!.CategoryFieldName!.ToLower().Contains(searchTerm));
+                }
+
+                var fields = await query.ToListAsync();
+                return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách sân: {ex.Message}", ex);
+            }
+        }
+
         public async Task<FieldResponseDTO?> GetFieldByIdAsync(int fieldId)
         {
             try

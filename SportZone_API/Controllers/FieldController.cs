@@ -39,6 +39,39 @@ namespace SportZone_API.Controllers
             }
         }
 
+        [HttpGet("GetAllFields/Search/")]
+        public async Task<IActionResult> GetAllFields([FromBody] string? search = null)
+        {
+            try
+            {
+                IEnumerable<FieldResponseDTO> fields;
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    fields = await _fieldService.GetAllFieldsAsync(search); 
+                }
+                else
+                {
+                    fields = await _fieldService.GetAllFieldsAsync();
+                }
+                return Ok(new
+                {   
+                    success = true,
+                    message = string.IsNullOrWhiteSpace(search) ? "Lấy danh sách sân thành công" : $"Tìm kiếm sân với từ khóa '{search}' thành công",
+                    data = fields,
+                    conut = fields.Count(),
+                    searchTerm = search
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetFieldByID(int id)
         {
