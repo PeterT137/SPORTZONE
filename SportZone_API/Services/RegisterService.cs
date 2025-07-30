@@ -48,7 +48,6 @@ namespace SportZone_API.Services
 
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == dto.RoleName);
 
-            // ✅ Kiểm tra null trước khi dùng role
             if (role == null)
             {
                 return Fail($"Tên vai trò '{dto.RoleName}' không hợp lệ. Vui lòng chọn 'Customer', 'Field Owner' hoặc 'Staff'.");
@@ -131,7 +130,6 @@ namespace SportZone_API.Services
                 return Fail("Tên vai trò không hợp lệ.");
             }
         }
-
 
         private static ServiceResponse<string> Fail(string msg) => new() { Success = false, Message = msg };
 

@@ -81,6 +81,9 @@ builder.Services.AddScoped<IFieldPricingService, FieldPricingService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, SportZone_API.Services.OrderService>();
 
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
+builder.Services.AddScoped<IStaffService, StaffService>();
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(options =>
 {
