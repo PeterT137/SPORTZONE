@@ -16,7 +16,7 @@ namespace SportZone_API.DTOs
 
         public string? Description { get; set; }
 
-        public bool IsBookingEnable { get; set; } = true;
+        public bool IsBookingEnable { get; set; } = false;
     }
 
     public class FieldUpdateDTO

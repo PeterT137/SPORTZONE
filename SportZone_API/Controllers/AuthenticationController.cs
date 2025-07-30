@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Google;
 using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace SportZone_API.Controllers
 {
@@ -102,7 +103,7 @@ namespace SportZone_API.Controllers
                 var (token, loggedInUser) = await _authService.GoogleLoginAsync(googleLoginDto);
 
                 // Serialize user thông tin nếu bạn cần gửi về frontend
-                var userJson = Uri.EscapeDataString(JsonConvert.SerializeObject(loggedInUser));
+                var userJson = Uri.EscapeDataString(System.Text.Json.JsonSerializer.Serialize(loggedInUser));
 
                 // Redirect về frontend cùng token và user
                 var redirectUrl = $"http://localhost:5173/google-auth-callback?token={token}&user={userJson}";

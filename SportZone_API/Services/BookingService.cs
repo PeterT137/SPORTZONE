@@ -55,56 +55,98 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<bool> CancelBookingAsync(int bookingId)
+        {
+            try
+            {
+                if (bookingId <= 0)
+                    throw new ArgumentException("Booking ID không hợp lệ");
+
+                var booking = await _bookingRepository.GetBookingEntityByIdAsync(bookingId);
+                if (booking == null)
+                    throw new KeyNotFoundException("Không tìm thấy booking với ID đã cho");
+
+                var schedule = booking.FieldBookingSchedules?.FirstOrDefault();
+                if (schedule?.Date.HasValue == true && schedule?.StartTime.HasValue == true)
+                {
+                    var bookingDateTime = CombineDateAndTime(schedule.Date.Value, schedule.EndTime.Value);
+                    if (bookingDateTime.AddHours(-2) <= DateTime.Now)
+                    {
+                        throw new InvalidOperationException("Không thể hủy booking trong vòng 2 giờ trước giờ bắt đầu");
+                    }
+                }
+                return await _bookingRepository.CancelBookingAsync(bookingId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi hủy booking: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<IEnumerable<BookingResponseDTO>> GetUserBookingsAsync(int userId)
+        {
+            try
+            {
+                if (userId <= 0)
+                    throw new ArgumentException("User ID không hợp lệ");
+
+                return await _bookingRepository.GetBookingsByUserAsync(userId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy booking của customer: {ex.Message}", ex);
+            }
+        }
+
         public async Task<(bool IsValid, string ErrorMessage)> ValidateBookingRulesAsync(BookingCreateDTO bookingDto)
         {
             try
             {
                 // Basic validation
                 if (bookingDto.StartTime >= bookingDto.EndTime)
-                {
-                    return (false, "Thời gian bắt đầu phải trước thời gian kết thúc");
-                }
-                //Kieemr tra booking không được đặt trong quá khứ
+                    return (false, "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc");
+
+                // Check if booking is not in the past
                 var bookingDateTime = CombineDateAndTime(bookingDto.Date, bookingDto.StartTime);
                 if (bookingDateTime <= DateTime.Now)
-                {
-                    return (false, "Không thể đặt sân trong quá khứ");
-                }
+                    return (false, "Không thể đặt thời gian trong quá khứ");
+
+                // Check if it's not too far in the future (e.g., max 3 months)
+                if (bookingDateTime > DateTime.Now.AddMonths(3))
+                    return (false, "Không thể đặt sân quá 3 tháng trước");
+
                 // Validate guest booking requirements
-                if (!bookingDto.CustomerId.HasValue)
+                if (!bookingDto.UserId.HasValue)
                 {
-                    if (string.IsNullOrEmpty(bookingDto.GuestName))
-                    {
-                        return (false, "Tên khách không được để trống khi đặt sân cho khách");
-                    }
+                    if (string.IsNullOrWhiteSpace(bookingDto.GuestName))
+                        return (false, "Tên khách là bắt buộc cho booking khách lẻ");
+
                     if (string.IsNullOrWhiteSpace(bookingDto.GuestPhone))
-                    {
-                        return (false, "Số điện thoại khách không được để trống khi đặt sân cho khách");
-                    }
+                        return (false, "Số điện thoại là bắt buộc cho booking khách lẻ");
+
                     if (!IsValidPhoneNumber(bookingDto.GuestPhone))
-                    {
-                        return (false, "Số điện thoại khách không hợp lệ");
-                    }
+                        return (false, "Số điện thoại không hợp lệ");
                 }
+
                 // Check field availability if specified
                 if (bookingDto.FieldId.HasValue)
                 {
                     var isAvailable = await CheckTimeSlotAvailabilityAsync(
-                        bookingDto.FieldId.Value, 
-                        bookingDto.Date, 
-                        bookingDto.StartTime, 
+                        bookingDto.FieldId.Value,
+                        bookingDto.Date,
+                        bookingDto.StartTime,
                         bookingDto.EndTime);
+
                     if (!isAvailable)
-                    {
-                        return (false, "Sân đã được đặt trong khoảng thời gian này. Vui lòng chọn thời gian khác.");
-                    }
+                        return (false, "Thời gian đã được đặt, vui lòng chọn thời gian khác");
                 }
 
+                // Additional business rules can be added here
                 return (true, string.Empty);
             }
             catch (Exception ex)
             {
-                return (false, $"Lỗi validation: {ex.Message}");
+                return (false, $"Lỗi khi kiểm tra quy tắc booking: {ex.Message}");
             }
         }
 

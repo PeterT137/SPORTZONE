@@ -62,16 +62,15 @@ builder.Services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
 builder.Services.AddScoped<IForgotPasswordRepository, ForgotPasswordRepository>();
 builder.Services.AddScoped<IFacilityService, FacilityService>();
 builder.Services.AddScoped<IFacilityRepository, FacilityRepository>();
-
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IFieldService, FieldService>();
-
 builder.Services.AddScoped<IBookingService, BookingService>();
-
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
+builder.Services.AddScoped<IServiceService, ServiceService>();
+builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 
 builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
 builder.Services.AddScoped<IFieldPricingRepository, FieldPricingRepository>();

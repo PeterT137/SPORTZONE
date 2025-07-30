@@ -23,6 +23,8 @@ public partial class User
 
     public virtual Admin? Admin { get; set; }
 
+    public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
     public virtual Customer? Customer { get; set; }
 
     public virtual ExternalLogin? ExternalLogin { get; set; }
@@ -30,6 +32,8 @@ public partial class User
     public virtual FieldOwner? FieldOwner { get; set; }
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 

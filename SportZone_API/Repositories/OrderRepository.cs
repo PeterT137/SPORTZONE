@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore; 
+﻿using Microsoft.EntityFrameworkCore;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
@@ -18,16 +18,17 @@ namespace SportZone_API.Repositories
         public async Task<Order?> GetOrderByIdAsync(int orderId)
         {
             return await _context.Orders
-                                 .Include(o => o.Booking)
-                                     .ThenInclude(b => b.Customer)
-                                 .Include(o => o.Booking)
-                                     .ThenInclude(b => b.Field)
-                                 .Include(o => o.Booking)
-                                     .ThenInclude(b => b.FieldBookingSchedules) 
-                                 .Include(o => o.Discount)
-                                 .Include(o => o.OrderServices) 
-                                     .ThenInclude(os => os.Service) 
-                                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                .Include(o => o.Booking)
+                    .ThenInclude(b => b.UIdNavigation) // Include the User linked to the Booking
+                        .ThenInclude(u => u.Customer) // Then include the Customer linked to that User
+                .Include(o => o.Booking)
+                    .ThenInclude(b => b.Field)
+                .Include(o => o.Booking)
+                    .ThenInclude(b => b.FieldBookingSchedules)
+                .Include(o => o.Discount)
+                .Include(o => o.OrderServices)
+                    .ThenInclude(os => os.Service)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
         }
 
         public async Task<bool> AddOrderServiceAsync(OrderService order_Service)
@@ -66,14 +67,15 @@ namespace SportZone_API.Repositories
         {
             return await _context.Bookings
                                  .Include(b => b.Field)
-                                 .Include(b => b.Customer)
+                                 .Include(b => b.UIdNavigation) 
+                                    .ThenInclude(u => u.Customer)
                                  .Include(b => b.FieldBookingSchedules)
                                  .FirstOrDefaultAsync(b => b.BookingId == bookingId);
         }
 
         public async Task<Discount?> GetActiveDiscountByBookingIdAsync(int bookingId)
         {
-            return null; 
+            return null;
         }
 
         public async Task<Field?> GetFieldByIdAsync(int fieldId)

@@ -15,21 +15,13 @@ namespace SportZone_API.Repositories
             _context = context;
             _mapper = mapper;
         }
-
         public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync()
         {
-            try
-            {
-                var fields = await _context.Fields
-                    .Include(f => f.Fac) 
-                    .Include(f => f.Category)
-                    .ToListAsync();
-                return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Lỗi khi lấy danh sách sân: {ex.Message}", ex);
-            }
+            var fields = await _context.Fields
+                .Include(f => f.Fac)
+                .Include(f => f.Category)
+                .ToListAsync();
+            return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
         }
 
         public async Task<FieldResponseDTO?> GetFieldByIdAsync(int fieldId)
@@ -46,11 +38,6 @@ namespace SportZone_API.Repositories
             {
                 throw new Exception($"Lỗi khi lấy sân với ID {fieldId}: {ex.Message}", ex);
             }
-        }
-
-        public async Task<Field?> GetFieldModelByIdAsync(int fieldId)
-        {
-            return await _context.Fields.FirstOrDefaultAsync(f => f.FieldId == fieldId);
         }
 
         public async Task<IEnumerable<FieldResponseDTO>> GetFieldsByFacilityAsync(int facId)
@@ -100,6 +87,7 @@ namespace SportZone_API.Repositories
                     throw new ArgumentException($"Loại sân với ID {fieldDto.CategoryId} không tồn tại.");
                 }
                 var field = _mapper.Map<Field>(fieldDto);
+                field.IsBookingEnable = false;
                 _context.Fields.Add(field);
                 await _context.SaveChangesAsync();
                 return field;
