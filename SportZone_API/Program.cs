@@ -47,6 +47,12 @@ builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingSchedule
 builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IRegulationSystemRepository, RegulationSystemRepository>();
+builder.Services.AddScoped<IRegulationSystemService, RegulationSystemService>();
+builder.Services.AddScoped<IRegulationFacilityRepository, RegulationFacilityRepository>();
+builder.Services.AddScoped<IRegulationFacilityService, RegulationFacilityService>();
+builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(options =>
