@@ -33,7 +33,7 @@ namespace SportZone_API.Services
         {
             var user = await _repository.GetUserByEmailAsync(dto.Email);
             if (user == null)
-                return Fail("Email does not exist.");
+                return Fail("Email không tồn tại."); 
 
             var code = new Random().Next(100000, 999999).ToString();
             var cacheKey = $"ResetCode:{code}";
@@ -42,8 +42,8 @@ namespace SportZone_API.Services
             var mail = new MailMessage
             {
                 From = new MailAddress(_emailSettings.Email, _emailSettings.DisplayName),
-                Subject = "Forgot password confirmation code",
-                Body = $"Your confirmation code is: {code}"
+                Subject = "Mã xác nhận quên mật khẩu", 
+                Body = $"Mã xác nhận của bạn là: {code}" 
             };
             mail.To.Add(dto.Email);
 
@@ -54,7 +54,7 @@ namespace SportZone_API.Services
                 await smtp.SendMailAsync(mail);
             }
 
-            return new ServiceResponse<string> { Success = true, Message = "Confirmation code sent to email." };
+            return new ServiceResponse<string> { Success = true, Message = "Mã xác nhận đã được gửi đến email." }; 
         }
 
         public async Task<ServiceResponse<string>> ResetPasswordAsync(VerifyCodeDto dto)
@@ -62,23 +62,23 @@ namespace SportZone_API.Services
             var cacheKey = $"ResetCode:{dto.Code}";
 
             if (!_cache.TryGetValue(cacheKey, out string email))
-                return Fail("Confirmation code not found or expired.");
+                return Fail("Mã xác nhận không tìm thấy hoặc đã hết hạn."); 
 
             if (!RegisterService.IsValidPassword(dto.NewPassword))
-                return Fail("Password must be at least 10 characters, including uppercase, lowercase, numbers and special characters.");
+                return Fail("Mật khẩu phải có ít nhất 10 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt."); 
 
             if (dto.NewPassword != dto.ConfirmPassword)
-                return Fail("Confirmation password does not match.");
+                return Fail("Mật khẩu xác nhận không khớp."); 
 
             var user = await _repository.GetUserByEmailAsync(email);
             if (user == null)
-                return Fail("User not found.");
+                return Fail("Không tìm thấy người dùng."); 
 
             user.UPassword = _passwordHasher.HashPassword(user, dto.NewPassword);
             await _repository.SaveUserAsync();
             _cache.Remove(cacheKey);
 
-            return new ServiceResponse<string> { Success = true, Message = "Password changed successfully." };
+            return new ServiceResponse<string> { Success = true, Message = "Mật khẩu đã được thay đổi thành công." }; 
         }
 
         private static ServiceResponse<string> Fail(string msg) => new() { Success = false, Message = msg };

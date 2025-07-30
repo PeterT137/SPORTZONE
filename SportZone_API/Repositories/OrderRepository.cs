@@ -19,8 +19,8 @@ namespace SportZone_API.Repositories
         {
             return await _context.Orders
                 .Include(o => o.Booking)
-                    .ThenInclude(b => b.UIdNavigation) // Include the User linked to the Booking
-                        .ThenInclude(u => u.Customer) // Then include the Customer linked to that User
+                    .ThenInclude(b => b.UIdNavigation) 
+                        .ThenInclude(u => u.Customer) 
                 .Include(o => o.Booking)
                     .ThenInclude(b => b.Field)
                 .Include(o => o.Booking)

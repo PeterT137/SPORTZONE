@@ -9,5 +9,6 @@ namespace SportZone_API.Repositories.Interfaces
         Task<IEnumerable<Staff>> GetStaffByFacilityIdAsync(int facilityId);
         Task UpdateStaffAsync(Staff staff);
         Task DeleteStaffAsync(Staff staff);
+        Task<Staff?> GetByUIdAsync(int uId);
     }
 }

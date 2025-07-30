@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
@@ -13,14 +12,11 @@ namespace SportZone_API.Services
 {
     public class StaffService : IStaffService
     {
-        private readonly SportZoneContext _context;
         private readonly IStaffRepository _staffRepository;
         private readonly IFacilityRepository _facilityRepository;
         private readonly IMapper _mapper;
-
-        public StaffService(SportZoneContext context, IStaffRepository staffRepository, IFacilityRepository facilityRepository, IMapper mapper)
+        public StaffService(IStaffRepository staffRepository, IFacilityRepository facilityRepository, IMapper mapper)
         {
-            _context = context;
             _staffRepository = staffRepository;
             _facilityRepository = facilityRepository;
             _mapper = mapper;
@@ -45,14 +41,11 @@ namespace SportZone_API.Services
 
         public async Task<ServiceResponse<string>> UpdateStaffAsync(int uId, UpdateStaffDto dto)
         {
-            var staffToUpdate = await _context.Staff
-                                              .Where(s => s.UId == uId)
-                                              .FirstOrDefaultAsync();
+            var staffToUpdate = await _staffRepository.GetByUIdAsync(uId);
             if (staffToUpdate == null)
             {
                 return Fail<string>("Không tìm thấy nhân viên để cập nhật.");
             }
-
             if (!string.IsNullOrEmpty(dto.Name)) staffToUpdate.Name = dto.Name;
             if (!string.IsNullOrEmpty(dto.Phone)) staffToUpdate.Phone = dto.Phone;
             if (dto.Dob.HasValue) staffToUpdate.Dob = dto.Dob.Value;
@@ -67,10 +60,11 @@ namespace SportZone_API.Services
                 }
                 staffToUpdate.FacId = dto.FacId.Value;
             }
-            else if (staffToUpdate.FacId.HasValue)
+            else if (staffToUpdate.FacId.HasValue) 
             {
-                staffToUpdate.FacId = null;
+                staffToUpdate.FacId = null; 
             }
+
 
             if (dto.StartTime.HasValue) staffToUpdate.StartTime = dto.StartTime.Value;
             else if (staffToUpdate.StartTime.HasValue) { staffToUpdate.StartTime = null; }
@@ -78,19 +72,19 @@ namespace SportZone_API.Services
             if (dto.EndTime.HasValue) staffToUpdate.EndTime = dto.EndTime.Value;
             else if (staffToUpdate.EndTime.HasValue) { staffToUpdate.EndTime = null; }
 
+
             if (staffToUpdate.StartTime.HasValue && staffToUpdate.EndTime.HasValue && staffToUpdate.StartTime.Value > staffToUpdate.EndTime.Value)
             {
                 return Fail<string>("Thời gian bắt đầu không thể sau thời gian kết thúc.");
             }
+
             await _staffRepository.UpdateStaffAsync(staffToUpdate);
             return Success("Cập nhật thông tin nhân viên thành công.");
         }
 
         public async Task<ServiceResponse<string>> DeleteStaffAsync(int uId)
         {
-            var staffToDelete = await _context.Staff
-                                              .Where(s => s.UId == uId)
-                                              .FirstOrDefaultAsync();
+            var staffToDelete = await _staffRepository.GetByUIdAsync(uId);
             if (staffToDelete == null)
             {
                 return Fail<string>("Không tìm thấy nhân viên để xóa.");

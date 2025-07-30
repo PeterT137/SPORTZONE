@@ -32,7 +32,7 @@ namespace SportZone_API.Services
                     return new ServiceResponse<List<FacilityDto>>
                     {
                         Success = true,
-                        Message = "No facilities found.",
+                        Message = "Không tìm thấy cơ sở nào.", 
                         Data = new List<FacilityDto>()
                     };
                 }
@@ -40,7 +40,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDto>>
                 {
                     Success = true,
-                    Message = "Successfully retrieved facilities.",
+                    Message = "Lấy danh sách cơ sở thành công.", 
                     Data = facilityDtos
                 };
             }
@@ -49,7 +49,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDto>>
                 {
                     Success = false,
-                    Message = $"An error occurred while retrieving facilities: {ex.Message}",
+                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở: {ex.Message}", 
                     Data = null
                 };
             }
@@ -73,7 +73,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = true,
-                    Message = "Create facility successful.",
+                    Message = "Tạo cơ sở thành công.", 
                     Data = _mapper.Map<FacilityDto>(createdFacility)
                 };
             }
@@ -82,7 +82,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = false,
-                    Message = $"An error occurred while creating the facility: {ex.Message}",
+                    Message = $"Đã xảy ra lỗi khi tạo cơ sở: {ex.Message}", 
                     Data = null
                 };
             }
@@ -94,7 +94,7 @@ namespace SportZone_API.Services
             {
                 var facility = await _repository.GetByIdAsync(id);
                 if (facility == null)
-                    return new ServiceResponse<FacilityDto> { Success = false, Message = "Facility not found." };
+                    return new ServiceResponse<FacilityDto> { Success = false, Message = "Không tìm thấy cơ sở." }; 
 
                 _mapper.Map(dto, facility);
                 await _repository.UpdateAsync(facility);
@@ -104,7 +104,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = true,
-                    Message = "Update facility successful.",
+                    Message = "Cập nhật cơ sở thành công.", 
                     Data = _mapper.Map<FacilityDto>(updatedFacility)
                 };
             }
@@ -113,7 +113,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = false,
-                    Message = $"An error occurred while updating the facility: {ex.Message}",
+                    Message = $"Đã xảy ra lỗi khi cập nhật cơ sở: {ex.Message}", 
                     Data = null
                 };
             }
@@ -125,7 +125,7 @@ namespace SportZone_API.Services
             {
                 var facility = await _repository.GetByIdAsync(id);
                 if (facility == null)
-                    return new ServiceResponse<object> { Success = false, Message = "Facility not found." };
+                    return new ServiceResponse<object> { Success = false, Message = "Không tìm thấy cơ sở." }; 
 
                 await _repository.DeleteAsync(facility);
                 await _repository.SaveChangesAsync();
@@ -133,7 +133,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<object>
                 {
                     Success = true,
-                    Message = "Delete facility successful."
+                    Message = "Xóa cơ sở thành công." 
                 };
             }
             catch (Exception ex)
@@ -141,7 +141,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<object>
                 {
                     Success = false,
-                    Message = $"An error occurred while deleting the facility: {ex.Message}"
+                    Message = $"Đã xảy ra lỗi khi xóa cơ sở: {ex.Message}" 
                 };
             }
         }
@@ -157,7 +157,7 @@ namespace SportZone_API.Services
                     return new ServiceResponse<List<FacilityDto>>
                     {
                         Success = true,
-                        Message = $"No facilities found for user ID {userId}.",
+                        Message = $"Không tìm thấy cơ sở nào cho người dùng có ID {userId}.", 
                         Data = new List<FacilityDto>()
                     };
                 }
@@ -165,7 +165,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDto>>
                 {
                     Success = true,
-                    Message = $"Successfully retrieved facilities for user ID {userId}.",
+                    Message = $"Lấy danh sách cơ sở cho người dùng có ID {userId} thành công.", 
                     Data = facilityDtos
                 };
             }
@@ -174,10 +174,36 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDto>>
                 {
                     Success = false,
-                    Message = $"An error occurred while retrieving facilities for user ID {userId}: {ex.Message}",
+                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở cho người dùng có ID {userId}: {ex.Message}", 
                     Data = null
                 };
             }
+        }
+
+        public async Task<ServiceResponse<IEnumerable<string>>> GetCategoryFieldNamesByFacilityId(int facilityId)
+        {
+            var response = new ServiceResponse<IEnumerable<string>>();
+            try
+            {
+                var categoryFields = await _repository.GetCategoryFieldsByFacilityIdAsync(facilityId);
+
+                if (categoryFields == null || !categoryFields.Any())
+                {
+                    response.Success = false;
+                    response.Message = $"Không tìm thấy loại sân nào cho cơ sở với ID {facilityId}.";
+                    return response;
+                }
+
+                response.Data = categoryFields.Select(cf => cf.CategoryFieldName).ToList()!;
+                response.Success = true;
+                response.Message = $"Đã lấy tất cả tên loại sân cho cơ sở với ID {facilityId}.";
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = "Đã xảy ra lỗi không mong muốn khi lấy tên loại sân theo cơ sở.";
+            }
+            return response;
         }
     }
 }

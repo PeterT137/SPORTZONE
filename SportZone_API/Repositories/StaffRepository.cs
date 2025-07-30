@@ -26,6 +26,13 @@ namespace SportZone_API.Repositories
                                  .ToListAsync();
         }
 
+        public async Task<Staff?> GetByUIdAsync(int uId)
+        {
+            return await _context.Staff
+                                 .Where(s => s.UId == uId)
+                                 .FirstOrDefaultAsync();
+        }
+
         public async Task UpdateStaffAsync(Staff staff)
         {
             _context.Staff.Update(staff);
