@@ -5,9 +5,7 @@ namespace SportZone_API.Models;
 
 public partial class ExternalLogin
 {
-    public int Id { get; set; }
-
-    public int? UId { get; set; }
+    public int UId { get; set; }
 
     public string? ExternalProvider { get; set; }
 
@@ -15,5 +13,5 @@ public partial class ExternalLogin
 
     public string? AccessToken { get; set; }
 
-    public virtual User? UIdNavigation { get; set; }
+    public virtual User UIdNavigation { get; set; } = null!;
 }

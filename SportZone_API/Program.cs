@@ -45,6 +45,8 @@ builder.Services.AddScoped<IFieldService, FieldService>();
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleRepository, FieldBookingScheduleRepository>();
 builder.Services.AddScoped<IFieldBookingScheduleService, FieldBookingScheduleService>();
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(options =>
