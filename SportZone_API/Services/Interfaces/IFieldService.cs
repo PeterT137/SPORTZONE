@@ -10,6 +10,7 @@ namespace SportZone_API.Services.Interfaces
         Task<FieldResponseDTO?> GetFieldByIdAsync(int fieldId);
         Task<IEnumerable<FieldResponseDTO>> GetFieldsByFacilityAsync(int facId);
         Task<IEnumerable<FieldResponseDTO>> GetFieldsByCategoryAsync(int categoryId);
+        Task<IEnumerable<FieldResponseDTO>> GetFieldsByUserIdAsync(int userId);
         Task<Field> CreateFieldAsync(FieldCreateDTO fieldDto);
         Task<bool> UpdateFieldAsync(int fieldId, FieldUpdateDTO fieldDto);
         Task<bool> DeleteFieldAsync(int fieldId);

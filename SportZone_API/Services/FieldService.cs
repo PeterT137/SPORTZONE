@@ -85,6 +85,21 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<IEnumerable<FieldResponseDTO>> GetFieldsByUserIdAsync(int userId)
+        {
+            try
+            {
+                if (userId <= 0)
+                    throw new ArgumentException("ID người dùng không hợp lệ");
+
+                return await _fieldRepository.GetFieldsByUserIdAsync(userId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi service khi lấy danh sách sân theo user: {ex.Message}", ex);
+            }
+        }
+
         public async Task<Field> CreateFieldAsync(FieldCreateDTO fieldDto)
         {
             try

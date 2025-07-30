@@ -102,6 +102,25 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<IEnumerable<FieldResponseDTO>> GetFieldsByUserIdAsync(int userId)
+        {
+            try
+            {
+                var fields = await _context.Fields
+                    .Include(f => f.Fac)
+                        .ThenInclude(fac => fac.UIdNavigation)
+                    .Include(f => f.Category)
+                    .Where(f => f.Fac!.UId == userId)
+                    .ToListAsync();
+
+                return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách sân theo người dùng với ID {userId}: {ex.Message}", ex);
+            }
+        }
+
         public async Task<Field> CreateFieldAsync(FieldCreateDTO fieldDto)
         {
             try

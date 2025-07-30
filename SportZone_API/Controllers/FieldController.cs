@@ -177,6 +177,42 @@ namespace SportZone_API.Controllers
             }
         }
 
+        /// <summary>
+        /// Lấy danh sách sân theo User ID (Field Owner)
+        /// </summary>
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetFieldsByUserId(int userId)
+        {
+            try
+            {
+                var fields = await _fieldService.GetFieldsByUserIdAsync(userId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy danh sách sân theo user thành công",
+                    data = fields,
+                    count = fields.Count(),
+                    userId = userId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
         [HttpPost("Create-Field")]
         public async Task<IActionResult> CreateField([FromBody] FieldCreateDTO fieldDto)
         {
