@@ -16,11 +16,7 @@ namespace SportZone_API.DTOs
 
         public string? Description { get; set; }
 
-        [Required(ErrorMessage = "Giá thuê sân là bắt buộc")]
-        [Range(0, double.MaxValue, ErrorMessage = "Giá thuê sân phải lớn hơn 0")]
-        public decimal Price { get; set; }
-
-        public bool IsBookingEnable { get; set; } = true;
+        public bool IsBookingEnable { get; set; } = false;
     }
 
     public class FieldUpdateDTO
@@ -31,9 +27,6 @@ namespace SportZone_API.DTOs
         public int? CategoryId { get; set; }
 
         public string? Description { get; set; }
-
-        [Range(0, double.MaxValue, ErrorMessage = "Giá thuê sân phải lớn hơn 0")]
-        public decimal? Price { get; set; }
 
         public bool? IsBookingEnable { get; set; }
     }
@@ -47,7 +40,23 @@ namespace SportZone_API.DTOs
         public string? CategoryName { get; set; }
         public string? FieldName { get; set; }
         public string? Description { get; set; }
-        public decimal? Price { get; set; }
         public bool? IsBookingEnable { get; set; }
+    }
+
+    public class FieldScheduleDTO
+    {
+        public int ScheduleId { get; set; }
+        public int? FieldId { get; set; }
+        public string? FieldName { get; set; }
+        public int? BookingId { get; set; }
+        public string? BookingTitle { get; set; }
+        public TimeOnly? StartTime { get; set; }
+        public TimeOnly? EndTime { get; set; }
+        public DateOnly? Date { get; set; }
+        public string? Notes { get; set; }
+        public string? Status { get; set; }
+        public decimal? Price { get; set; }
+        public string? GuestName { get; set; }
+        public string? GuestPhone { get; set; }
     }
 }

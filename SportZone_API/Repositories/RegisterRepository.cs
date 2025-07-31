@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
+using System.Collections.Generic; 
+using System.Threading.Tasks;
 
 namespace SportZone_API.Repositories
 {
@@ -22,7 +24,6 @@ namespace SportZone_API.Repositories
         {
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
-
             customer.UId = user.UId;
             await _context.Customers.AddAsync(customer);
             await _context.SaveChangesAsync();
@@ -32,9 +33,17 @@ namespace SportZone_API.Repositories
         {
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
-
             fieldOwner.UId = user.UId;
             await _context.FieldOwners.AddAsync(fieldOwner);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task RegisterUserWithStaffAsync(User user, Staff staff)
+        {
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+            staff.UId = user.UId;
+            await _context.Staff.AddAsync(staff);
             await _context.SaveChangesAsync();
         }
     }

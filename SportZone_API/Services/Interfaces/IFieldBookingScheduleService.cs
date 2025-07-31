@@ -8,9 +8,8 @@ namespace SportZone_API.Services.Interfaces
     {
         Task<IEnumerable<FieldBookingScheduleDto>> GetAllFieldBookingSchedulesAsync();
         Task<FieldBookingScheduleDto?> GetFieldBookingScheduleByIdAsync(int id);
-        Task<FieldBookingScheduleDto> CreateFieldBookingScheduleAsync(FieldBookingScheduleCreateDto createDto);
-        Task<IEnumerable<FieldBookingScheduleDto>> GenerateFieldBookingSchedulesAsync(FieldBookingScheduleGenerateDto generateDto);
+        Task<ScheduleGenerationResponseDto> GenerateFieldBookingSchedulesAsync(FieldBookingScheduleGenerateDto generateDto);
         Task<FieldBookingScheduleDto?> UpdateFieldBookingScheduleAsync(int id, FieldBookingScheduleUpdateDto updateDto);
-        Task<bool> DeleteFieldBookingScheduleAsync(int id);
+        Task<ScheduleGenerationResponseDto> DeleteFieldBookingScheduleAsync(int id);
     }
 }

@@ -17,12 +17,33 @@ namespace SportZone_API.Repositories
         }
         public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync()
         {
+            var fields = await _context.Fields
+                .Include(f => f.Fac)
+                .Include(f => f.Category)
+                .ToListAsync();
+            return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
+        }
+
+        public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync(string? searchTerm)
+        {
             try
             {
-                var fields = await _context.Fields
+                var query =_context.Fields
                     .Include(f => f.Fac)
                     .Include(f => f.Category)
-                    .ToListAsync();
+                    .AsQueryable();
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    searchTerm = searchTerm.Trim().ToLower();
+                    query = query.Where(f =>
+                        f.FieldName!.ToLower().Contains(searchTerm) ||
+                        f.Description!.ToLower().Contains(searchTerm) ||
+                        f.Fac!.Name!.ToLower().Contains(searchTerm) ||
+                        f.Fac!.Address!.ToLower().Contains(searchTerm) ||
+                        f.Category!.CategoryFieldName!.ToLower().Contains(searchTerm));
+                }
+
+                var fields = await query.ToListAsync();
                 return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
             }
             catch (Exception ex)
@@ -81,6 +102,60 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<IEnumerable<FieldResponseDTO>> GetFieldsByUserIdAsync(int userId)
+        {
+            try
+            {
+                var fields = await _context.Fields
+                    .Include(f => f.Fac)
+                        .ThenInclude(fac => fac.UIdNavigation)
+                    .Include(f => f.Category)
+                    .Where(f => f.Fac!.UId == userId)
+                    .ToListAsync();
+
+                return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách sân theo người dùng với ID {userId}: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<IEnumerable<FieldScheduleDTO>> GetFieldScheduleByFieldIdAsync(int fieldId)
+        {
+            try
+            {
+                var schedule = await _context.FieldBookingSchedules
+                    .Include(fbs => fbs.Field)
+                    .Include(fbs => fbs.Booking)
+                    .Where(fbs => fbs.FieldId == fieldId)
+                    .OrderBy(fbs => fbs.Date)
+                    .ThenBy(fbs => fbs.StartTime)
+                    .ToListAsync();
+
+                var scheduleDto = schedule.Select(s => new FieldScheduleDTO
+                {
+                    ScheduleId = s.ScheduleId,
+                    FieldId = s.FieldId,
+                    FieldName = s.Field?.FieldName,
+                    BookingId = s.BookingId,
+                    BookingTitle = s.Booking?.Title,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    Date = s.Date,
+                    Notes = s.Notes,
+                    Status = s.Status,
+                    Price = s.Price
+                });
+
+                return scheduleDto;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy lịch sân với ID {fieldId}: {ex.Message}", ex);
+            }
+        }
+
         public async Task<Field> CreateFieldAsync(FieldCreateDTO fieldDto)
         {
             try
@@ -94,6 +169,7 @@ namespace SportZone_API.Repositories
                     throw new ArgumentException($"Loại sân với ID {fieldDto.CategoryId} không tồn tại.");
                 }
                 var field = _mapper.Map<Field>(fieldDto);
+                field.IsBookingEnable = false;
                 _context.Fields.Add(field);
                 await _context.SaveChangesAsync();
                 return field;

@@ -37,20 +37,25 @@ namespace SportZone_API.Controllers
             return Ok(schedule);
         }
 
-        // POST: api/FieldBookingSchedule
-        [HttpPost]
-        public async Task<ActionResult<FieldBookingScheduleDto>> CreateFieldBookingSchedule(FieldBookingScheduleCreateDto createDto)
-        {
-            var createdSchedule = await _scheduleService.CreateFieldBookingScheduleAsync(createDto);
-            return CreatedAtAction(nameof(GetFieldBookingSchedule), new { id = createdSchedule.ScheduleId }, createdSchedule);
-        }
-
         // POST: api/FieldBookingSchedule/generate
         [HttpPost("generate")]
-        public async Task<ActionResult<IEnumerable<FieldBookingScheduleDto>>> GenerateFieldBookingSchedules(FieldBookingScheduleGenerateDto generateDto)
+        public async Task<IActionResult> GenerateFieldBookingSchedules([FromBody] FieldBookingScheduleGenerateDto generateDto)
         {
-            var generatedSchedules = await _scheduleService.GenerateFieldBookingSchedulesAsync(generateDto);
-            return Ok(generatedSchedules);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var response = await _scheduleService.GenerateFieldBookingSchedulesAsync(generateDto);
+
+            if (!response.IsSuccess)
+            {
+                return BadRequest(new { Message = response.Message });
+            }
+            else
+            {
+                return Ok(new { Message = response.Message });
+            }
         }
 
         // PUT: api/FieldBookingSchedule/5
@@ -69,12 +74,26 @@ namespace SportZone_API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFieldBookingSchedule(int id)
         {
-            var result = await _scheduleService.DeleteFieldBookingScheduleAsync(id);
-            if (!result)
+            var response = await _scheduleService.DeleteFieldBookingScheduleAsync(id);
+            if (!response.IsSuccess)
             {
-                return NotFound("Không tìm thấy lịch đặt sân để xóa.");
+                if (response.Message.Contains("Không tìm thấy"))
+                {
+                    return NotFound(new { Message = response.Message });
+                }
+                else if (response.Message.Contains("đã có booking"))
+                {
+                    return Conflict(new { Message = response.Message });
+                }
+                else
+                {
+                    return BadRequest(new { Message = response.Message });
+                }
             }
-            return NoContent(); 
+            else
+            {
+                return Ok(new { Message = response.Message });
+            }
         }
     }
 }

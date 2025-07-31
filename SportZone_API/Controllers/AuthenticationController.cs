@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Google;
 using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace SportZone_API.Controllers
 {
@@ -27,13 +28,14 @@ namespace SportZone_API.Controllers
         {
             try
             {
-                var (token, loggedInUser) = await _authService.LoginAsync(user);
+                var (token, loggedInUser, facilityInfo) = await _authService.LoginAsync(user);
                 return Ok(new
                 {
                     success = true,
                     message = "Đăng nhập thành công",
                     token = token,
-                    user = loggedInUser
+                    user = loggedInUser,
+                    facilityInfo = facilityInfo
                 });
             }
             catch (ArgumentException ex)
@@ -102,7 +104,7 @@ namespace SportZone_API.Controllers
                 var (token, loggedInUser) = await _authService.GoogleLoginAsync(googleLoginDto);
 
                 // Serialize user thông tin nếu bạn cần gửi về frontend
-                var userJson = Uri.EscapeDataString(JsonConvert.SerializeObject(loggedInUser));
+                var userJson = Uri.EscapeDataString(System.Text.Json.JsonSerializer.Serialize(loggedInUser));
 
                 // Redirect về frontend cùng token và user
                 var redirectUrl = $"http://localhost:5173/google-auth-callback?token={token}&user={userJson}";
@@ -114,5 +116,91 @@ namespace SportZone_API.Controllers
             }
         }
 
+        [HttpPost("Logout")]
+        public async Task<IActionResult> Logout([FromBody] LogoutDTO logoutDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Dữ liệu không hợp lệ",
+                        errors = ModelState
+                    });
+                }
+
+                var result = await _authService.LogoutAsync(logoutDto);
+
+                if (result.Success)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = result.Message,
+                        logoutTime = result.LogoutTime,
+                        userId = result.UserId
+                    });
+                }
+                else
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = result.Message
+                    });
+                }
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("ValidateToken")]
+        public async Task<IActionResult> ValidateToken([FromBody] string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Token là bắt buộc"
+                    });
+                }
+
+                var isValid = await _authService.ValidateTokenAsync(token);
+
+                return Ok(new
+                {
+                    success = true,
+                    isValid = isValid,
+                    message = isValid ? "Token hợp lệ" : "Token không hợp lệ hoặc đã hết hạn"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
     }
 }

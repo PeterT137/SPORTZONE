@@ -1,9 +1,31 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+// Types
+interface ExternalLogin {
+  Id: number;
+  UId: number;
+  ExternalProvider: string;
+  ExternalUserId: string;
+  AccessToken: string;
+}
+
 interface User {
-  name: string;
-  email: string;
+  UId: number;
+  RoleId: number;
+  UEmail: string;
+  UStatus: string;
+  UCreateDate: string;
+  IsExternalLogin: boolean;
+  IsVerify: boolean;
+  Admin: null | any;
+  Customers: any[];
+  ExternalLogins: ExternalLogin[];
+  FieldOwner: null | any;
+  Notifications: any[];
+  Role: null | any;
+  Staff: null | any;
   avatarUrl?: string;
 }
 
@@ -15,13 +37,32 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    console.log("Stored user from localStorage:", storedUser); // Debug log
+    console.log("Stored user from localStorage:", storedUser);
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        console.log("Parsed user:", parsedUser); // Debug log
-        if (parsedUser.name && parsedUser.email) {
-          setUser(parsedUser);
+        console.log("Parsed user:", parsedUser);
+
+        const transformedUser: User = {
+          UId: parsedUser.uId || parsedUser.UId,
+          RoleId: parsedUser.roleId || parsedUser.RoleId,
+          UEmail: parsedUser.uEmail || parsedUser.UEmail,
+          UStatus: parsedUser.uStatus || parsedUser.UStatus || "Active",
+          UCreateDate: parsedUser.uCreateDate || parsedUser.UCreateDate || new Date().toISOString(),
+          IsExternalLogin: parsedUser.isExternalLogin ?? false,
+          IsVerify: parsedUser.isVerify ?? false,
+          Admin: parsedUser.Admin ?? null,
+          Customers: parsedUser.Customers ?? [],
+          ExternalLogins: parsedUser.ExternalLogins ?? [],
+          FieldOwner: parsedUser.FieldOwner ?? null,
+          Notifications: parsedUser.notifications ?? parsedUser.Notifications ?? [],
+          Role: parsedUser.Role ?? null,
+          Staff: parsedUser.Staff ?? null,
+          avatarUrl: parsedUser.avatarUrl || "https://www.vietnamworks.com/hrinsider/wp-content/uploads/2023/12/anh-den-ngau.jpeg",
+        };
+
+        if (transformedUser.UId && transformedUser.UEmail) {
+          setUser(transformedUser);
         } else {
           console.warn("Invalid user data format:", parsedUser);
           setUser(null);
@@ -49,18 +90,37 @@ const Header: React.FC = () => {
           </a>
         </div>
         <div className="hidden md:flex items-center gap-8 ml-12 flex-grow">
-          <a href="/homepage" className="text-white hover:text-[#1ebd6f]">Trang chủ</a>
+          <a href="/homepage" className="text-white hover:text-[#1ebd6f]">
+            Trang chủ
+          </a>
           <div className="relative group">
             <button className="text-white hover:text-[#1ebd6f]">Đặt sân</button>
             <div className="absolute hidden group-hover:block top-full bg-white text-[#333] rounded shadow-md w-48">
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Tìm sân</a>
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Lịch đặt sân</a>
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Hủy đặt sân</a>
+              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">
+                Tìm sân
+              </a>
+              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">
+                Lịch đặt sân
+              </a>
+              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">
+                Hủy đặt sân
+              </a>
             </div>
           </div>
-          <a href="#" className="text-white hover:text-[#1ebd6f]">Quản lý sân</a>
-          <a href="#" className="text-white hover:text-[#1ebd6f]">Báo cáo</a>
-          <a href="#" className="text-white hover:text-[#1ebd6f]">Liên hệ</a>
+          <a href="/field_list" className="text-white hover:text-[#1ebd6f]">
+            Danh sách sân
+          </a>
+          {user && (user.RoleId === 4 || user.RoleId ===2|| user.RoleId ===3) && (
+            <a href="/facility_manager" className="text-white hover:text-[#1ebd6f]">
+              Quản lý chủ sân
+            </a>
+          )}
+          <a href="#" className="text-white hover:text-[#1ebd6f]">
+            Báo cáo
+          </a>
+          <a href="#" className="text-white hover:text-[#1ebd6f]">
+            Liên hệ
+          </a>
         </div>
 
         <div className="flex items-center gap-4 relative">
@@ -121,11 +181,11 @@ const Header: React.FC = () => {
               <div className="relative group">
                 <div className="flex items-center gap-2 cursor-pointer">
                   <img
-                    src={user.avatarUrl || "https://www.vietnamworks.com/hrinsider/wp-content/uploads/2023/12/anh-den-ngau.jpeg"}
+                    src={user.avatarUrl}
                     alt="avatar"
                     className="w-9 h-9 rounded-full border"
                   />
-                  <span className="text-sm font-medium">{user.name}</span>
+                  <span className="text-sm font-medium">{user.UEmail}</span>
                 </div>
                 <div className="absolute right-0 mt-2 hidden group-hover:block bg-white text-[#333] rounded shadow-md w-48 z-50">
                   <button
