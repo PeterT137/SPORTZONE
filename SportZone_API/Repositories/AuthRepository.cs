@@ -129,7 +129,7 @@ namespace SportZone_API.Repositories
             {
                 return await _context.Staff
                     .Include(s => s.Fac) // Include facility info for Staff
-                        .ThenInclude(f => f.UIdNavigation) // Include FieldOwner info (chỉ name và phone)
+                       // .ThenInclude(f => f.UIdNavigation) // Include FieldOwner info (chỉ name và phone)
                     .FirstOrDefaultAsync(s => s.UId == userId);
             }
             catch (Exception ex)
