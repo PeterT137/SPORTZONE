@@ -8,7 +8,8 @@ namespace SportZone_API.Services.Interfaces
     public interface IAuthService
     {
         // Business logic methods
-        Task<(string token, User user)> LoginAsync(LoginDTO loginDto);
+        Task<(string token, User user, FacilityInfoLoginDTO? facilityInfo)> LoginAsync(LoginDTO loginDto);
+        //Task<(string token, User user)> LoginAsync(LoginDTO loginDto);
         Task<(string token, User user)> GoogleLoginAsync(GoogleLoginDTO googleLoginDto);
         Task<LogoutResponseDTO> LogoutAsync(LogoutDTO logoutDto);
 
