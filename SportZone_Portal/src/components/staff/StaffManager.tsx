@@ -1,23 +1,29 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { FiEdit, FiTrash2, FiPlus, FiX, FiCheckCircle, FiSlash } from "react-icons/fi";
+import React, { useEffect, useState } from "react";
+import { FiCheckCircle, FiEdit, FiPlus, FiSlash, FiX } from "react-icons/fi";
 import Swal from "sweetalert2";
 import Sidebar from "../../Sidebar";
 
 type Staff = {
-    id: number;
+    id: number; // Assuming uId is used as id
     name: string;
     phone: string;
     dob: string; // yyyy-MM-dd
     image: string;
-    start_time: string; // ISO string
-    end_time: string; // ISO string
+    startTime: string; // ISO string or date string
+    endTime?: string; // Optional, as API doesn't provide this
     email: string;
     status: "Active" | "Inactive";
+    facId: number;
+    roleName: string;
+    facilityName: string;
 };
 
-type EditStaff = Omit<Staff, "id">;
+type EditStaff = Omit<Staff, "id" | "facId" | "roleName" | "facilityName"> & {
+    facId?: number; // Optional for new staff
+};
 
 const StaffManager: React.FC = () => {
     const [staffs, setStaffs] = useState<Staff[]>([]);
@@ -30,13 +36,16 @@ const StaffManager: React.FC = () => {
         phone: "",
         dob: "",
         image: "",
-        start_time: "",
-        end_time: "",
+        startTime: "",
+        endTime: "",
         email: "",
         status: "Active",
+        facId: undefined, // Optional for new staff
     });
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Format ISO string thành 'yyyy-MM-ddTHH:mm' dùng cho datetime-local input
+    // Format date string thành 'yyyy-MM-ddTHH:mm' dùng cho datetime-local input
     const formatDateTimeLocal = (dateStr: string) => {
         if (!dateStr) return "";
         const date = new Date(dateStr);
@@ -54,34 +63,61 @@ const StaffManager: React.FC = () => {
         return `${year}-${month}-${day}`;
     };
 
-    const mockStaffs: Staff[] = [
-        {
-            id: 1,
-            name: "Nguyen Van A",
-            phone: "0901234567",
-            dob: "1995-05-10",
-            image: "https://i.pravatar.cc/150?img=1",
-            start_time: "2025-07-21T08:00:00",
-            end_time: "2025-07-21T17:00:00",
-            email: "a.nguyen@example.com",
-            status: "Active",
-        },
-        {
-            id: 2,
-            name: "Tran Thi B",
-            phone: "0912345678",
-            dob: "1992-09-15",
-            image: "https://i.pravatar.cc/150?img=2",
-            start_time: "2025-07-21T08:30:00",
-            end_time: "2025-07-21T17:30:00",
-            email: "b.tran@example.com",
-            status: "Inactive",
-        },
-    ];
+    // Get auth headers (adjust based on your auth setup)
+    // const getAuthHeaders = () => {
+    //     const token = localStorage.getItem("token");
+    //     return {
+    //         "Content-Type": "application/json",
+    //         ...(token && { Authorization: `Bearer ${token}` }),
+    //     };
+    // };
+
+    // Fetch staff data from API and map to Staff type
+    const fetchStaffs = async () => {
+        setLoading(true);
+        try {
+            const userString = localStorage.getItem("user");
+            const user = userString ? JSON.parse(userString) : null;
+            const facId = user?.facId;
+
+            const url = facId
+                ? `https://localhost:7057/api/staff?facId=${facId}`
+                : `https://localhost:7057/api/staff`;
+
+            const response = await fetch(url); // Không cần headers ở đây
+
+            if (!response.ok) throw new Error("Failed to fetch staff data");
+
+            const data = await response.json();
+
+            const mappedStaffs: Staff[] = data.map((item: any) => ({
+                id: item.uId,
+                name: item.name || "",
+                phone: item.phone || "",
+                dob: item.dob || "",
+                image: item.image || "",
+                startTime: item.startTime || "",
+                endTime: "", // Tuỳ chỉnh nếu cần
+                email: item.email || "",
+                status: item.status || "Inactive",
+                facId: item.facId || 0,
+                roleName: item.roleName || "Unknown",
+                facilityName: item.facilityName || "Unknown",
+            }));
+
+            setStaffs(mappedStaffs);
+            setFilteredStaffs(mappedStaffs);
+        } catch (err) {
+            setError("Lỗi khi tải danh sách nhân viên. Vui lòng thử lại.");
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     useEffect(() => {
-        setStaffs(mockStaffs);
-        setFilteredStaffs(mockStaffs);
+        fetchStaffs();
     }, []);
 
     useEffect(() => {
@@ -96,49 +132,57 @@ const StaffManager: React.FC = () => {
         );
     }, [searchTerm, staffs]);
 
-    // Hàm toggle trạng thái Active/Inactive
-    const toggleStatus = (id: number) => {
+    // Toggle staff status via API
+    const toggleStatus = async (id: number) => {
         const staff = staffs.find((s) => s.id === id);
         if (!staff) return;
 
         const newStatus = staff.status === "Active" ? "Inactive" : "Active";
 
-        Swal.fire({
+        const result = await Swal.fire({
             title:
-            newStatus === "Inactive"
-              ? `Bạn có muốn tạm ngưng hoạt động của "${staff.name}"?`
-              : `Bạn có muốn kích hoạt lại "${staff.name}"?`,
-
+                newStatus === "Inactive"
+                    ? `Bạn có muốn tạm ngưng hoạt động của "${staff.name}"?`
+                    : `Bạn có muốn kích hoạt lại "${staff.name}"?`,
             icon: "question",
             showCancelButton: true,
             confirmButtonText: "Đồng ý",
             cancelButtonText: "Huỷ",
-        }).then((result) => {
-            if (result.isConfirmed) {
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`https://localhost:7057/api/staff/${id}/status`, {
+                    method: "PATCH",
+                    // headers: getAuthHeaders(),
+                    body: JSON.stringify({ status: newStatus }),
+                });
+                if (!response.ok) throw new Error("Failed to update status");
                 setStaffs((prev) =>
                     prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
                 );
-                Swal.fire(
-                    "Thành công",
-                    `Nhân viên đã được chuyển thành trạng thái ${newStatus === "Active" ? "Hoạt động" : "Không hoạt động"}.`,
-                    "success"
-                );
+                Swal.fire("Thành công", `Nhân viên đã được chuyển thành trạng thái ${newStatus === "Active" ? "Hoạt động" : "Không hoạt động"}.`, "success");
+            } catch (err) {
+                setError("Lỗi khi cập nhật trạng thái. Vui lòng thử lại.");
+                console.error(err);
+                Swal.fire("Lỗi", "Không thể cập nhật trạng thái.", "error");
             }
-        });
+        }
     };
 
     const handleEdit = (staff: Staff) => {
         setSelectedStaff(staff);
         setFormData({
             ...staff,
-            start_time: formatDateTimeLocal(staff.start_time),
-            end_time: formatDateTimeLocal(staff.end_time),
+            startTime: formatDateTimeLocal(staff.startTime),
+            endTime: staff.endTime ? formatDateTimeLocal(staff.endTime) : "",
             dob: formatDate(staff.dob),
+            facId: staff.facId, // Include facId if editable
         });
         setIsModalOpen(true);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formData.name || !formData.phone || !formData.email) {
             Swal.fire("Lỗi", "Vui lòng điền đầy đủ tên, email và SĐT", "error");
             return;
@@ -146,31 +190,46 @@ const StaffManager: React.FC = () => {
 
         const updatedFormData = {
             ...formData,
-            start_time: formData.start_time ? new Date(formData.start_time).toISOString() : "",
-            end_time: formData.end_time ? new Date(formData.end_time).toISOString() : "",
-            dob: formData.dob, // đã ở dạng yyyy-MM-dd
+            startTime: formData.startTime ? new Date(formData.startTime).toISOString() : "",
+            endTime: formData.endTime ? new Date(formData.endTime).toISOString() : "",
+            dob: formData.dob, // already in yyyy-MM-dd
+            facId: formData.facId || 0, // Default to 0 if not provided
         };
 
-        if (selectedStaff) {
-            setStaffs((prev) =>
-                prev.map((s) =>
-                    s.id === selectedStaff.id ? { ...s, ...updatedFormData } : s
-                )
-            );
-            Swal.fire("Thành công", "Đã cập nhật nhân viên", "success");
-        } else {
-            const newStaff: Staff = {
-                id: staffs.length ? Math.max(...staffs.map((s) => s.id)) + 1 : 1,
-                ...updatedFormData,
-            };
-            setStaffs((prev) => [...prev, newStaff]);
-            Swal.fire("Thành công", "Đã thêm nhân viên mới", "success");
+        try {
+            if (selectedStaff) {
+                const response = await fetch(`https://localhost:7057/api/staff/${selectedStaff.id}`, {
+                    method: "PUT",
+                    // headers: getAuthHeaders(),
+                    body: JSON.stringify(updatedFormData),
+                });
+                if (!response.ok) throw new Error("Failed to update staff");
+                setStaffs((prev) =>
+                    prev.map((s) =>
+                        s.id === selectedStaff.id ? { ...s, ...updatedFormData, id: selectedStaff.id } : s
+                    )
+                );
+                Swal.fire("Thành công", "Đã cập nhật nhân viên", "success");
+            } else {
+                const response = await fetch(`https://localhost:7057/api/staff`, {
+                    method: "POST",
+                    // headers: getAuthHeaders(),
+                    body: JSON.stringify(updatedFormData),
+                });
+                if (!response.ok) throw new Error("Failed to add staff");
+                const newStaff = await response.json();
+                setStaffs((prev) => [...prev, newStaff]);
+                Swal.fire("Thành công", "Đã thêm nhân viên mới", "success");
+            }
+        } catch (err) {
+            setError("Lỗi khi lưu thông tin nhân viên. Vui lòng thử lại.");
+            console.error(err);
+            Swal.fire("Lỗi", "Không thể lưu thông tin.", "error");
+        } finally {
+            closeModal();
         }
-
-        closeModal();
     };
 
-    // Dùng chung cho tất cả input/select trong modal
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
@@ -185,13 +244,36 @@ const StaffManager: React.FC = () => {
             phone: "",
             dob: "",
             image: "",
-            start_time: "",
-            end_time: "",
+            startTime: "",
+            endTime: "",
             email: "",
             status: "Active",
+            facId: undefined,
         });
         setIsModalOpen(false);
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 pt-16 flex justify-center items-center">
+                <p>Đang tải...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-50 pt-16 flex justify-center items-center">
+                <div className="text-red-600">{error}</div>
+                <button
+                    onClick={fetchStaffs}
+                    className="ml-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                    Thử lại
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 pt-16">
@@ -200,7 +282,7 @@ const StaffManager: React.FC = () => {
                     <Sidebar />
                 </div>
 
-                <main className="flex-1 ml-64 max-w-7xl mx-auto px-6 py-6">
+                <main className="flex-1 ml-64 max-w-8xl mx-auto px-6 py-6">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-2xl font-bold">Quản lý nhân viên</h2>
                         <button
@@ -211,10 +293,11 @@ const StaffManager: React.FC = () => {
                                     phone: "",
                                     dob: "",
                                     image: "",
-                                    start_time: "",
-                                    end_time: "",
+                                    startTime: "",
+                                    endTime: "",
                                     email: "",
                                     status: "Active",
+                                    facId: undefined,
                                 });
                                 setIsModalOpen(true);
                             }}
@@ -262,8 +345,8 @@ const StaffManager: React.FC = () => {
                                             <td className="p-3">{staff.dob}</td>
                                             <td className="p-3">{staff.email}</td>
                                             <td className="p-3">
-                                                {staff.start_time
-                                                    ? new Date(staff.start_time).toLocaleString("vi-VN")
+                                                {staff.startTime
+                                                    ? new Date(staff.startTime).toLocaleString("vi-VN")
                                                     : ""}
                                             </td>
                                             <td className="p-3">
@@ -286,7 +369,6 @@ const StaffManager: React.FC = () => {
                                                 >
                                                     <FiEdit size={18} />
                                                 </button>
-
                                                 <button
                                                     onClick={() => toggleStatus(staff.id)}
                                                     className={`${staff.status === "Active"
@@ -380,8 +462,8 @@ const StaffManager: React.FC = () => {
                                 Giờ bắt đầu:
                                 <input
                                     type="datetime-local"
-                                    name="start_time"
-                                    value={formData.start_time}
+                                    name="startTime"
+                                    value={formData.startTime}
                                     onChange={handleInputChange}
                                     className="border px-3 py-2 rounded"
                                 />
@@ -390,8 +472,8 @@ const StaffManager: React.FC = () => {
                                 Giờ kết thúc:
                                 <input
                                     type="datetime-local"
-                                    name="end_time"
-                                    value={formData.end_time}
+                                    name="endTime"
+                                    value={formData.endTime || ""}
                                     onChange={handleInputChange}
                                     className="border px-3 py-2 rounded"
                                 />
