@@ -22,8 +22,36 @@ namespace SportZone_API.Services
             _configuration = configuration;
             _passwordHasher = new PasswordHasher<User>();
         }
+        public enum UserRole
+        {
+            Customer = 1,
+            FieldOwner = 2,
+            Admin = 3,
+            Staff = 4
+        }
+        public bool HasRole(User user, UserRole requiredRole)
+        {
+            if (user?.RoleId == null) return false;
+            return user.RoleId == (int)requiredRole;
+        }
+        public bool IsAdmin(User user)
+        {
+            return HasRole(user, UserRole.Admin);
+        }
+        public bool IsCustomer(User user)
+        {
+            return HasRole(user, UserRole.Customer);
+        }
+        public bool IsFieldOwner(User user)
+        {
+            return HasRole(user, UserRole.FieldOwner);
+        }
+        public bool IsStaff(User user)
+        {
+            return HasRole(user, UserRole.Staff);
+        }
 
-        public async Task<(string token, User user)> LoginAsync(LoginDTO loginDto)
+        public async Task<(string token, User user, FacilityInfoLoginDTO? facilityInfo)> LoginAsync(LoginDTO loginDto)
         {
             try
             {
@@ -64,7 +92,10 @@ namespace SportZone_API.Services
                 // Generate JWT token
                 var token = GenerateJwtToken(authenticatedUser);
 
-                return (token, authenticatedUser);
+                // Get facility information based on user role
+                var facilityInfo = await GetUserFacilityInfoAsync(authenticatedUser);
+
+                return (token, authenticatedUser, facilityInfo);
             }
             catch (Exception ex)
             {
@@ -218,6 +249,61 @@ namespace SportZone_API.Services
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi tạo JWT token: {ex.Message}", ex);
+            }
+        }
+
+        // Private helper methods
+        /// <summary>
+        /// Lấy thông tin facility dựa trên role của user
+        /// </summary>
+        /// <param name="user">User đã authenticate</param>
+        /// <returns>FacilityInfoLoginDTO hoặc null</returns>
+        private async Task<FacilityInfoLoginDTO?> GetUserFacilityInfoAsync(User user)
+        {
+            try
+            {
+                if (IsStaff(user))
+                {
+                    // Staff được assign vào 1 facility cụ thể
+                    var staff = await _authRepository.GetStaffByUserIdAsync(user.UId);
+                    if (staff?.FacId != null)
+                    {
+                        return new FacilityInfoLoginDTO
+                        {
+                            FacId = staff.FacId,
+                            FacilityName = staff.Fac?.Name
+                        };
+                    }
+                }
+                else if (IsFieldOwner(user))
+                {
+                    // FieldOwner có thể sở hữu nhiều facilities
+                    var fieldOwner = await _authRepository.GetFieldOwnerByUserIdAsync(user.UId);
+                    if (fieldOwner?.Facilities != null && fieldOwner.Facilities.Any())
+                    {
+                        var facilityList = fieldOwner.Facilities.Select(f => new FacilityBasicDTO
+                        {
+                            FacId = f.FacId,
+                            Name = f.Name,
+                            Address = f.Address,
+                            Description = f.Description
+                        }).ToList();
+
+                        return new FacilityInfoLoginDTO
+                        {
+                            Facilities = facilityList
+                        };
+                    }
+                }
+
+                // Customer và Admin không cần facility info
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Log error nhưng không throw để không ảnh hưởng đến login process
+                Console.WriteLine($"Lỗi khi lấy facility info: {ex.Message}");
+                return null;
             }
         }
 
