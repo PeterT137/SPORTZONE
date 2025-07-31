@@ -13,8 +13,6 @@ namespace SportZone_API.Repositories
             _context = context;
         }
 
-
-
         public async Task<User?> GetUserByEmailAsync(string email, bool isExternalLogin = false)
         {
             try
