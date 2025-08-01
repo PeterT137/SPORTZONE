@@ -169,7 +169,7 @@ namespace SportZone_API.Repositories
                     throw new ArgumentException($"Loại sân với ID {fieldDto.CategoryId} không tồn tại.");
                 }
                 var field = _mapper.Map<Field>(fieldDto);
-                field.IsBookingEnable = false;
+                //field.IsBookingEnable = true;
                 _context.Fields.Add(field);
                 await _context.SaveChangesAsync();
                 return field;
