@@ -237,6 +237,11 @@ namespace SportZone_API.Repositories
             return await _context.CategoryFields.AnyAsync(c => c.CategoryFieldId == categoryId);
         }
 
+        public async Task<bool> FieldNameExistsInFacilityAsync(string fieldName, int facId)
+        {
+            return await _context.Fields.AnyAsync(f => f.FieldName.ToLower() == fieldName && f.FacId == facId);
+        }
+
         public Task<bool> CategoryExistsAsync(int categoryId)
         {
             throw new NotImplementedException();

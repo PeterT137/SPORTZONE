@@ -130,6 +130,10 @@ namespace SportZone_API.Services
                 if (string.IsNullOrWhiteSpace(fieldDto.FieldName))
                     throw new ArgumentException("Tên sân là bắt buộc");
 
+                // Kiểm tra tên sân đã tồn tại trong cơ sở này chưa
+                if (await _fieldRepository.FieldNameExistsInFacilityAsync(fieldDto.FieldName, fieldDto.FacId))
+                    throw new ArgumentException($"Tên sân '{fieldDto.FieldName}' đã tồn tại trong cơ sở này");
+
                 return await _fieldRepository.CreateFieldAsync(fieldDto);
             }
             catch (Exception ex)
@@ -154,6 +158,21 @@ namespace SportZone_API.Services
                 // Kiểm tra sân có tồn tại không
                 if (!await _fieldRepository.FieldExistsAsync(fieldId))
                     throw new ArgumentException("Sân không tồn tại");
+
+                // Kiểm tra tên sân có bị trùng không (nếu có thay đổi tên)
+                if (!string.IsNullOrWhiteSpace(fieldDto.FieldName))
+                {
+                    var currentField = await _fieldRepository.GetFieldByIdAsync(fieldId);
+                    if (currentField != null && currentField.FacId.HasValue)
+                    {
+                        // Kiểm tra có field nào khác trong cùng facility có tên này không
+                        var existingFields = await _fieldRepository.GetFieldsByFacilityAsync(currentField.FacId.Value);
+                        if (existingFields.Any(f => f.FieldId != fieldId && f.FieldName == fieldDto.FieldName))
+                        {
+                            throw new ArgumentException($"Tên sân '{fieldDto.FieldName}' đã tồn tại trong cơ sở này");
+                        }
+                    }
+                }
 
                 return await _fieldRepository.UpdateFieldAsync(fieldId, fieldDto);
             }

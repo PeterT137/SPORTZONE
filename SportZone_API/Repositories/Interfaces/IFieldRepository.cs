@@ -18,5 +18,6 @@ namespace SportZone_API.Repositories.Interfaces
         Task<bool> FieldExistsAsync(int fieldId);
         Task<bool> FacilityExistsAsync(int facId);
         Task<bool> CategoryExistsAsync(int categoryId);
+        Task<bool> FieldNameExistsInFacilityAsync(string fieldName, int facId);
     }
 }
