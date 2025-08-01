@@ -3,6 +3,7 @@ using SportZone_API.Models;
 using SportZone_API.DTOs;
 using SportZone_API.Repository.Interfaces;
 using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 
 namespace SportZone_API.Repository
 {
@@ -28,6 +29,15 @@ namespace SportZone_API.Repository
             {
                 // Validate input
                 ValidateBookingInput(bookingDto);
+
+                // Validate selected slots với filter constraints
+                var slotsValidation = await ValidateSelectedSlotsAsync(
+                    bookingDto.SelectedSlotIds,
+                    bookingDto.FieldId,
+                    bookingDto.FacilityId,
+                    bookingDto.CategoryId);
+                if (!slotsValidation.IsValid)
+                    throw new ArgumentException(slotsValidation.ErrorMessage);
 
                 // Tìm slot available trong Field_booking_schedule với Date và Time riêng biệt
                 var slotsQuery = _context.FieldBookingSchedules
@@ -132,6 +142,89 @@ namespace SportZone_API.Repository
             }
         }
 
+        public async Task<(bool IsValid, string ErrorMessage)> ValidateSelectedSlotsAsync(List<int> selectedSlotIds, 
+                                                                                                int? fieldId = null, 
+                                                                                                int? facilityId = null,
+                                                                                                int? categoryId = null)
+        {
+            try
+            {
+                if (!selectedSlotIds.Any())
+                    return (false, "Phải chọn ít nhất 1 slot thời gian");
+
+                // Lấy thông tin các slots
+                var slots = await _context.FieldBookingSchedules
+                    .Include(s => s.Field)
+                        .ThenInclude(f => f.Category)
+                    .Include(s => s.Field)
+                        .ThenInclude(f => f.Fac)
+                    .Where(s => selectedSlotIds.Contains(s.ScheduleId))
+                    .ToListAsync();
+
+                if (slots.Count != selectedSlotIds.Count)
+                    return (false, "Một hoặc nhiều slot không tồn tại");
+
+                // Check tất cả slots đều Available
+                var unavailableSlots = slots.Where(s => s.Status != "Available").ToList();
+                if (unavailableSlots.Any())
+                    return (false, $"Có {unavailableSlots.Count} slot không khả dụng");
+
+                // Check tất cả slots cùng ngày
+                var dates = slots.Select(s => s.Date).Distinct().ToList();
+                if (dates.Count > 1)
+                    return (false, "Tất cả các slot phải cùng ngày");
+
+                // Validate FieldId nếu được chỉ định
+                if (fieldId.HasValue)
+                {
+                    var wrongFieldSlots = slots.Where(s => s.FieldId != fieldId.Value).ToList();
+                    if (wrongFieldSlots.Any())
+                        return (false, $"Tất cả các slot phải thuộc sân với ID {fieldId.Value}");
+                }
+                else
+                {
+                    // Nếu không chỉ định FieldId, check tất cả slots cùng facility
+                    var facilityIds = slots.Select(s => s.Field?.FacId).Distinct().ToList();
+                    if (facilityIds.Count > 1)
+                        return (false, "Tất cả các slot phải thuộc cùng một cơ sở");
+                }
+
+                // Validate FacilityId nếu được chỉ định
+                if (facilityId.HasValue)
+                {
+                    var wrongFacilitySlots = slots.Where(s => s.Field?.FacId != facilityId.Value).ToList();
+                    if (wrongFacilitySlots.Any())
+                        return (false, $"Tất cả các slot phải thuộc cơ sở với ID {facilityId.Value}");
+                }
+
+                // Validate CategoryId nếu được chỉ định
+                if (categoryId.HasValue)
+                {
+                    var wrongCategorySlots = slots.Where(s => s.Field?.CategoryId != categoryId.Value).ToList();
+                    if (wrongCategorySlots.Any())
+                        return (false, $"Tất cả slots phải thuộc loại sân ID {categoryId.Value}");
+                }
+
+                // Check không có slot nào trong quá khứ
+                var currentDate = DateOnly.FromDateTime(DateTime.Now);
+                var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+
+                foreach (var slot in slots)
+                {
+                    if (slot.Date < currentDate ||
+                        (slot.Date == currentDate && slot.StartTime < currentTime))
+                    {
+                        return (false, "Không thể đặt sân trong quá khứ");
+                    }
+                }
+
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Lỗi khi kiểm tra slots: {ex.Message}");
+            }
+        }
         public async Task<BookingDetailDTO?> GetBookingByIdAsync(int bookingId)
         {
             try

@@ -33,5 +33,11 @@ namespace SportZone_API.Services.Interfaces
         /// Kiểm tra slot thời gian có trống không với Date và Time riêng biệt
         /// </summary>
         Task<bool> CheckTimeSlotAvailabilityAsync(int fieldId, DateOnly date, TimeOnly startTime, TimeOnly endTime);
+
+        /// <summary>
+        /// Tính toán tổng tiền booking với multiple slots (field + services - discount)
+        /// </summary>
+        Task<decimal> CalculateTotalAmountAsync(List<int> selectedSlotIds, List<int>? serviceIds = null, int? discountId = null);
+
     }
 }

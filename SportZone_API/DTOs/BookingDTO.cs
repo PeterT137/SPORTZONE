@@ -8,26 +8,19 @@ namespace SportZone_API.DTOs
     /// </summary>
     public class BookingCreateDTO
     {
-        // FieldId không còn bắt buộc - sẽ được lấy từ slot available trong Field_booking_schedule
-        public int? FieldId { get; set; }
-
-        // Thêm các filter để thu hẹp lựa chọn slot
-        public int? FacilityId { get; set; }
-        public int? CategoryId { get; set; }
-
         public int? UserId { get; set; }
 
         [MaxLength(100, ErrorMessage = "Tiêu đề không được quá 100 ký tự")]
         public string? Title { get; set; }
 
-        [Required(ErrorMessage = "Ngày đặt sân là bắt buộc")]
-        public DateOnly Date { get; set; }
+        [Required(ErrorMessage = "Phải chọn ít nhất 1 slot thời gian")]
+        [MinLength(1, ErrorMessage = "Phải chọn ít nhất 1 slot thời gian")]
+        public List<int> SelectedSlotIds { get; set; } = new List<int>();
 
-        [Required(ErrorMessage = "Thời gian bắt đầu là bắt buộc")]
-        public TimeOnly StartTime { get; set; }
-
-        [Required(ErrorMessage = "Thời gian kết thúc là bắt buộc")]
-        public TimeOnly EndTime { get; set; }
+        // Validation fields - để validate và filter slots
+        public int? FieldId { get; set; } // Nếu muốn restrict slots chỉ thuộc 1 field cụ thể
+        public int? FacilityId { get; set; } // Validate slots thuộc facility này
+        public int? CategoryId { get; set; } // Validate slots thuộc category này
 
         // Guest booking fields
         [MaxLength(100, ErrorMessage = "Tên khách không được quá 100 ký tự")]
@@ -38,9 +31,22 @@ namespace SportZone_API.DTOs
 
         // Optional services and discount
         public List<int>? ServiceIds { get; set; }
-        public int? DiscountId { get; set; } // Thay DiscountCode bằng DiscountId
+        public int? DiscountId { get; set; }
 
         public string? Notes { get; set; }
+    }
+
+    /// <summary>
+    /// DTO tính toán tổng tiền với multiple slots
+    /// </summary>
+    public class CalculateAmountDTO
+    {
+        [Required(ErrorMessage = "Phải chọn ít nhất 1 slot thời gian")]
+        [MinLength(1, ErrorMessage = "Phải chọn ít nhất 1 slot thời gian")]
+        public List<int> SelectedSlotIds { get; set; } = new List<int>();
+
+        public List<int>? ServiceIds { get; set; }
+        public int? DiscountId { get; set; }
     }
 
     /// <summary>

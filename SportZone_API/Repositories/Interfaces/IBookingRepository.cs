@@ -29,6 +29,12 @@ namespace SportZone_API.Repository.Interfaces
         /// Lấy booking theo customer
         /// </summary>
         Task<IEnumerable<BookingResponseDTO>> GetBookingsByUserAsync(int userId);
+
+        /// <summary>
+        /// Tính tổng tiền với multiple slots
+        /// </summary>
+        Task<decimal> CalculateTotalAmountAsync(List<int> selectedSlotIds, List<int>? serviceIds = null, int? discountId = null);
+
     }
 
 }
