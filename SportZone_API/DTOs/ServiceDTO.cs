@@ -35,7 +35,7 @@ namespace SportZone_API.DTOs
         [RegularExpression("^(Active|Inactive)$", ErrorMessage = "Trạng thái chỉ có thể là 'Active' hoặc 'Inactive'")]
         public string Status { get; set; } = "Active";
 
-        public string? Image { get; set; }
+        public IFormFile? ImageFile { get; set; }
 
         [StringLength(1000, ErrorMessage = "Mô tả không được vượt quá 1000 ký tự")]
         public string? Description { get; set; }
@@ -55,7 +55,7 @@ namespace SportZone_API.DTOs
         [RegularExpression("^(Active|Inactive)$", ErrorMessage = "Trạng thái chỉ có thể là 'Active' hoặc 'Inactive'")]
         public string? Status { get; set; }
 
-        public string? Image { get; set; }
+        public IFormFile? ImageFile { get; set; }
 
         [StringLength(1000, ErrorMessage = "Mô tả không được vượt quá 1000 ký tự")]
         public string? Description { get; set; }

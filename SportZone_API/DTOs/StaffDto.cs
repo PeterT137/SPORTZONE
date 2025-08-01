@@ -30,7 +30,7 @@ namespace SportZone_API.DTOs
         public DateOnly? Dob { get; set; }
 
         [StringLength(255, ErrorMessage = "URL hình ảnh không được vượt quá 255 ký tự.")]
-        public string? Image { get; set; }
+        public IFormFile? ImageFile { get; set; }
 
         [Range(1, int.MaxValue, ErrorMessage = "FacId phải là một số nguyên dương.")]
         public int? FacId { get; set; }

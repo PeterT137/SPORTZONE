@@ -18,7 +18,7 @@ namespace SportZone_API.Controllers
 
         [HttpPost]
         [Route("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto dto) 
+        public async Task<IActionResult> Register([FromForm] RegisterDto dto) 
         {
             if (!ModelState.IsValid)
             {

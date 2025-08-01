@@ -17,17 +17,18 @@ namespace SportZone_API.Mappings
                 .ForMember(dest => dest.Facility, opt => opt.MapFrom(src => src.Fac))
                 .ForMember(dest => dest.OrderCount, opt => opt.MapFrom(src => src.OrderServices.Count));
 
-            // CreateServiceDTO to Service Entity
             CreateMap<CreateServiceDTO, Service>()
-                .ForMember(dest => dest.ServiceId, opt => opt.Ignore())
-                .ForMember(dest => dest.Fac, opt => opt.Ignore())
-                .ForMember(dest => dest.OrderServices, opt => opt.Ignore());
+            .ForMember(dest => dest.ServiceId, opt => opt.Ignore())
+            .ForMember(dest => dest.Fac, opt => opt.Ignore())
+            .ForMember(dest => dest.OrderServices, opt => opt.Ignore())
+            .ForMember(dest => dest.Image, opt => opt.Ignore());
 
             // UpdateServiceDTO to Service Entity
             CreateMap<UpdateServiceDTO, Service>()
                 .ForMember(dest => dest.ServiceId, opt => opt.Ignore())
                 .ForMember(dest => dest.Fac, opt => opt.Ignore())
                 .ForMember(dest => dest.OrderServices, opt => opt.Ignore())
+                .ForMember(dest => dest.Image, opt => opt.Ignore()) 
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // Facility Entity to FacilityInfoDTO

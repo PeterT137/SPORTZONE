@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using SportZone_API.DTOs;
+using SportZone_API.Helpers;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services.Interfaces;
@@ -13,11 +14,13 @@ namespace SportZone_API.Services
     {
         private readonly IFacilityRepository _repository;
         private readonly IMapper _mapper;
+        private readonly IWebHostEnvironment _env;
 
-        public FacilityService(IFacilityRepository repository, IMapper mapper)
+        public FacilityService(IFacilityRepository repository, IMapper mapper, IWebHostEnvironment env)
         {
             _repository = repository;
             _mapper = mapper;
+            _env = env;
         }
 
         public async Task<ServiceResponse<List<FacilityDto>>> GetAllFacilities(string? searchText = null)
@@ -63,40 +66,121 @@ namespace SportZone_API.Services
 
         public async Task<ServiceResponse<FacilityDto>> CreateFacility(FacilityDto dto)
         {
+            var imageUrls = new List<string>();
+            var uploadedFilesPaths = new List<string>();
+
+            // Tên thư mục con bạn muốn sử dụng
+            const string subFolderName = "FacilityImages";
+
+            if (dto.Images != null && dto.Images.Any())
+            {
+                foreach (var imageFile in dto.Images)
+                {
+                    var (isValid, errorMessage) = ImageUpload.ValidateImage(imageFile);
+                    if (!isValid)
+                    {
+                        return new ServiceResponse<FacilityDto> { Success = false, Message = errorMessage };
+                    }
+
+                    // Gọi phương thức SaveImageAsync với tên thư mục con
+                    var imageUrl = await ImageUpload.SaveImageAsync(imageFile, _env.WebRootPath, subFolderName);
+                    if (imageUrl == null)
+                    {
+                        // Xóa các file đã upload thành công trước đó nếu có lỗi
+                        foreach (var path in uploadedFilesPaths)
+                        {
+                            System.IO.File.Delete(Path.Combine(_env.WebRootPath, path.TrimStart('/')));
+                        }
+                        return new ServiceResponse<FacilityDto> { Success = false, Message = "Lỗi khi lưu file ảnh." };
+                    }
+
+                    imageUrls.Add(imageUrl);
+                    uploadedFilesPaths.Add(imageUrl);
+                }
+            }
+
             try
             {
                 var facility = _mapper.Map<Facility>(dto);
+                facility.Images = imageUrls.Select(url => new Image { ImageUrl = url }).ToList();
+
                 await _repository.AddAsync(facility);
                 await _repository.SaveChangesAsync();
+
                 var createdFacility = await _repository.GetByIdAsync(facility.FacId);
 
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = true,
-                    Message = "Tạo cơ sở thành công.", 
+                    Message = "Tạo cơ sở thành công.",
                     Data = _mapper.Map<FacilityDto>(createdFacility)
                 };
             }
             catch (Exception ex)
             {
+                // Xóa các file đã upload nếu có lỗi DB
+                foreach (var url in uploadedFilesPaths)
+                {
+                    ImageUpload.DeleteImage(url, _env.WebRootPath);
+                }
+
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = false,
-                    Message = $"Đã xảy ra lỗi khi tạo cơ sở: {ex.Message}", 
+                    Message = $"Đã xảy ra lỗi khi tạo cơ sở: {ex.Message}",
                     Data = null
                 };
             }
         }
 
-        public async Task<ServiceResponse<FacilityDto>> UpdateFacility(int id, FacilityDto dto)
+        public async Task<ServiceResponse<FacilityDto>> UpdateFacility(int id, FacilityUpdateDto dto)
         {
             try
             {
                 var facility = await _repository.GetByIdAsync(id);
                 if (facility == null)
-                    return new ServiceResponse<FacilityDto> { Success = false, Message = "Không tìm thấy cơ sở." }; 
+                    return new ServiceResponse<FacilityDto> { Success = false, Message = "Không tìm thấy cơ sở." };
 
+                // Logic xử lý ảnh
+                var imageUrls = new List<string>();
+                // 1. Thêm các URL ảnh cũ được giữ lại
+                if (dto.ExistingImageUrls != null)
+                {
+                    imageUrls.AddRange(dto.ExistingImageUrls);
+                }
+
+                // 2. Tải lên và thêm các ảnh mới
+                if (dto.NewImages != null && dto.NewImages.Any())
+                {
+                    foreach (var imageFile in dto.NewImages)
+                    {
+                        var (isValid, errorMessage) = ImageUpload.ValidateImage(imageFile);
+                        if (!isValid)
+                        {
+                            return new ServiceResponse<FacilityDto> { Success = false, Message = errorMessage };
+                        }
+                        var newImageUrl = await ImageUpload.SaveImageAsync(imageFile, _env.WebRootPath, "FacilityImages");
+                        if (newImageUrl == null)
+                        {
+                            return new ServiceResponse<FacilityDto> { Success = false, Message = "Lỗi khi lưu file ảnh mới." };
+                        }
+                        imageUrls.Add(newImageUrl);
+                    }
+                }
+
+                // Xóa các file ảnh cũ không còn trong danh sách
+                var imagesToDelete = facility.Images.Where(img => !imageUrls.Contains(img.ImageUrl)).ToList();
+                foreach (var img in imagesToDelete)
+                {
+                    ImageUpload.DeleteImage(img.ImageUrl, _env.WebRootPath);
+                }
+
+                // Cập nhật thông tin cơ bản
                 _mapper.Map(dto, facility);
+
+                // Cập nhật danh sách ảnh trong model
+                facility.Images = imageUrls.Select(url => new Image { ImageUrl = url, FacId = facility.FacId }).ToList();
+
                 await _repository.UpdateAsync(facility);
                 await _repository.SaveChangesAsync();
 
@@ -104,7 +188,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = true,
-                    Message = "Cập nhật cơ sở thành công.", 
+                    Message = "Cập nhật cơ sở thành công.",
                     Data = _mapper.Map<FacilityDto>(updatedFacility)
                 };
             }
@@ -113,7 +197,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = false,
-                    Message = $"Đã xảy ra lỗi khi cập nhật cơ sở: {ex.Message}", 
+                    Message = $"Đã xảy ra lỗi khi cập nhật cơ sở: {ex.Message}",
                     Data = null
                 };
             }

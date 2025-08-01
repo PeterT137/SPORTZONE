@@ -100,10 +100,15 @@ namespace SportZone_API.Repositories
         public async Task<IEnumerable<CategoryField>> GetCategoryFieldsByFacilityIdAsync(int facilityId)
         {
             return await _context.Fields
-                                 .Where(f => f.FacId == facilityId && f.Category != null) 
-                                 .Select(f => f.Category) 
+                                 .Where(f => f.FacId == facilityId && f.Category != null)
+                                 .Select(f => f.Category!)
                                  .Distinct()
                                  .ToListAsync();
+        }
+
+        public async Task AddImagesAsync(IEnumerable<Image> images)
+        {
+            await _context.Images.AddRangeAsync(images);
         }
     }
 }

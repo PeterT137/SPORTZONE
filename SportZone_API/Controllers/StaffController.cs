@@ -60,7 +60,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPut("{uId}")]
-        public async Task<IActionResult> UpdateStaff(int uId, [FromBody] UpdateStaffDto dto)
+        public async Task<IActionResult> UpdateStaff(int uId, [FromForm] UpdateStaffDto dto)
         {
             if (!ModelState.IsValid)
             {
