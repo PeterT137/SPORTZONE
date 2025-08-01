@@ -28,13 +28,14 @@ namespace SportZone_API.Controllers
         {
             try
             {
-                var (token, loggedInUser) = await _authService.LoginAsync(user);
+                var (token, loggedInUser, facilityInfo) = await _authService.LoginAsync(user);
                 return Ok(new
                 {
                     success = true,
                     message = "Đăng nhập thành công",
                     token = token,
-                    user = loggedInUser
+                    user = loggedInUser,
+                    facilityInfo = facilityInfo
                 });
             }
             catch (ArgumentException ex)

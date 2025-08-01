@@ -39,6 +39,39 @@ namespace SportZone_API.Controllers
             }
         }
 
+        [HttpGet("GetAllFields/Search/")]
+        public async Task<IActionResult> GetAllFields([FromQuery] string? search = null)
+        {
+            try
+            {
+                IEnumerable<FieldResponseDTO> fields;
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    fields = await _fieldService.GetAllFieldsAsync(search); 
+                }
+                else
+                {
+                    fields = await _fieldService.GetAllFieldsAsync();
+                }
+                return Ok(new
+                {   
+                    success = true,
+                    message = string.IsNullOrWhiteSpace(search) ? "Lấy danh sách sân thành công" : $"Tìm kiếm sân với từ khóa '{search}' thành công",
+                    data = fields,
+                    conut = fields.Count(),
+                    searchTerm = search
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetFieldByID(int id)
         {
@@ -124,6 +157,78 @@ namespace SportZone_API.Controllers
                     data = fields,
                     count = fields.Count(),
                     categoryId = categoryId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Lấy danh sách sân theo User ID (Field Owner)
+        /// </summary>
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetFieldsByUserId(int userId)
+        {
+            try
+            {
+                var fields = await _fieldService.GetFieldsByUserIdAsync(userId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy danh sách sân theo user thành công",
+                    data = fields,
+                    count = fields.Count(),
+                    userId = userId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Lấy lịch sân theo Field ID
+        /// </summary>
+        [HttpGet("{fieldId}/schedule")]
+        public async Task<IActionResult> GetFieldSchedule(int fieldId)
+        {
+            try
+            {
+                var schedules = await _fieldService.GetFieldScheduleByFieldIdAsync(fieldId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy lịch sân thành công",
+                    data = schedules,
+                    count = schedules.Count(),
+                    fieldId = fieldId
                 });
             }
             catch (ArgumentException ex)

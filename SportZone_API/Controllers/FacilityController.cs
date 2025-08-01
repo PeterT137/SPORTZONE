@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Services.Interfaces;
-using SportZone_API.Attributes; 
-using System.Linq; 
+using SportZone_API.Attributes;
+using System.Linq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SportZone_API.Controllers
 {
@@ -21,6 +23,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAll([FromQuery] string? searchText)
         {
             try
@@ -35,7 +38,7 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "An unexpected error occurred while fetching facilities." });
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi lấy danh sách cơ sở. Vui lòng thử lại sau." });
             }
         }
 
@@ -46,19 +49,19 @@ namespace SportZone_API.Controllers
             {
                 var result = await _facilityService.GetFacilityById(id);
                 if (result == null)
-                    return NotFound(new { message = $"Facility with ID {id} not found." });
+                    return NotFound(new { message = $"Không tìm thấy cơ sở với ID {id}." }); 
 
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "An unexpected error occurred while fetching the facility." });
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi lấy thông tin cơ sở. Vui lòng thử lại sau." }); 
             }
         }
 
         [HttpPost]
         [RoleAuthorize("2")]
-        public async Task<IActionResult> Create([FromBody] FacilityDto dto)
+        public async Task<IActionResult> Create([FromForm] FacilityDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -75,13 +78,13 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "An unexpected error occurred while creating the facility." });
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi tạo cơ sở. Vui lòng thử lại sau." }); 
             }
         }
 
         [HttpPut("{id}")]
         [RoleAuthorize("2")]
-        public async Task<IActionResult> Update(int id, [FromBody] FacilityDto dto)
+        public async Task<IActionResult> Update(int id, [FromForm] FacilityUpdateDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -100,9 +103,10 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "An unexpected error occurred while updating the facility." });
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi cập nhật cơ sở. Vui lòng thử lại sau." });
             }
         }
+
 
         [HttpDelete("{id}")]
         [RoleAuthorize("2")]
@@ -120,11 +124,11 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "An unexpected error occurred while deleting the facility." });
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi xóa cơ sở. Vui lòng thử lại sau." }); 
             }
         }
 
-        [HttpGet("by-user/{userId}")] 
+        [HttpGet("by-user/{userId}")]
         [Authorize]
         public async Task<IActionResult> GetFacilitiesByUserId(int userId)
         {
@@ -140,7 +144,34 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "An unexpected error occurred while fetching facilities by user ID." });
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi lấy danh sách cơ sở theo ID người dùng. Vui lòng thử lại sau." }); 
+            }
+        }
+
+        [HttpGet("{facilityId}/category-field-names")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetCategoryFieldNamesForFacility(int facilityId)
+        {
+            try
+            {
+                var result = await _facilityService.GetCategoryFieldNamesByFacilityId(facilityId);
+
+                if (result.Success)
+                {
+                    return Ok(result.Data ?? Enumerable.Empty<string>());
+                }
+                else
+                {
+                    if (result.Message.Contains("Không tìm thấy loại sân nào cho cơ sở"))
+                    {
+                        return NotFound(new { error = result.Message });
+                    }
+                    return BadRequest(new { error = result.Message });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi lấy tên loại sân theo cơ sở. Vui lòng thử lại sau." });
             }
         }
     }

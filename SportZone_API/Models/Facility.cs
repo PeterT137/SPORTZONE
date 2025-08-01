@@ -29,6 +29,8 @@ public partial class Facility
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
+    public virtual ICollection<RegulationFacility> RegulationFacilities { get; set; } = new List<RegulationFacility>();
+
     public virtual ICollection<Service> Services { get; set; } = new List<Service>();
 
     public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();

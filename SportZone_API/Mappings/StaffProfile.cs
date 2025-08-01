@@ -20,7 +20,7 @@ namespace SportZone_API.Mappings
                 .ForMember(dest => dest.Name, opt => opt.Condition(src => src.Name != null))
                 .ForMember(dest => dest.Phone, opt => opt.Condition(src => src.Phone != null))
                 .ForMember(dest => dest.Dob, opt => opt.Condition(src => src.Dob.HasValue))
-                .ForMember(dest => dest.Image, opt => opt.Condition(src => src.Image != null))
+                .ForMember(dest => dest.Image, opt => opt.Ignore())
                 .ForMember(dest => dest.FacId, opt => opt.Condition(src => src.FacId.HasValue))
                 .ForMember(dest => dest.StartTime, opt => opt.Condition(src => src.StartTime.HasValue))
                 .ForMember(dest => dest.EndTime, opt => opt.Condition(src => src.EndTime.HasValue));

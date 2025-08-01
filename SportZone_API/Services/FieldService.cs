@@ -29,6 +29,18 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync(string? searchTerm)
+        {
+            try
+            {
+                return await _fieldRepository.GetAllFieldsAsync(searchTerm);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi service khi tìm kiếm sân: {ex.Message}", ex);
+            }
+        }
+
         public async Task<FieldResponseDTO> GetFieldByIdAsync(int fieldId)
         {
             try
@@ -70,6 +82,40 @@ namespace SportZone_API.Services
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi service khi lấy danh sách sân theo loại: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<IEnumerable<FieldResponseDTO>> GetFieldsByUserIdAsync(int userId)
+        {
+            try
+            {
+                if (userId <= 0)
+                    throw new ArgumentException("ID người dùng không hợp lệ");
+
+                return await _fieldRepository.GetFieldsByUserIdAsync(userId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi service khi lấy danh sách sân theo user: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<IEnumerable<FieldScheduleDTO>> GetFieldScheduleByFieldIdAsync(int fieldId)
+        {
+            try
+            {
+                if (fieldId <= 0)
+                    throw new ArgumentException("ID sân không hợp lệ");
+
+                // Kiểm tra sân có tồn tại không
+                if (!await _fieldRepository.FieldExistsAsync(fieldId))
+                    throw new ArgumentException("Sân không tồn tại");
+
+                return await _fieldRepository.GetFieldScheduleByFieldIdAsync(fieldId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi service khi lấy lịch sân: {ex.Message}", ex);
             }
         }
 

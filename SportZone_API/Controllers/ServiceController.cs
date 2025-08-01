@@ -16,9 +16,6 @@ namespace SportZone_API.Controllers
             _serviceService = serviceService;
         }
 
-        /// <summary>
-        /// Lấy danh sách tất cả dịch vụ
-        /// </summary>
         [HttpGet("GetAllService")]
         public async Task<IActionResult> GetAllServices()
         {
@@ -44,9 +41,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy thông tin chi tiết dịch vụ theo ID
-        /// </summary>
         [HttpGet("GetServiceById/{id}")]
         public async Task<IActionResult> GetServiceById(int id)
         {
@@ -79,9 +73,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách dịch vụ theo Facility ID
-        /// </summary>
         [HttpGet("facility/{facilityId}")]
         public async Task<IActionResult> GetServicesByFacilityId(int facilityId)
         {
@@ -107,9 +98,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách dịch vụ theo trạng thái
-        /// </summary>
         [HttpGet("status/{status}")]
         public async Task<IActionResult> GetServicesByStatus(string status)
         {
@@ -143,11 +131,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Tạo dịch vụ mới
-        /// </summary>
         [HttpPost("Add/Service")]
-        public async Task<IActionResult> CreateService([FromBody] CreateServiceDTO createServiceDTO)
+        public async Task<IActionResult> CreateService([FromForm] CreateServiceDTO createServiceDTO)
         {
             try
             {
@@ -169,14 +154,6 @@ namespace SportZone_API.Controllers
                     data = service
                 });
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new
@@ -188,11 +165,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        // <summary>
-        /// Cập nhật thông tin dịch vụ
-        /// </summary>
         [HttpPut("UpdateService/{id}")]
-        public async Task<IActionResult> UpdateService(int id, [FromBody] UpdateServiceDTO updateServiceDto)
+        public async Task<IActionResult> UpdateService(int id, [FromForm] UpdateServiceDTO updateServiceDto)
         {
             try
             {
@@ -242,9 +216,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Xóa dịch vụ
-        /// </summary>
         [HttpDelete("DeleteService/{id}")]
         public async Task<IActionResult> DeleteService(int id)
         {
@@ -285,9 +256,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách dịch vụ với phân trang
-        /// </summary>
         [HttpGet("pagination")]
         public async Task<IActionResult> GetServicesWithPagination([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {

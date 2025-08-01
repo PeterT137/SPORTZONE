@@ -2,6 +2,7 @@
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
 using System.Linq;
+using System.Collections.Generic; 
 
 namespace SportZone_API.Repositories
 {
@@ -92,8 +93,22 @@ namespace SportZone_API.Repositories
         {
             return await _context.Facilities
                                  .Include(f => f.Images)
-                                 .Where(f => f.UId == userId) 
+                                 .Where(f => f.UId == userId)
                                  .ToListAsync();
+        }
+
+        public async Task<IEnumerable<CategoryField>> GetCategoryFieldsByFacilityIdAsync(int facilityId)
+        {
+            return await _context.Fields
+                                 .Where(f => f.FacId == facilityId && f.Category != null)
+                                 .Select(f => f.Category!)
+                                 .Distinct()
+                                 .ToListAsync();
+        }
+
+        public async Task AddImagesAsync(IEnumerable<Image> images)
+        {
+            await _context.Images.AddRangeAsync(images);
         }
     }
 }

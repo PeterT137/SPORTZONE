@@ -14,6 +14,9 @@ namespace SportZone_API.Repositories.Interfaces
         Task<ExternalLogin> CreateExternalLoginAsync(ExternalLogin externalLogin);
         Task<bool> UpdateExternalLoginAsync(ExternalLogin externalLogin);
         Task<Role?> GetCustomerRoleIdByNameAsync();
+        Task<Staff?> GetStaffByUserIdAsync(int userId);
+        Task<FieldOwner?> GetFieldOwnerByUserIdAsync(int userId);
+        Task<List<Facility>> GetFacilitiesByOwnerIdAsync(int ownerId);
 
     }
 }
