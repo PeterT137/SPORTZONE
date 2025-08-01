@@ -53,6 +53,8 @@ builder.Services.AddScoped<IRegulationFacilityRepository, RegulationFacilityRepo
 builder.Services.AddScoped<IRegulationFacilityService, RegulationFacilityService>();
 builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
+builder.Services.AddScoped<IStaffService, StaffService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(options =>

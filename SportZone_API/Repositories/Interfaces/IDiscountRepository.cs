@@ -14,5 +14,7 @@ namespace SportZone_API.Repositories.Interfaces
         Task DeleteAsync(Discount discount);
         Task<List<Discount>> SearchAsync(string text);
         Task SaveChangesAsync();
+
+        
     }
 }
