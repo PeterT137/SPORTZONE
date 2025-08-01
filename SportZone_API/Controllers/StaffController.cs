@@ -85,5 +85,23 @@ namespace SportZone_API.Controllers
             }
             return BadRequest(new { success = false, error = result.Message });
         }
+
+        [HttpGet("field-owner/{fieldOwnerId}")]
+        public async Task<IActionResult> GetStaffByFieldOwnerId(int fieldOwnerId)
+        {
+            if (fieldOwnerId <= 0)
+            {
+                return BadRequest("Field Owner ID phải lớn hơn 0");
+            }
+
+            var result = await _staffService.GetStaffByFieldOwnerIdAsync(fieldOwnerId);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            
+            return NotFound(result);
+        }        
     }
 }

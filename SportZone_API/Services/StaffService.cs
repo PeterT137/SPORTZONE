@@ -121,5 +121,38 @@ namespace SportZone_API.Services
         private ServiceResponse<T> Fail<T>(string msg) => new() { Success = false, Message = msg };
         private ServiceResponse<T> Success<T>(T data, string msg = "") => new() { Success = true, Data = data, Message = msg };
         private ServiceResponse<string> Success(string msg) => new() { Success = true, Message = msg };
+
+        public StaffService(IStaffRepository staffRepository)
+        {
+            _staffRepository = staffRepository;
+        }
+
+        public async Task<ServiceResponse<List<Staff>>> GetStaffByFieldOwnerIdAsync(int fieldOwnerId)
+        {
+            var response = new ServiceResponse<List<Staff>>();
+
+            try
+            {
+                var staff = await _staffRepository.GetStaffByFieldOwnerIdAsync(fieldOwnerId);
+                
+                if (staff == null || !staff.Any())
+                {
+                    response.Success = false;
+                    response.Message = "Không tìm thấy staff nào cho field owner này.";
+                    return response;
+                }
+
+                response.Data = staff;
+                response.Message = $"Tìm thấy {staff.Count} staff.";
+                response.Success = true;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+            }
+
+            return response;
+        }
     }
 }
