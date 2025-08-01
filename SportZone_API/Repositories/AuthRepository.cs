@@ -13,8 +13,6 @@ namespace SportZone_API.Repositories
             _context = context;
         }
 
-
-
         public async Task<User?> GetUserByEmailAsync(string email, bool isExternalLogin = false)
         {
             try
@@ -111,7 +109,7 @@ namespace SportZone_API.Repositories
         }
 
        public async Task<Role?> GetCustomerRoleIdByNameAsync()
-        {
+       {
             try
             {
                 return await _context.Roles
@@ -120,6 +118,49 @@ namespace SportZone_API.Repositories
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi tìm role theo tên: {ex.Message}", ex);
+            }
+       }
+
+        public async Task<Staff?> GetStaffByUserIdAsync(int userId)
+        {
+            try
+            {
+                return await _context.Staff
+                    .Include(s => s.Fac) // Include facility info for Staff
+                       // .ThenInclude(f => f.UIdNavigation) // Include FieldOwner info (chỉ name và phone)
+                    .FirstOrDefaultAsync(s => s.UId == userId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tìm staff theo user ID: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<FieldOwner?> GetFieldOwnerByUserIdAsync(int userId)
+        {
+            try
+            {
+                return await _context.FieldOwners
+                    .Include(fo => fo.Facilities) // Include owned facilities
+                    .FirstOrDefaultAsync(fo => fo.UId == userId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tìm field owner theo user ID: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<List<Facility>> GetFacilitiesByOwnerIdAsync(int ownerId)
+        {
+            try
+            {
+                return await _context.Facilities
+                    .Where(f => f.UId == ownerId)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách facility theo owner ID: {ex.Message}", ex);
             }
         }
     }
