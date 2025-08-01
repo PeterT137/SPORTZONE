@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { FiArrowLeft, FiClock, FiEdit, FiEye, FiMapPin, FiPlus, FiSearch, FiTrash2, FiX } from "react-icons/fi";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../../Sidebar";
+import Swal from 'sweetalert2';
 
 type Field = {
     fieldId: number;
@@ -60,13 +61,17 @@ type EditService = {
     serviceName: string;
     price: number;
     status: string;
-    image?: string;
+    imageFile: File | null;
     description: string;
     facilityAddress: string;
 };
 
-// Use import.meta.env for Vite, fallback to process.env for CRA, with default value
-const API_URL =  "https://localhost:7057";
+type Category = {
+    categoryId: number;
+    categoryName: string;
+};
+
+const API_URL = "https://localhost:7057";
 
 const FacilityDetail: React.FC = () => {
     const { facId } = useParams<{ facId: string }>();
@@ -98,30 +103,36 @@ const FacilityDetail: React.FC = () => {
         serviceName: "",
         price: 0,
         status: "Active",
-        image: "",
+        imageFile: null,
         description: "",
         facilityAddress: "",
     });
-    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [categories, setCategories] = useState<Category[]>([]);
 
     const showToast = (message: string, type: "success" | "error") => {
-        console.log(`[${type}] ${message}`);
-        if (type === "error") {
-            setError(message);
-        } else {
-            setError(null);
-        }
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: type,
+            title: message,
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', () => Swal.stopTimer());
+                toast.addEventListener('mouseleave', () => Swal.resumeTimer());
+            }
+        });
     };
 
-    const getAuthHeaders = () => {
+    const getAuthHeaders = (): Record<string, string> => {
         const token = localStorage.getItem('token');
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
+            return { Authorization: `Bearer ${token}` };
         }
-        return headers;
+        return {};
     };
 
     const fetchFacility = async () => {
@@ -239,11 +250,42 @@ const FacilityDetail: React.FC = () => {
         }
     };
 
+    const fetchCategories = async () => {
+        console.log("Fetching categories with facId:", facId);
+        try {
+            const response = await fetch(`${API_URL}/api/Field/category/${facId}`, {
+                method: "GET",
+                headers: getAuthHeaders(),
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Category API error:", response.status, errorText);
+                throw new Error(`Lỗi khi lấy danh sách danh mục: ${response.status} - ${errorText || response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log("Categories API response:", result);
+            if (result.success) {
+                const mappedCategories: Category[] = result.data.map((item: any) => ({
+                    categoryId: item.categoryId,
+                    categoryName: item.categoryName,
+                }));
+                setCategories(mappedCategories);
+            } else {
+                showToast(result.message || "Không thể lấy danh sách danh mục.", "error");
+            }
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Lỗi không xác định khi lấy danh sách danh mục";
+            console.error("Fetch categories error:", err);
+            showToast(errorMessage, "error");
+        }
+    };
+
     useEffect(() => {
         console.log("useEffect triggered with facId:", facId);
         if (facId) {
             setLoading(true);
-            Promise.all([fetchFacility(), fetchFields(), fetchServices()])
+            Promise.all([fetchFacility(), fetchFields(), fetchServices(), fetchCategories()])
                 .then(() => {
                     const stateFacility = location.state?.facility as Facility | undefined;
                     if (stateFacility && stateFacility.facId === Number(facId)) {
@@ -300,9 +342,9 @@ const FacilityDetail: React.FC = () => {
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Delete field API error:", response.status, errorText);
-                    throw new Error(`Lỗi khi xóa sân: ${response.status} - ${errorText || response.statusText}`);
+                    const result = await response.json();
+                    console.error("Delete field API error:", response.status, result);
+                    throw new Error(result.message || `Lỗi khi xóa sân: ${response.status} - ${result.message || response.statusText}`);
                 }
 
                 setFields((prev) => prev.filter((f) => f.fieldId !== fieldId));
@@ -327,14 +369,15 @@ const FacilityDetail: React.FC = () => {
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Delete service API error:", response.status, errorText);
-                    throw new Error(`Lỗi khi xóa dịch vụ: ${response.status} - ${errorText || response.statusText}`);
+                    const result = await response.json();
+                    console.error("Delete service API error:", response.status, result);
+                    throw new Error(result.message || `Lỗi khi xóa dịch vụ: ${response.status} - ${result.message || response.statusText}`);
                 }
 
                 setServices((prev) => prev.filter((s) => s.serviceId !== serviceId));
                 setFilteredServices((prev) => prev.filter((s) => s.serviceId !== serviceId));
                 showToast("Xóa dịch vụ thành công!", "success");
+                fetchServices();
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : "Lỗi không xác định khi xóa dịch vụ";
                 showToast(errorMessage, "error");
@@ -360,7 +403,7 @@ const FacilityDetail: React.FC = () => {
             serviceName: service.serviceName,
             price: service.price,
             status: service.status,
-            image: service.image,
+            imageFile: null,
             description: service.description,
             facilityAddress: service.facilityAddress,
         });
@@ -398,7 +441,7 @@ const FacilityDetail: React.FC = () => {
                         facId: editField.facId,
                         facilityAddress: editField.facilityAddress,
                         categoryId: fieldFormData.categoryId || editField.categoryId,
-                        categoryName: editField.categoryName,
+                        categoryName: categories.find((c) => c.categoryId === fieldFormData.categoryId)?.categoryName || editField.categoryName,
                         fieldName: fieldFormData.fieldName || editField.fieldName,
                         description: fieldFormData.description || editField.description,
                         isBookingEnable: fieldFormData.isBookingEnable || editField.isBookingEnable,
@@ -429,24 +472,25 @@ const FacilityDetail: React.FC = () => {
             }
             setIsSubmitting(true);
             try {
+                const formData = new FormData();
+                formData.append("serviceName", serviceFormData.serviceName);
+                formData.append("price", serviceFormData.price.toString());
+                formData.append("status", serviceFormData.status);
+                formData.append("description", serviceFormData.description);
+                if (serviceFormData.imageFile) {
+                    formData.append("imageFile", serviceFormData.imageFile);
+                }
+
                 const response = await fetch(`${API_URL}/api/Service/UpdateService/${editService.serviceId}`, {
                     method: "PUT",
                     headers: getAuthHeaders(),
-                    body: JSON.stringify({
-                        serviceId: editService.serviceId,
-                        facId: editService.facId,
-                        serviceName: serviceFormData.serviceName,
-                        price: serviceFormData.price,
-                        status: serviceFormData.status,
-                        image: serviceFormData.image || null,
-                        description: serviceFormData.description,
-                    }),
+                    body: formData,
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Update service API error:", response.status, errorText);
-                    throw new Error(`Lỗi khi cập nhật dịch vụ: ${response.status} - ${errorText || response.statusText}`);
+                    const result = await response.json();
+                    console.error("Update service API error:", response.status, result);
+                    throw new Error(result.message || `Lỗi khi cập nhật dịch vụ: ${response.status} - ${result.message || response.statusText}`);
                 }
 
                 const updatedService = await response.json();
@@ -496,9 +540,9 @@ const FacilityDetail: React.FC = () => {
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Add field API error:", response.status, errorText);
-                throw new Error(`Lỗi khi thêm sân: ${response.status} - ${errorText || response.statusText}`);
+                const result = await response.json();
+                console.error("Add field API error:", response.status, result);
+                throw new Error(result.message || `Lỗi khi thêm sân: ${response.status} - ${result.message || response.statusText}`);
             }
 
             await fetchFields();
@@ -525,23 +569,26 @@ const FacilityDetail: React.FC = () => {
         }
         setIsSubmitting(true);
         try {
+            const formData = new FormData();
+            formData.append("serviceName", newServiceFormData.serviceName);
+            formData.append("price", newServiceFormData.price.toString());
+            formData.append("status", newServiceFormData.status);
+            formData.append("description", newServiceFormData.description);
+            if (newServiceFormData.imageFile) {
+                formData.append("imageFile", newServiceFormData.imageFile);
+            }
+            formData.append("facId", facId || "");
+
             const response = await fetch(`${API_URL}/api/Service/Add/Service`, {
                 method: "POST",
                 headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    facId: Number(facId),
-                    serviceName: newServiceFormData.serviceName,
-                    price: newServiceFormData.price,
-                    status: newServiceFormData.status,
-                    image: newServiceFormData.image || null,
-                    description: newServiceFormData.description || "",
-                }),
+                body: formData,
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Add service API error:", response.status, errorText);
-                throw new Error(`Lỗi khi thêm dịch vụ: ${response.status} - ${errorText || response.statusText}`);
+                const result = await response.json();
+                console.error("Add service API error:", response.status, result);
+                throw new Error(result.message || `Lỗi khi thêm dịch vụ: ${response.status} - ${result.message || response.statusText}`);
             }
 
             const newService = await response.json();
@@ -563,7 +610,7 @@ const FacilityDetail: React.FC = () => {
                 serviceName: "",
                 price: 0,
                 status: "Active",
-                image: "",
+                imageFile: null,
                 description: "",
                 facilityAddress: "",
             });
@@ -577,32 +624,42 @@ const FacilityDetail: React.FC = () => {
         }
     };
 
-    const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         if (type === "checkbox") {
             setFieldFormData((prev) => prev ? { ...prev, [name]: (e.target as HTMLInputElement).checked } : prev);
         } else {
-            setFieldFormData((prev) => prev ? { ...prev, [name]: type === "number" ? Number(value) : value } : prev);
+            setFieldFormData((prev) => prev ? { ...prev, [name]: name === "categoryId" ? Number(value) : value } : prev);
         }
     };
 
     const handleServiceChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        setServiceFormData((prev) => prev ? { ...prev, [name]: type === "number" ? Number(value) : value } : prev);
+        if (name === "imageFile") {
+            const file = (e.target as HTMLInputElement).files?.[0] || null;
+            setServiceFormData((prev) => prev ? { ...prev, imageFile: file } : prev);
+        } else {
+            setServiceFormData((prev) => prev ? { ...prev, [name]: type === "number" ? Number(value) : value } : prev);
+        }
     };
 
-    const handleNewFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleNewFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         if (type === "checkbox") {
             setNewFieldFormData((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
         } else {
-            setNewFieldFormData((prev) => ({ ...prev, [name]: type === "number" ? Number(value) : value }));
+            setNewFieldFormData((prev) => ({ ...prev, [name]: name === "categoryId" ? Number(value) : value }));
         }
     };
 
     const handleNewServiceChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        setNewServiceFormData((prev) => ({ ...prev, [name]: type === "number" ? Number(value) : value }));
+        if (name === "imageFile") {
+            const file = (e.target as HTMLInputElement).files?.[0] || null;
+            setNewServiceFormData((prev) => ({ ...prev, imageFile: file }));
+        } else {
+            setNewServiceFormData((prev) => ({ ...prev, [name]: type === "number" ? Number(value) : value }));
+        }
     };
 
     const closeModal = () => {
@@ -616,9 +673,9 @@ const FacilityDetail: React.FC = () => {
         setIsAddServiceModalOpen(false);
     };
 
-    const handleManageField = (fieldId: number, fieldName: string) => {
-        navigate(`/weekly_schedule?fieldId=${fieldId}&fieldName=${encodeURIComponent(fieldName)}`);
-    };
+   const handleManageField = (fieldId: number, fieldName: string) => {
+    navigate(`/weekly_schedule?fieldId=${fieldId}&fieldName=${encodeURIComponent(fieldName)}&facId=${facId}`);
+};
 
     if (loading) {
         return (
@@ -640,11 +697,6 @@ const FacilityDetail: React.FC = () => {
                 <div className="min-h-screen flex flex-col bg-gray-50 pl-64 pt-16">
                     <div className="text-center">
                         <h2 className="text-2xl font-bold text-gray-900 mb-4">Không tìm thấy cơ sở</h2>
-                        {error && (
-                            <div className="bg-red-100 text-red-700 p-4 rounded-md mb-4">
-                                {error}
-                            </div>
-                        )}
                         <button
                             onClick={() => navigate(-1)}
                             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
@@ -663,11 +715,6 @@ const FacilityDetail: React.FC = () => {
             <Sidebar />
             <div className="min-h-screen flex flex-col bg-gray-50 pl-64 pt-16">
                 <div className="max-w-6xl mx-auto">
-                    {error && (
-                        <div className="bg-red-100 text-red-700 p-4 rounded-md mb-4">
-                            {error}
-                        </div>
-                    )}
                     <div className="flex items-center gap-4 mb-6">
                         <button
                             onClick={() => navigate(-1)}
@@ -1177,14 +1224,20 @@ const FacilityDetail: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">Loại sân</label>
-                                                <input
-                                                    type="number"
+                                                <select
                                                     name="categoryId"
                                                     value={fieldFormData.categoryId || ""}
                                                     onChange={handleFieldChange}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                                     disabled={isSubmitting}
-                                                />
+                                                >
+                                                    <option value="">Chọn loại sân</option>
+                                                    {categories.map((category) => (
+                                                        <option key={category.categoryId} value={category.categoryId}>
+                                                            {category.categoryName}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
@@ -1262,14 +1315,20 @@ const FacilityDetail: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">Loại sân</label>
-                                                <input
-                                                    type="number"
+                                                <select
                                                     name="categoryId"
                                                     value={newFieldFormData.categoryId || ""}
                                                     onChange={handleNewFieldChange}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                                     disabled={isSubmitting}
-                                                />
+                                                >
+                                                    <option value="">Chọn loại sân</option>
+                                                    {categories.map((category) => (
+                                                        <option key={category.categoryId} value={category.categoryId}>
+                                                            {category.categoryName}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
@@ -1380,16 +1439,25 @@ const FacilityDetail: React.FC = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">URL hình ảnh</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh</label>
                                                 <input
-                                                    type="text"
-                                                    name="image"
-                                                    value={newServiceFormData.image}
+                                                    type="file"
+                                                    name="imageFile"
+                                                    accept="image/*"
                                                     onChange={handleNewServiceChange}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                                     disabled={isSubmitting}
                                                 />
                                             </div>
+                                            {newServiceFormData.imageFile && (
+                                                <div>
+                                                    <img
+                                                        src={URL.createObjectURL(newServiceFormData.imageFile)}
+                                                        alt="Preview"
+                                                        className="w-24 h-24 object-cover rounded-md mt-2"
+                                                    />
+                                                </div>
+                                            )}
                                             <div className="flex justify-end space-x-3 pt-4">
                                                 <button
                                                     onClick={closeModal}
@@ -1477,16 +1545,25 @@ const FacilityDetail: React.FC = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">URL hình ảnh</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh</label>
                                                 <input
-                                                    type="text"
-                                                    name="image"
-                                                    value={serviceFormData.image || ""}
+                                                    type="file"
+                                                    name="imageFile"
+                                                    accept="image/*"
                                                     onChange={handleServiceChange}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                                                     disabled={isSubmitting}
                                                 />
                                             </div>
+                                            {serviceFormData.imageFile && (
+                                                <div>
+                                                    <img
+                                                        src={URL.createObjectURL(serviceFormData.imageFile)}
+                                                        alt="Preview"
+                                                        className="w-24 h-24 object-cover rounded-md mt-2"
+                                                    />
+                                                </div>
+                                            )}
                                             <div className="flex justify-end space-x-3 pt-4">
                                                 <button
                                                     onClick={closeModal}

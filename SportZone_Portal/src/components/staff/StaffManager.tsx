@@ -2,27 +2,36 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { FiCheckCircle, FiEdit, FiPlus, FiSlash, FiX } from "react-icons/fi";
+import { FiCheckCircle, FiEdit, FiPlus, FiSlash, FiTrash2, FiX } from "react-icons/fi";
 import Swal from "sweetalert2";
 import Sidebar from "../../Sidebar";
 
 type Staff = {
-    id: number; // Assuming uId is used as id
+    id: number; // uId
     name: string;
     phone: string;
     dob: string; // yyyy-MM-dd
     image: string;
     startTime: string; // ISO string or date string
-    endTime?: string; // Optional, as API doesn't provide this
+    endTime?: string; // Optional
     email: string;
     status: "Active" | "Inactive";
-    facId: number;
+    facIds: number[]; // Array of facility IDs
     roleName: string;
-    facilityName: string;
+    facilityNames: string[]; // Array of facility names
 };
 
-type EditStaff = Omit<Staff, "id" | "facId" | "roleName" | "facilityName"> & {
-    facId?: number; // Optional for new staff
+type EditStaff = {
+    name: string;
+    phone: string;
+    dob: string;
+    image: string;
+    imageFile: File | null;
+    startTime: string;
+    endTime: string;
+    email: string;
+    status: "Active" | "Inactive";
+    facIds: number[];
 };
 
 const StaffManager: React.FC = () => {
@@ -36,16 +45,18 @@ const StaffManager: React.FC = () => {
         phone: "",
         dob: "",
         image: "",
+        imageFile: null,
         startTime: "",
         endTime: "",
         email: "",
         status: "Active",
-        facId: undefined, // Optional for new staff
+        facIds: [],
     });
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [facilities, setFacilities] = useState<{ id: number; name: string }[]>([]);
 
-    // Format date string thành 'yyyy-MM-ddTHH:mm' dùng cho datetime-local input
+    // Format date string for datetime-local input
     const formatDateTimeLocal = (dateStr: string) => {
         if (!dateStr) return "";
         const date = new Date(dateStr);
@@ -53,7 +64,7 @@ const StaffManager: React.FC = () => {
         return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
     };
 
-    // Format ngày sinh 'yyyy-MM-dd' cho input type date
+    // Format date for date input
     const formatDate = (dateStr: string) => {
         if (!dateStr) return "";
         const date = new Date(dateStr);
@@ -63,53 +74,82 @@ const StaffManager: React.FC = () => {
         return `${year}-${month}-${day}`;
     };
 
-    // Get auth headers (adjust based on your auth setup)
-    // const getAuthHeaders = () => {
-    //     const token = localStorage.getItem("token");
-    //     return {
-    //         "Content-Type": "application/json",
-    //         ...(token && { Authorization: `Bearer ${token}` }),
-    //     };
-    // };
-
-    // Fetch staff data from API and map to Staff type
+    // Fetch staff data from API
     const fetchStaffs = async () => {
         setLoading(true);
+        setError(null);
         try {
             const userString = localStorage.getItem("user");
             const user = userString ? JSON.parse(userString) : null;
-            const facId = user?.facId;
+            const roleId = user?.roleId;
+            const userId = user?.UId;
 
-            const url = facId
-                ? `https://localhost:7057/api/staff?facId=${facId}`
-                : `https://localhost:7057/api/staff`;
+            const facilityList = user?.FieldOwner?.facilities?.map((f: any) => ({
+                id: f.facId,
+                name: f.name || `Facility ${f.facId}`,
+            })) || [];
+            setFacilities(facilityList);
 
-            const response = await fetch(url); // Không cần headers ở đây
+            let allStaffs: any[] = [];
 
-            if (!response.ok) throw new Error("Failed to fetch staff data");
+            if (roleId === 3) {
+                // Admin lấy toàn bộ staff
+                const response = await fetch(`https://localhost:7057/api/Staff/GetAll`);
+                if (!response.ok) throw new Error(`Lỗi tải tất cả nhân viên (HTTP ${response.status})`);
+                const apiResponse = await response.json();
+                if (apiResponse.success) allStaffs = apiResponse.data || [];
+                else throw new Error(apiResponse.message || "Không thể lấy nhân viên.");
+            } else{
+                // FieldOwner lấy theo userId
+                const response = await fetch(`https://localhost:7057/api/Staff/field-owner/${userId}`);
+                if (!response.ok) throw new Error(`Lỗi tải nhân viên chủ sân (HTTP ${response.status})`);
+                const apiResponse = await response.json();
+                if (apiResponse.success) allStaffs = apiResponse.data || [];
+                else throw new Error(apiResponse.message || "Không thể lấy nhân viên.");
+            } 
 
-            const data = await response.json();
+            // Gộp danh sách staff không trùng uId
+            const staffMap = new Map<number, Staff>();
 
-            const mappedStaffs: Staff[] = data.map((item: any) => ({
-                id: item.uId,
-                name: item.name || "",
-                phone: item.phone || "",
-                dob: item.dob || "",
-                image: item.image || "",
-                startTime: item.startTime || "",
-                endTime: "", // Tuỳ chỉnh nếu cần
-                email: item.email || "",
-                status: item.status || "Inactive",
-                facId: item.facId || 0,
-                roleName: item.roleName || "Unknown",
-                facilityName: item.facilityName || "Unknown",
-            }));
+            allStaffs.forEach((item: any) => {
+                const uId = item.uId;
+                const existingStaff = staffMap.get(uId);
 
+                const facId = item.fac?.facId || item.facId;
+                const facName = item.fac?.name || "Unknown";
+
+                const userNav = item.uIdNavigation || {};
+
+                if (existingStaff) {
+                    if (!existingStaff.facIds.includes(facId)) {
+                        existingStaff.facIds.push(facId);
+                        existingStaff.facilityNames.push(facName);
+                    }
+                } else {
+                    staffMap.set(uId, {
+                        id: uId,
+                        name: item.name || "",
+                        phone: item.phone || "",
+                        dob: item.dob || "",
+                        image: userNav.image || "/default-avatar.jpg",
+                        startTime: item.startTime || "",
+                        endTime: "", // nếu có thì thêm
+                        email: userNav.uEmail || "",
+                        status: userNav.uStatus || "Inactive",
+                        facIds: [facId],
+                        roleName: "Nhân viên",
+                        facilityNames: [facName],
+                    });
+                }
+            });
+
+            const mappedStaffs = Array.from(staffMap.values());
             setStaffs(mappedStaffs);
             setFilteredStaffs(mappedStaffs);
-        } catch (err) {
-            setError("Lỗi khi tải danh sách nhân viên. Vui lòng thử lại.");
-            console.error(err);
+        } catch (err: any) {
+            const errorMessage = err.message || "Lỗi khi tải danh sách nhân viên. Vui lòng thử lại.";
+            setError(errorMessage);
+            Swal.fire("Lỗi", errorMessage, "error");
         } finally {
             setLoading(false);
         }
@@ -127,10 +167,47 @@ const StaffManager: React.FC = () => {
                 (s) =>
                     s.name.toLowerCase().includes(term) ||
                     s.phone.includes(term) ||
-                    s.email.toLowerCase().includes(term)
+                    s.email.toLowerCase().includes(term) ||
+                    s.facIds.some((facId) => facId.toString().includes(term)) ||
+                    s.facilityNames.some((name) => name.toLowerCase().includes(term))
             )
         );
     }, [searchTerm, staffs]);
+
+    // Delete staff via API
+    const deleteStaff = async (id: number, name: string) => {
+        const result = await Swal.fire({
+            title: `Bạn có chắc muốn xóa nhân viên "${name}"?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Xóa",
+            cancelButtonText: "Hủy",
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`https://localhost:7057/api/Staff/${id}`, {
+                    method: "DELETE",
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Lỗi khi xóa nhân viên (HTTP ${response.status}).`);
+                }
+                const apiResponse = await response.json();
+                if (apiResponse.success) {
+                    setStaffs((prev) => prev.filter((s) => s.id !== id));
+                    setFilteredStaffs((prev) => prev.filter((s) => s.id !== id));
+                    Swal.fire("Thành công", "Đã xóa nhân viên.", "success");
+                } else {
+                    throw new Error(apiResponse.error || "Lỗi khi xóa nhân viên.");
+                }
+            } catch (err: any) {
+                const errorMessage = err.message || "Lỗi khi xóa nhân viên.";
+                setError(errorMessage);
+                Swal.fire("Lỗi", errorMessage, "error");
+            }
+        }
+    };
 
     // Toggle staff status via API
     const toggleStatus = async (id: number) => {
@@ -147,25 +224,37 @@ const StaffManager: React.FC = () => {
             icon: "question",
             showCancelButton: true,
             confirmButtonText: "Đồng ý",
-            cancelButtonText: "Huỷ",
+            cancelButtonText: "Hủy",
         });
 
         if (result.isConfirmed) {
             try {
                 const response = await fetch(`https://localhost:7057/api/staff/${id}/status`, {
                     method: "PATCH",
-                    // headers: getAuthHeaders(),
                     body: JSON.stringify({ status: newStatus }),
                 });
-                if (!response.ok) throw new Error("Failed to update status");
-                setStaffs((prev) =>
-                    prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
-                );
-                Swal.fire("Thành công", `Nhân viên đã được chuyển thành trạng thái ${newStatus === "Active" ? "Hoạt động" : "Không hoạt động"}.`, "success");
-            } catch (err) {
-                setError("Lỗi khi cập nhật trạng thái. Vui lòng thử lại.");
-                console.error(err);
-                Swal.fire("Lỗi", "Không thể cập nhật trạng thái.", "error");
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Lỗi khi cập nhật trạng thái (HTTP ${response.status}).`);
+                }
+                const apiResponse = await response.json();
+                if (apiResponse.success) {
+                    setStaffs((prev) =>
+                        prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
+                    );
+                    Swal.fire(
+                        "Thành công",
+                        `Nhân viên đã được chuyển thành trạng thái ${newStatus === "Active" ? "Hoạt động" : "Không hoạt động"
+                        }.`,
+                        "success"
+                    );
+                } else {
+                    throw new Error(apiResponse.error || "Lỗi khi cập nhật trạng thái.");
+                }
+            } catch (err: any) {
+                const errorMessage = err.message || "Lỗi khi cập nhật trạng thái.";
+                setError(errorMessage);
+                Swal.fire("Lỗi", errorMessage, "error");
             }
         }
     };
@@ -173,11 +262,16 @@ const StaffManager: React.FC = () => {
     const handleEdit = (staff: Staff) => {
         setSelectedStaff(staff);
         setFormData({
-            ...staff,
+            name: staff.name,
+            phone: staff.phone,
+            dob: formatDate(staff.dob),
+            image: staff.image,
+            imageFile: null,
             startTime: formatDateTimeLocal(staff.startTime),
             endTime: staff.endTime ? formatDateTimeLocal(staff.endTime) : "",
-            dob: formatDate(staff.dob),
-            facId: staff.facId, // Include facId if editable
+            email: staff.email,
+            status: staff.status,
+            facIds: staff.facIds,
         });
         setIsModalOpen(true);
     };
@@ -188,43 +282,82 @@ const StaffManager: React.FC = () => {
             return;
         }
 
-        const updatedFormData = {
-            ...formData,
-            startTime: formData.startTime ? new Date(formData.startTime).toISOString() : "",
-            endTime: formData.endTime ? new Date(formData.endTime).toISOString() : "",
-            dob: formData.dob, // already in yyyy-MM-dd
-            facId: formData.facId || 0, // Default to 0 if not provided
-        };
+        const formDataToSend = new FormData();
+        formDataToSend.append("Name", formData.name);
+        formDataToSend.append("Phone", formData.phone);
+        formDataToSend.append("Email", formData.email);
+        if (formData.dob) formDataToSend.append("Dob", formData.dob);
+        if (formData.imageFile) formDataToSend.append("ImageFile", formData.imageFile);
+        if (formData.facIds.length > 0) formDataToSend.append("FacId", formData.facIds[0].toString());
+        if (formData.startTime) formDataToSend.append("StartTime", formData.startTime.split("T")[0]);
+        if (formData.endTime) formDataToSend.append("EndTime", formData.endTime.split("T")[0]);
 
         try {
             if (selectedStaff) {
                 const response = await fetch(`https://localhost:7057/api/staff/${selectedStaff.id}`, {
                     method: "PUT",
-                    // headers: getAuthHeaders(),
-                    body: JSON.stringify(updatedFormData),
+                    body: formDataToSend,
                 });
-                if (!response.ok) throw new Error("Failed to update staff");
-                setStaffs((prev) =>
-                    prev.map((s) =>
-                        s.id === selectedStaff.id ? { ...s, ...updatedFormData, id: selectedStaff.id } : s
-                    )
-                );
-                Swal.fire("Thành công", "Đã cập nhật nhân viên", "success");
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Lỗi khi cập nhật nhân viên (HTTP ${response.status}).`);
+                }
+                const apiResponse = await response.json();
+                if (apiResponse.success) {
+                    setStaffs((prev) =>
+                        prev.map((s) =>
+                            s.id === selectedStaff.id
+                                ? {
+                                    ...s,
+                                    ...apiResponse.data,
+                                    facIds: apiResponse.data.facIds || [apiResponse.data.facId],
+                                    facilityNames:
+                                        facilities
+                                            .filter((f) =>
+                                                (apiResponse.data.facIds || [apiResponse.data.facId]).includes(f.id)
+                                            )
+                                            .map((f) => f.name) || [apiResponse.data.facilityName],
+                                }
+                                : s
+                        )
+                    );
+                    Swal.fire("Thành công", "Đã cập nhật nhân viên", "success");
+                } else {
+                    throw new Error(apiResponse.error || "Lỗi khi cập nhật nhân viên.");
+                }
             } else {
                 const response = await fetch(`https://localhost:7057/api/staff`, {
                     method: "POST",
-                    // headers: getAuthHeaders(),
-                    body: JSON.stringify(updatedFormData),
+                    body: formDataToSend,
                 });
-                if (!response.ok) throw new Error("Failed to add staff");
-                const newStaff = await response.json();
-                setStaffs((prev) => [...prev, newStaff]);
-                Swal.fire("Thành công", "Đã thêm nhân viên mới", "success");
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Lỗi khi thêm nhân viên (HTTP ${response.status}).`);
+                }
+                const apiResponse = await response.json();
+                if (apiResponse.success) {
+                    setStaffs((prev) => [
+                        ...prev,
+                        {
+                            ...apiResponse.data,
+                            facIds: apiResponse.data.facIds || [apiResponse.data.facId],
+                            facilityNames:
+                                facilities
+                                    .filter((f) =>
+                                        (apiResponse.data.facIds || [apiResponse.data.facId]).includes(f.id)
+                                    )
+                                    .map((f) => f.name) || [apiResponse.data.facilityName],
+                        },
+                    ]);
+                    Swal.fire("Thành công", "Đã thêm nhân viên mới", "success");
+                } else {
+                    throw new Error(apiResponse.error || "Lỗi khi thêm nhân viên.");
+                }
             }
-        } catch (err) {
-            setError("Lỗi khi lưu thông tin nhân viên. Vui lòng thử lại.");
-            console.error(err);
-            Swal.fire("Lỗi", "Không thể lưu thông tin.", "error");
+        } catch (err: any) {
+            const errorMessage = err.message || "Lỗi khi lưu thông tin nhân viên.";
+            setError(errorMessage);
+            Swal.fire("Lỗi", errorMessage, "error");
         } finally {
             closeModal();
         }
@@ -237,6 +370,23 @@ const StaffManager: React.FC = () => {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setFormData((prev) => ({
+            ...prev,
+            imageFile: file,
+            image: file ? URL.createObjectURL(file) : prev.image,
+        }));
+    };
+
+    // Handle multiple facility selection
+    const handleFacilityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedOptions = Array.from(e.target.selectedOptions).map((opt) =>
+            Number(opt.value)
+        );
+        setFormData((prev) => ({ ...prev, facIds: selectedOptions }));
+    };
+
     const closeModal = () => {
         setSelectedStaff(null);
         setFormData({
@@ -244,36 +394,15 @@ const StaffManager: React.FC = () => {
             phone: "",
             dob: "",
             image: "",
+            imageFile: null,
             startTime: "",
             endTime: "",
             email: "",
             status: "Active",
-            facId: undefined,
+            facIds: [],
         });
         setIsModalOpen(false);
     };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 pt-16 flex justify-center items-center">
-                <p>Đang tải...</p>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="min-h-screen bg-gray-50 pt-16 flex justify-center items-center">
-                <div className="text-red-600">{error}</div>
-                <button
-                    onClick={fetchStaffs}
-                    className="ml-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                    Thử lại
-                </button>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-gray-50 pt-16">
@@ -293,11 +422,12 @@ const StaffManager: React.FC = () => {
                                     phone: "",
                                     dob: "",
                                     image: "",
+                                    imageFile: null,
                                     startTime: "",
                                     endTime: "",
                                     email: "",
                                     status: "Active",
-                                    facId: undefined,
+                                    facIds: [],
                                 });
                                 setIsModalOpen(true);
                             }}
@@ -307,9 +437,21 @@ const StaffManager: React.FC = () => {
                         </button>
                     </div>
 
+                    {error && (
+                        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md flex justify-between items-center">
+                            <span>{error}</span>
+                            <button
+                                onClick={fetchStaffs}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                Thử lại
+                            </button>
+                        </div>
+                    )}
+
                     <input
                         type="text"
-                        placeholder="Tìm kiếm theo tên, email hoặc SĐT..."
+                        placeholder="Tìm kiếm theo tên, email, SĐT, ID cơ sở hoặc tên cơ sở..."
                         className="w-full border px-4 py-2 rounded-md mb-4"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -325,12 +467,19 @@ const StaffManager: React.FC = () => {
                                     <th className="p-3">Ngày sinh</th>
                                     <th className="p-3">Email</th>
                                     <th className="p-3">Giờ bắt đầu</th>
+                                    <th className="p-3">Cơ sở</th>
                                     <th className="p-3">Trạng thái</th>
                                     <th className="p-3">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredStaffs.length > 0 ? (
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={9} className="text-center text-gray-500 py-6">
+                                            Đang tải...
+                                        </td>
+                                    </tr>
+                                ) : filteredStaffs.length > 0 ? (
                                     filteredStaffs.map((staff) => (
                                         <tr key={staff.id} className="hover:bg-gray-50">
                                             <td className="p-3">
@@ -349,16 +498,13 @@ const StaffManager: React.FC = () => {
                                                     ? new Date(staff.startTime).toLocaleString("vi-VN")
                                                     : ""}
                                             </td>
+                                            <td className="p-3">{staff.facilityNames.join(", ")}</td>
                                             <td className="p-3">
                                                 <span
-                                                    className={`px-2 py-1 rounded text-white ${staff.status === "Active"
-                                                        ? "bg-green-600"
-                                                        : "bg-red-600"
+                                                    className={`px-2 py-1 rounded text-white ${staff.status === "Active" ? "bg-green-600" : "bg-red-600"
                                                         }`}
                                                 >
-                                                    {staff.status === "Active"
-                                                        ? "Hoạt động"
-                                                        : "Không hoạt động"}
+                                                    {staff.status === "Active" ? "Hoạt động" : "Không hoạt động"}
                                                 </span>
                                             </td>
                                             <td className="p-3 space-x-2 flex items-center">
@@ -372,8 +518,8 @@ const StaffManager: React.FC = () => {
                                                 <button
                                                     onClick={() => toggleStatus(staff.id)}
                                                     className={`${staff.status === "Active"
-                                                        ? "text-red-600 hover:text-red-800"
-                                                        : "text-blue-600 hover:text-blue-800"
+                                                            ? "text-red-600 hover:text-red-800"
+                                                            : "text-blue-600 hover:text-blue-800"
                                                         }`}
                                                     title={
                                                         staff.status === "Active"
@@ -387,12 +533,19 @@ const StaffManager: React.FC = () => {
                                                         <FiCheckCircle size={18} />
                                                     )}
                                                 </button>
+                                                <button
+                                                    onClick={() => deleteStaff(staff.id, staff.name)}
+                                                    className="text-red-600 hover:text-red-800"
+                                                    title="Xóa nhân viên"
+                                                >
+                                                    <FiTrash2 size={18} />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={8} className="text-center text-gray-500 py-6">
+                                        <td colSpan={9} className="text-center text-gray-500 py-6">
                                             Không có nhân viên nào phù hợp.
                                         </td>
                                     </tr>
@@ -425,6 +578,7 @@ const StaffManager: React.FC = () => {
                                 value={formData.name}
                                 onChange={handleInputChange}
                                 className="border px-3 py-2 rounded"
+                                maxLength={100}
                             />
                             <input
                                 type="text"
@@ -433,6 +587,8 @@ const StaffManager: React.FC = () => {
                                 value={formData.phone}
                                 onChange={handleInputChange}
                                 className="border px-3 py-2 rounded"
+                                maxLength={20}
+                                minLength={10}
                             />
                             <input
                                 type="email"
@@ -451,33 +607,52 @@ const StaffManager: React.FC = () => {
                                 className="border px-3 py-2 rounded"
                             />
                             <input
-                                type="text"
-                                name="image"
-                                placeholder="URL ảnh"
-                                value={formData.image}
-                                onChange={handleInputChange}
+                                type="file"
+                                name="imageFile"
+                                accept="image/*"
+                                onChange={handleFileChange}
                                 className="border px-3 py-2 rounded col-span-2"
                             />
+                            {formData.image && (
+                                <img
+                                    src={formData.image}
+                                    alt="Preview"
+                                    className="col-span-2 w-24 h-24 object-cover rounded"
+                                />
+                            )}
                             <label className="col-span-1 flex flex-col text-sm text-gray-700">
-                                Giờ bắt đầu:
+                                Ngày bắt đầu:
                                 <input
-                                    type="datetime-local"
+                                    type="date"
                                     name="startTime"
-                                    value={formData.startTime}
+                                    value={formData.startTime.split("T")[0] || ""}
                                     onChange={handleInputChange}
                                     className="border px-3 py-2 rounded"
                                 />
                             </label>
                             <label className="col-span-1 flex flex-col text-sm text-gray-700">
-                                Giờ kết thúc:
+                                Ngày kết thúc:
                                 <input
-                                    type="datetime-local"
+                                    type="date"
                                     name="endTime"
-                                    value={formData.endTime || ""}
+                                    value={formData.endTime.split("T")[0] || ""}
                                     onChange={handleInputChange}
                                     className="border px-3 py-2 rounded"
                                 />
                             </label>
+                            <select
+                                name="facIds"
+                                multiple
+                                value={formData.facIds.map(String)}
+                                onChange={handleFacilityChange}
+                                className="border px-3 py-2 rounded col-span-2"
+                            >
+                                {facilities.map((facility) => (
+                                    <option key={facility.id} value={facility.id}>
+                                        {facility.name}
+                                    </option>
+                                ))}
+                            </select>
                             <select
                                 name="status"
                                 value={formData.status}
@@ -493,7 +668,7 @@ const StaffManager: React.FC = () => {
                                 onClick={closeModal}
                                 className="px-4 py-2 border rounded hover:bg-gray-100"
                             >
-                                Huỷ
+                                Hủy
                             </button>
                             <button
                                 onClick={handleSave}

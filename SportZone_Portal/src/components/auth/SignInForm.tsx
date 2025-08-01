@@ -70,71 +70,75 @@ const SignInForm: React.FC = () => {
     return newErrors;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length) {
-      setErrors(validationErrors);
-      return;
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  const validationErrors = validateForm();
+  if (Object.keys(validationErrors).length) {
+    setErrors(validationErrors);
+    return;
+  }
+  setErrors({});
+  try {
+    setLoading(true);
+
+    const response = await axios.post('https://localhost:7057/api/Authentication/Login', {
+      uEmail: formData.email,
+      uPassword: formData.password,
+    });
+
+    const { token, user, facilityInfo } = response.data;
+
+    const userToStore = {
+      UId: user.uId || user.UId,
+      RoleId: user.roleId || 0,
+      UEmail: user.uEmail || user.UEmail,
+      UPassword: user.uPassword || user.UPassword,
+      UStatus: user.uStatus || user.UStatus || "Active",
+      UCreateDate: user.uCreateDate || user.UCreateDate || new Date().toISOString(),
+      IsExternalLogin: user.isExternalLogin ?? false,
+      IsVerify: user.isVerify ?? true,
+      Admin: user.Admin ?? null,
+      Customers: user.Customers ?? [],
+      ExternalLogins: user.ExternalLogins ?? [],
+      FieldOwner: user.fieldOwner ?? null,
+      Notifications: user.notifications ?? [],
+      Role: user.Role ?? null,
+      Staff: user.Staff ?? null,
+      avatarUrl: user.avatarUrl || "https://www.vietnamworks.com/hrinsider/wp-content/uploads/2023/12/anh-den-ngau.jpeg",
+      Bookings: user.bookings ?? [],
+      Orders: user.orders ?? [],
+      Payments: user.payments ?? [],
+    };
+
+    localStorage.clear();
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userToStore));
+    localStorage.setItem('facilityInfo', JSON.stringify(facilityInfo));
+
+    showToast('Đăng nhập thành công!');
+
+    const userStorage = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // Điều hướng theo RoleId
+    if (userStorage.RoleId === 2 || userStorage.RoleId === 3) {
+      navigate("/facility_manager");
+    } else if (userStorage.RoleId === 1) {
+      navigate("/homepage");
+    } else if (userStorage.RoleId === 4) {
+      navigate("/weekly_schedule");
+    } else {
+      navigate("/homepage");
     }
-    setErrors({});
-    try {
-      setLoading(true);
 
-      const response = await axios.post('https://localhost:7057/api/Authentication/Login', {
-        uEmail: formData.email,
-        uPassword: formData.password,
-      });
+    console.log('Signed in user:', userToStore);
+    console.log('Facility Info:', facilityInfo);
+  } catch (err: any) {
+    showToast(err?.response?.data?.message || 'Đăng nhập thất bại!', 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const { token, user, role } = response.data;
-
-      // Map role to RoleId for consistency with User interface
-   
-      const userToStore = {
-        UId: user.uId || user.UId,
-        RoleId: user.roleId|| 0, // Fallback to Customer
-        UEmail: user.uEmail || user.UEmail,
-        UPassword: user.uPassword || user.UPassword,
-        UStatus: user.uStatus || user.UStatus || "Active",
-        UCreateDate: user.uCreateDate || user.UCreateDate || new Date().toISOString(),
-        IsExternalLogin: user.isExternalLogin ?? false,
-        IsVerify: user.isVerify ?? true,
-        Admin: user.Admin ?? null,
-        Customers: user.Customers ?? [],
-        ExternalLogins: user.ExternalLogins ?? [],
-        FieldOwner: user.FieldOwner ?? null,
-        Notifications: user.notifications ?? [],
-        Role: user.Role ?? null,
-        Staff: user.Staff ?? null,
-        avatarUrl: user.avatarUrl || "https://www.vietnamworks.com/hrinsider/wp-content/uploads/2023/12/anh-den-ngau.jpeg",
-      };
-      localStorage.clear();
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userToStore));
-      const userStorage = JSON.parse(localStorage.getItem('user') || '{}');
-
-      showToast('Đăng nhập thành công!');
-
-      // Redirect based on RoleId from userStorage
-      if (userStorage.RoleId === 3||userStorage.RoleId==2) {
-        navigate("/facility_manager");
-      } else if (userStorage.RoleId === 1) {
-        navigate("/homepage");
-      
-      }else if (userStorage.RoleId === 4) {
-        navigate("/weekly_schedule");
-      
-      } else {
-        navigate("/homepage"); // Fallback
-      }
-
-      console.log('Signed in user:', userToStore);
-    } catch (err: any) {
-      showToast(err?.response?.data?.message || 'Đăng nhập thất bại!', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleLogin = () => {
     window.location.href = 'https://localhost:7057/api/Authentication/googlelogin';

@@ -315,15 +315,34 @@ const FacilityManager: React.FC = () => {
         throw new Error(`Lỗi HTTP: ${response.status}`);
       }
 
+      // ✅ Cập nhật state của facility
       setFacilities(prev => prev.filter(f => f.fac_id !== facilityToDelete));
       setFilteredFacilities(prev => prev.filter(f => f.fac_id !== facilityToDelete));
       showToast('Xóa cơ sở thành công!', 'success');
 
+      // ✅ Cập nhật localStorage["user"]
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+
+        // Xóa facility khỏi user.FieldOwner.facilities
+        if (user.FieldOwner && Array.isArray(user.FieldOwner.facilities)) {
+          user.FieldOwner.facilities = user.FieldOwner.facilities.filter(
+            (fac: any) => fac.facId !== facilityToDelete
+          );
+        }
+
+        // Ghi lại vào localStorage
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
+      // ✅ Cập nhật pagination nếu cần
       const totalPages = Math.ceil(filteredFacilities.length / pageSize);
       if (currentPage > totalPages && totalPages > 0) {
         setCurrentPage(totalPages);
       }
 
+      // ✅ Đóng modal và reset ID
       setShowDeleteModal(false);
       setFacilityToDelete(null);
     } catch (err) {
@@ -331,6 +350,7 @@ const FacilityManager: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Lỗi không xác định');
     }
   };
+
 
   const handleViewDetails = async (facility: Facility) => {
     const token = localStorage.getItem('token');
