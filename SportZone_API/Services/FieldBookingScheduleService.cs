@@ -113,7 +113,7 @@ namespace SportZone_API.Services
                 
                 response.Data = result;
                 response.Success = true;
-                response.Message = $"Lấy lịch đặt sân thành công cho facility {facilityId} ngày {date:dd/MM/yyyy}";
+                response.Message = $"Lấy lịch đặt sân thành công cho facility {result.FacilityName} ngày {date:dd/MM/yyyy}";
             }
             catch (Exception ex)
             {
