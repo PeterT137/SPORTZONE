@@ -102,5 +102,28 @@ namespace SportZone_API.Services
             await _scheduleRepository.DeleteScheduleAsync(id);
             return true;
         }
+
+        public async Task<ServiceResponse<FieldBookingScheduleByDateDto>> GetSchedulesByFacilityAndDateAsync(int facilityId, DateOnly date)
+        {
+            var response = new ServiceResponse<FieldBookingScheduleByDateDto>();
+
+            try
+            {
+                var result = await _scheduleRepository.GetSchedulesByFacilityAndDateAsync(facilityId, date);
+                
+                response.Data = result;
+                response.Success = true;
+                response.Message = $"Lấy lịch đặt sân thành công cho facility {facilityId} ngày {date:dd/MM/yyyy}";
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+            }
+
+            return response;
+        }
+
+
+        }
     }
-}

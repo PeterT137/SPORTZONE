@@ -76,5 +76,24 @@ namespace SportZone_API.Controllers
             }
             return NoContent(); 
         }
+
+        // GET: api/FieldBookingSchedule/facility/{facilityId}/date/{date}
+        [HttpGet("facility/{facilityId}/date/{date}")]
+        public async Task<ActionResult<ServiceResponse<FieldBookingScheduleByDateDto>>> GetSchedulesByFacilityAndDate(int facilityId, DateOnly date)
+        {
+            if (facilityId <= 0)
+            {
+                return BadRequest("Facility ID phải lớn hơn 0");
+            }
+
+            var result = await _scheduleService.GetSchedulesByFacilityAndDateAsync(facilityId, date);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            
+            return NotFound(result);
+        }
     }
 }
