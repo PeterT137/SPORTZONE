@@ -380,5 +380,47 @@ namespace SportZone_API.Controllers
             }
         }
 
+        /// <summary>
+        /// Xóa service khỏi order
+        /// </summary>
+        [HttpDelete("order/{orderServiceId}/remove")]
+        public async Task<IActionResult> RemoveServiceFromOrder(int orderServiceId)
+        {
+            try
+            {
+                var result = await _orderServiceService.RemoveServiceFromOrderAsync(orderServiceId);
+                if (!result)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy OrderService để xóa"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Xóa service khỏi order thành công"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi xóa service khỏi order",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

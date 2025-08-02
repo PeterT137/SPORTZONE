@@ -14,6 +14,10 @@ namespace SportZone_API.Repositories.Interfaces
         /// </summary>
         Task<OrderServiceDTO?> GetOrderServiceByIdAsync(int orderServiceId);
         /// <summary>
+        /// Xóa OrderService
+        /// </summary>
+        Task<bool> DeleteOrderServiceAsync(int orderServiceId);
+        /// <summary>
         /// Tính tổng tiền service của Order
         /// </summary>
         Task<decimal> CalculateTotalServicePriceAsync(int orderId);

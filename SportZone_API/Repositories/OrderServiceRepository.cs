@@ -75,6 +75,34 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<bool> DeleteOrderServiceAsync(int orderServiceId)
+        {
+            try
+            {
+                var orderService = await _context.OrderServices.FindAsync(orderServiceId);
+                if (orderService == null)
+                    return false;
+
+                var orderId = orderService.OrderId; // Lưu OrderId trước khi xóa
+
+                _context.OrderServices.Remove(orderService);
+                await _context.SaveChangesAsync();
+
+                // Tính lại tổng tiền service và update Order
+                if (orderId.HasValue)
+                {
+                    var totalServicePrice = await CalculateTotalServicePriceAsync(orderId.Value);
+                    await UpdateOrderTotalServicePriceAsync(orderId.Value, totalServicePrice);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi xóa OrderService: {ex.Message}", ex);
+            }
+        }
+
         public async Task<decimal> CalculateTotalServicePriceAsync(int orderId)
         {
             try

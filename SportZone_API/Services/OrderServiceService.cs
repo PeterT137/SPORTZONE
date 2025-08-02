@@ -45,5 +45,28 @@ namespace SportZone_API.Services
                 throw new Exception($"Lỗi khi lấy thông tin OrderService: {ex.Message}", ex);
             }
         }
+
+        public async Task<bool> RemoveServiceFromOrderAsync(int orderServiceId)
+        {
+            try
+            {
+                if (orderServiceId <= 0)
+                    throw new ArgumentException("OrderService ID không hợp lệ");
+
+                // Kiểm tra OrderService có tồn tại không
+                var existingOrderService = await _orderServiceRepository.GetOrderServiceByIdAsync(orderServiceId);
+                if (existingOrderService == null)
+                    throw new ArgumentException("OrderService không tồn tại");
+
+                // Xóa OrderService và tự động tính toán lại tổng tiền
+                var result = await _orderServiceRepository.DeleteOrderServiceAsync(orderServiceId);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi xóa service khỏi order: {ex.Message}", ex);
+            }
+        }
     }
 }
