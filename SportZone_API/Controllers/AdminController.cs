@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace SportZone_API.Controllers
 {
@@ -20,6 +21,7 @@ namespace SportZone_API.Controllers
 
         [HttpGet("/get-all-account")]
         [RoleAuthorize("3")]
+        [SwaggerOperation(Summary = "Lấy toàn bộ Account : Admin")]
         public async Task<IActionResult> GetAllAccount()
         {
             try
@@ -45,6 +47,7 @@ namespace SportZone_API.Controllers
 
         [HttpGet("/search-users")]
         [RoleAuthorize("3")]
+        [SwaggerOperation(Summary = "Search tài khoản : Admin")]
         public async Task<IActionResult> SearchUsers([FromQuery] SearchUserDto searchDto)
         {
             try
@@ -76,6 +79,7 @@ namespace SportZone_API.Controllers
 
         [HttpPost("/create-account")]
         [RoleAuthorize("3")]
+        [SwaggerOperation(Summary = "Tạo tài khoản : Admin")]
         public async Task<IActionResult> CreateAccount([FromBody] CreateAccountDto createAccountDto)
         {
             try
@@ -109,9 +113,9 @@ namespace SportZone_API.Controllers
                         createDate = createdUser.UCreateDate,                        
                         roleInfo = (object?)(createdUser.RoleId switch
                         {
-                            1 => createdUser.Admin,
-                            2 => createdUser.Customer,
-                            3 => createdUser.FieldOwner,
+                            1 => createdUser.Customer,
+                            2 => createdUser.FieldOwner,
+                            3 => createdUser.Admin,
                             4 => createdUser.Staff,
                             _ => null
                         })

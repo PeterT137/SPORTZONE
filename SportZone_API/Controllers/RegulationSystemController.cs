@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace SportZone_API.Controllers
 {
@@ -51,6 +52,7 @@ namespace SportZone_API.Controllers
         // POST: api/RegulationSystem
         [HttpPost]
         [RoleAuthorize("3")]
+        [SwaggerOperation(Summary = "Tạo regulation system : Admin")]
         public async Task<IActionResult> Create([FromBody] RegulationSystemDto dto)
         {
             var create = await _regulationSystemService.CreateRegulationSystem(dto);
@@ -63,6 +65,7 @@ namespace SportZone_API.Controllers
         // PUT: api/RegulationSystem/{id}
         [HttpPut("{id}")]
         [RoleAuthorize("3")]
+        [SwaggerOperation(Summary = "Sửa regulation system : Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] RegulationSystemDto dto)
         {
             var update = await _regulationSystemService.UpdateRegulationSystem(id, dto);
@@ -75,6 +78,7 @@ namespace SportZone_API.Controllers
         // DELETE: api/RegulationSystem/{id}
         [HttpDelete("{id}")]
         [RoleAuthorize("3")]
+        [SwaggerOperation(Summary = "Xoá regulation system : Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var delete = await _regulationSystemService.DeleteRegulationSystem(id);
