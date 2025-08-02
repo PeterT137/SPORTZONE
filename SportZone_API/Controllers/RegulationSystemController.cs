@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
 
@@ -6,6 +8,7 @@ namespace SportZone_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RegulationSystemController : ControllerBase
     {
         private readonly IRegulationSystemService _regulationSystemService;
@@ -17,6 +20,7 @@ namespace SportZone_API.Controllers
 
         // GET: api/RegulationSystem
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAll()
         {
             var result = await _regulationSystemService.GetAllRegulationSystems();
@@ -25,6 +29,7 @@ namespace SportZone_API.Controllers
 
         // GET: api/RegulationSystem/{id}
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _regulationSystemService.GetRegulationSystemById(id);
@@ -36,6 +41,7 @@ namespace SportZone_API.Controllers
 
         // GET: api/RegulationSystem/search/{text}
         [HttpGet("search/{text}")]
+        [AllowAnonymous]
         public async Task<IActionResult> Search(string text)
         {
             var result = await _regulationSystemService.SearchRegulationSystems(text);
@@ -44,6 +50,7 @@ namespace SportZone_API.Controllers
 
         // POST: api/RegulationSystem
         [HttpPost]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> Create([FromBody] RegulationSystemDto dto)
         {
             var create = await _regulationSystemService.CreateRegulationSystem(dto);
@@ -55,6 +62,7 @@ namespace SportZone_API.Controllers
 
         // PUT: api/RegulationSystem/{id}
         [HttpPut("{id}")]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> Update(int id, [FromBody] RegulationSystemDto dto)
         {
             var update = await _regulationSystemService.UpdateRegulationSystem(id, dto);
@@ -66,6 +74,7 @@ namespace SportZone_API.Controllers
 
         // DELETE: api/RegulationSystem/{id}
         [HttpDelete("{id}")]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> Delete(int id)
         {
             var delete = await _regulationSystemService.DeleteRegulationSystem(id);

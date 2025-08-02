@@ -16,10 +16,6 @@ namespace SportZone_API.Controllers
             _bookingService = bookingService;
         }
 
-        /// <summary>
-        /// Tạo booking mới
-        /// </summary>
-        /// 
         [HttpPost("CreateBooking")]
         public async Task<IActionResult> CreateBooking([FromBody] BookingCreateDTO bookingDto)
         {
@@ -61,9 +57,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy chi tiết booking theo ID
-        /// </summary>
         [HttpGet("GetBookingById/{id}")]
         public async Task<IActionResult> GetBookingDetail(int id)
         {
@@ -104,9 +97,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Hủy booking
-        /// </summary>
         [HttpDelete("CancelBooking/{id}")]
         public async Task<IActionResult> CancelBooking(int id)
         {
@@ -146,9 +136,6 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy booking theo customer
-        /// </summary>
         [HttpGet("user/{userId}")]
         public async Task<IActionResult> GetUserBookings(int userId)
         {

@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
 
@@ -7,6 +9,7 @@ namespace SportZone_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class FieldController : ControllerBase
     {
         private readonly IFieldService _fieldService;
@@ -16,6 +19,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllFields()
         {
             try
@@ -40,6 +44,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("GetAllFields/Search/")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllFields([FromQuery] string? search = null)
         {
             try
@@ -73,6 +78,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetFieldByID(int id)
         {
             try
@@ -112,6 +118,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("facility/{facId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetFieldByFacility(int facId)
         {
             try
@@ -145,6 +152,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("category/{categoryId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetFieldsByCategory(int categoryId)
         {
             try
@@ -177,10 +185,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách sân theo User ID (Field Owner)
-        /// </summary>
         [HttpGet("user/{userId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetFieldsByUserId(int userId)
         {
             try
@@ -213,10 +219,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy lịch sân theo Field ID
-        /// </summary>
         [HttpGet("{fieldId}/schedule")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetFieldSchedule(int fieldId)
         {
             try
@@ -250,6 +254,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPost("Create-Field")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> CreateField([FromBody] FieldCreateDTO fieldDto)
         {
             try
@@ -297,6 +302,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPut("{id}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> UpdateField(int id, [FromBody] FieldUpdateDTO fieldDto)
         {
             try
@@ -345,6 +351,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> DeleteField(int id)
         {
             try

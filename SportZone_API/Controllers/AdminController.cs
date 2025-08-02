@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
 
@@ -6,6 +8,7 @@ namespace SportZone_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
@@ -16,6 +19,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("/get-all-account")]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> GetAllAccount()
         {
             try
@@ -40,6 +44,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("/search-users")]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> SearchUsers([FromQuery] SearchUserDto searchDto)
         {
             try
@@ -70,6 +75,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPost("/create-account")]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> CreateAccount([FromBody] CreateAccountDto createAccountDto)
         {
             try

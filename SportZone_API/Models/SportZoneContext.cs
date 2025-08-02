@@ -62,15 +62,14 @@ public partial class SportZoneContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=LAPTOP-O13KTL8A;database=SportZone;Trusted_Connection=SSPI;Encrypt=false;TrustServerCertificate=true");
-    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Admin>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Admin__B51D3DEA69E63645");
+            entity.HasKey(e => e.UId).HasName("PK__Admin__B51D3DEA35E3D7AF");
 
             entity.ToTable("Admin");
 
@@ -93,7 +92,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Booking>(entity =>
         {
-            entity.HasKey(e => e.BookingId).HasName("PK__Booking__5DE3A5B17DAA3667");
+            entity.HasKey(e => e.BookingId).HasName("PK__Booking__5DE3A5B1F705508F");
 
             entity.ToTable("Booking");
 
@@ -135,11 +134,11 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<CategoryField>(entity =>
         {
-            entity.HasKey(e => e.CategoryFieldId).HasName("PK__Category__6A073F09E9829197");
+            entity.HasKey(e => e.CategoryFieldId).HasName("PK__Category__6A073F094FD7D655");
 
             entity.ToTable("Category_field");
 
-            entity.HasIndex(e => e.CategoryFieldName, "UQ__Category__A8D2A980E462360E").IsUnique();
+            entity.HasIndex(e => e.CategoryFieldName, "UQ__Category__A8D2A980BDA350D3").IsUnique();
 
             entity.Property(e => e.CategoryFieldId).HasColumnName("category_field_id");
             entity.Property(e => e.CategoryFieldName)
@@ -149,7 +148,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Customer>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Customer__B51D3DEA18A018FF");
+            entity.HasKey(e => e.UId).HasName("PK__Customer__B51D3DEA1E4E23D9");
 
             entity.ToTable("Customer");
 
@@ -172,7 +171,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Discount>(entity =>
         {
-            entity.HasKey(e => e.DiscountId).HasName("PK__Discount__BDBE9EF99E32A9C8");
+            entity.HasKey(e => e.DiscountId).HasName("PK__Discount__BDBE9EF9118FB10A");
 
             entity.ToTable("Discount");
 
@@ -195,7 +194,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<ExternalLogin>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__External__B51D3DEA1229762D");
+            entity.HasKey(e => e.UId).HasName("PK__External__B51D3DEAF74BE22E");
 
             entity.ToTable("External_Logins");
 
@@ -220,7 +219,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Facility>(entity =>
         {
-            entity.HasKey(e => e.FacId).HasName("PK__Facility__978BA2C352DC67E3");
+            entity.HasKey(e => e.FacId).HasName("PK__Facility__978BA2C335DEF4DB");
 
             entity.ToTable("Facility");
 
@@ -245,7 +244,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Field>(entity =>
         {
-            entity.HasKey(e => e.FieldId).HasName("PK__Field__1BB6F43E4D18FACC");
+            entity.HasKey(e => e.FieldId).HasName("PK__Field__1BB6F43E9571E171");
 
             entity.ToTable("Field");
 
@@ -269,7 +268,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<FieldBookingSchedule>(entity =>
         {
-            entity.HasKey(e => e.ScheduleId).HasName("PK__Field_bo__C46A8A6F309B557D");
+            entity.HasKey(e => e.ScheduleId).HasName("PK__Field_bo__C46A8A6F91B49BC5");
 
             entity.ToTable("Field_booking_schedule");
 
@@ -298,7 +297,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<FieldOwner>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Field_Ow__B51D3DEA0907CAA5");
+            entity.HasKey(e => e.UId).HasName("PK__Field_Ow__B51D3DEAE53717AA");
 
             entity.ToTable("Field_Owner");
 
@@ -321,7 +320,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<FieldPricing>(entity =>
         {
-            entity.HasKey(e => e.PricingId).HasName("PK__Field_Pr__A25A9FB7CB454E11");
+            entity.HasKey(e => e.PricingId).HasName("PK__Field_Pr__A25A9FB7B37F3E31");
 
             entity.ToTable("Field_Pricing");
 
@@ -341,7 +340,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Image>(entity =>
         {
-            entity.HasKey(e => e.ImgId).HasName("PK__Image__6F16A71C9449D7C4");
+            entity.HasKey(e => e.ImgId).HasName("PK__Image__6F16A71CC416D877");
 
             entity.ToTable("Image");
 
@@ -358,7 +357,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Notification>(entity =>
         {
-            entity.HasKey(e => e.NotiId).HasName("PK__Notifica__FDA4F30AB663BB47");
+            entity.HasKey(e => e.NotiId).HasName("PK__Notifica__FDA4F30A3A9DE8B3");
 
             entity.ToTable("Notification");
 
@@ -384,7 +383,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Order>(entity =>
         {
-            entity.HasKey(e => e.OrderId).HasName("PK__Order__4659622919F4EE88");
+            entity.HasKey(e => e.OrderId).HasName("PK__Order__46596229F74843B7");
 
             entity.ToTable("Order");
 
@@ -436,7 +435,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<OrderFieldId>(entity =>
         {
-            entity.HasKey(e => e.OrderFieldId1).HasName("PK__Order_fi__3E76E2B5B1957742");
+            entity.HasKey(e => e.OrderFieldId1).HasName("PK__Order_fi__3E76E2B50C50BD2F");
 
             entity.ToTable("Order_field_id");
 
@@ -455,7 +454,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<OrderService>(entity =>
         {
-            entity.HasKey(e => e.OrderServiceId).HasName("PK__Order_Se__88196EDD119A73C5");
+            entity.HasKey(e => e.OrderServiceId).HasName("PK__Order_Se__88196EDDC1885BE7");
 
             entity.ToTable("Order_Service");
 
@@ -478,7 +477,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Payment>(entity =>
         {
-            entity.HasKey(e => e.PaymentId).HasName("PK__Payment__ED1FC9EAED96E625");
+            entity.HasKey(e => e.PaymentId).HasName("PK__Payment__ED1FC9EA47BB541C");
 
             entity.ToTable("Payment");
 
@@ -505,7 +504,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<RegulationFacility>(entity =>
         {
-            entity.HasKey(e => e.RegulationFacilityId).HasName("PK__Regulati__B2AC1BDDEC11AC4E");
+            entity.HasKey(e => e.RegulationFacilityId).HasName("PK__Regulati__B2AC1BDD043612A0");
 
             entity.ToTable("RegulationFacility");
 
@@ -531,12 +530,12 @@ public partial class SportZoneContext : DbContext
             entity.HasOne(d => d.Fac).WithMany(p => p.RegulationFacilities)
                 .HasForeignKey(d => d.FacId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Regulatio__fac_i__1F98B2C1");
+                .HasConstraintName("FK__Regulatio__fac_i__0E6E26BF");
         });
 
         modelBuilder.Entity<RegulationSystem>(entity =>
         {
-            entity.HasKey(e => e.RegulationSystemId).HasName("PK__Regulati__A01CA95FF75765F7");
+            entity.HasKey(e => e.RegulationSystemId).HasName("PK__Regulati__A01CA95F8475A169");
 
             entity.ToTable("RegulationSystem");
 
@@ -561,7 +560,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Role__760965CC083FB9A9");
+            entity.HasKey(e => e.RoleId).HasName("PK__Role__760965CCD3CF1F31");
 
             entity.ToTable("Role");
 
@@ -573,7 +572,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Service>(entity =>
         {
-            entity.HasKey(e => e.ServiceId).HasName("PK__Service__3E0DB8AF8A02B487");
+            entity.HasKey(e => e.ServiceId).HasName("PK__Service__3E0DB8AF47A6EE56");
 
             entity.ToTable("Service");
 
@@ -600,7 +599,7 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<Staff>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__Staff__B51D3DEA449E9E34");
+            entity.HasKey(e => e.UId).HasName("PK__Staff__B51D3DEAC5AB4047");
 
             entity.Property(e => e.UId)
                 .ValueGeneratedNever()
@@ -631,11 +630,11 @@ public partial class SportZoneContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UId).HasName("PK__User__B51D3DEAB1DA435C");
+            entity.HasKey(e => e.UId).HasName("PK__User__B51D3DEA7A55B2C8");
 
             entity.ToTable("User");
 
-            entity.HasIndex(e => e.UEmail, "UQ__User__3DF9EF22D2FE4232").IsUnique();
+            entity.HasIndex(e => e.UEmail, "UQ__User__3DF9EF2243753EF1").IsUnique();
 
             entity.Property(e => e.UId).HasColumnName("u_id");
             entity.Property(e => e.IsExternalLogin).HasColumnName("is_external_login");
