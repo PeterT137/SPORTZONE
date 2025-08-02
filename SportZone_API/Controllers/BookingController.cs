@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.Models;
 using SportZone_API.Services.Interfaces;
 using SportZone_API.DTOs;
+using SportZone_API.Repository.Interfaces;
 
 namespace SportZone_API.Controllers
 {
@@ -11,9 +12,15 @@ namespace SportZone_API.Controllers
     public class BookingController : ControllerBase
     {
         private readonly IBookingService _bookingService;
-        public BookingController(IBookingService bookingService)
+        private readonly IOrderService _orderService;
+        private readonly IOrderFieldIdService _orderFieldIdService;
+        public BookingController(IBookingService bookingService,
+                                 IOrderService orderService,
+                                 IOrderFieldIdService orderFieldIdService)
         {
             _bookingService = bookingService;
+            _orderService = orderService;
+            _orderFieldIdService = orderFieldIdService;
         }
 
         /// <summary>
@@ -36,6 +43,35 @@ namespace SportZone_API.Controllers
                 }
 
                 var booking = await _bookingService.CreateBookingAsync(bookingDto);
+                // Tự động tạo Order và OrderFieldId khi Booking thành công
+                try
+                {
+                    // Lấy booking entity để truyền cho OrderService
+                    var bookingEntity = await _bookingService.GetBookingDetailAsync(booking.BookingId);
+                    if (bookingEntity != null)
+                    {
+                        // Tạo Order từ Booking
+                        var bookingModel = new Booking
+                        {
+                            BookingId = booking.BookingId,
+                            FieldId = booking.FieldId,
+                            UId = booking.UserId,
+                            GuestName = booking.GuestName,
+                            GuestPhone = booking.GuestPhone,
+                            CreateAt = booking.CreateAt,
+                            Field = new Field { FacId = 1 } // Default facility, sẽ update logic sau
+                        };
+
+                        var order = await _orderService.CreateOrderFromBookingAsync(bookingModel);
+
+                        // Tạo OrderFieldId linking Order với Field
+                        await _orderFieldIdService.CreateOrderFieldIdAsync(order.OrderId, booking.FieldId);
+                    }
+                }
+                catch (Exception orderEx)
+                {
+                    Console.WriteLine($"Lỗi khi tạo Order/OrderFieldId: {orderEx.Message}");
+                }
                 return CreatedAtAction(nameof(GetBookingDetail), new { id = booking.BookingId }, new
                 {
                     success = true,
