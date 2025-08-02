@@ -34,8 +34,7 @@ namespace SportZone_API.Repository
                 var slotsValidation = await ValidateSelectedSlotsAsync(
                     bookingDto.SelectedSlotIds,
                     bookingDto.FieldId,
-                    bookingDto.FacilityId,
-                    bookingDto.CategoryId);
+                    bookingDto.FacilityId);
                 if (!slotsValidation.IsValid)
                     throw new ArgumentException(slotsValidation.ErrorMessage);
 
@@ -112,10 +111,9 @@ namespace SportZone_API.Repository
             }
         }
 
-        public async Task<(bool IsValid, string ErrorMessage)> ValidateSelectedSlotsAsync(List<int> selectedSlotIds, 
+        public async Task<(bool IsValid, string ErrorMessage)> ValidateSelectedSlotsAsync(List<int> selectedSlotIds,
                                                                                                 int? fieldId = null, 
-                                                                                                int? facilityId = null,
-                                                                                                int? categoryId = null)
+                                                                                               int? facilityId = null)
         {
             try
             {
@@ -165,14 +163,6 @@ namespace SportZone_API.Repository
                     var wrongFacilitySlots = slots.Where(s => s.Field?.FacId != facilityId.Value).ToList();
                     if (wrongFacilitySlots.Any())
                         return (false, $"Tất cả các slot phải thuộc cơ sở với ID {facilityId.Value}");
-                }
-
-                // Validate CategoryId nếu được chỉ định
-                if (categoryId.HasValue)
-                {
-                    var wrongCategorySlots = slots.Where(s => s.Field?.CategoryId != categoryId.Value).ToList();
-                    if (wrongCategorySlots.Any())
-                        return (false, $"Tất cả slots phải thuộc loại sân ID {categoryId.Value}");
                 }
 
                 // Check không có slot nào trong quá khứ

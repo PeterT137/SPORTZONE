@@ -20,7 +20,6 @@ namespace SportZone_API.DTOs
         // Validation fields - để validate và filter slots
         public int? FieldId { get; set; } // Nếu muốn restrict slots chỉ thuộc 1 field cụ thể
         public int? FacilityId { get; set; } // Validate slots thuộc facility này
-        public int? CategoryId { get; set; } // Validate slots thuộc category này
 
         // Guest booking fields
         [MaxLength(100, ErrorMessage = "Tên khách không được quá 100 ký tự")]

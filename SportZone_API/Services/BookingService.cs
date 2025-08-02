@@ -102,11 +102,10 @@ namespace SportZone_API.Services
         {
             try
             {
-                // Basic validation
+
                 if (!bookingDto.SelectedSlotIds.Any())
                     return (false, "Phải chọn ít nhất 1 slot thời gian");
 
-                // Validate guest booking requirements
                 if (!bookingDto.UserId.HasValue)
                 {
                     if (string.IsNullOrWhiteSpace(bookingDto.GuestName))
@@ -119,16 +118,13 @@ namespace SportZone_API.Services
                         return (false, "Số điện thoại không hợp lệ");
                 }
 
-                // Validate selected slots với filter constraints
                 var slotsValidation = await _bookingRepository.ValidateSelectedSlotsAsync(
                     bookingDto.SelectedSlotIds,
                     bookingDto.FieldId,
-                    bookingDto.FacilityId,
-                    bookingDto.CategoryId);
+                    bookingDto.FacilityId);
                 if (!slotsValidation.IsValid)
                     return (false, slotsValidation.ErrorMessage);
 
-                // Additional business rules can be added here
                 return (true, string.Empty);
             }
             catch (Exception ex)
@@ -141,9 +137,6 @@ namespace SportZone_API.Services
         {
             if (string.IsNullOrEmpty(phoneNumber))
                 return false;
-
-            // Simple phone validation - chỉ cho phép số và một số ký tự đặc biệt
-            // Pattern cho phép: +84123456789, 0123456789, (012) 345-6789, etc.
             var phonePattern = @"^[\+]?[0-9]?[\(\)\-\s\.]*[0-9]{8,15}$";
             return System.Text.RegularExpressions.Regex.IsMatch(phoneNumber, phonePattern);
         }

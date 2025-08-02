@@ -68,6 +68,22 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<Field?> GetFieldEntityByIdAsync(int fieldId)
+        {
+            try
+            {
+                var field = await _context.Fields
+                    .Include(f => f.Fac)
+                    .Include(f => f.Category)
+                    .FirstOrDefaultAsync(f => f.FieldId == fieldId);
+                return field;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy sân với ID {fieldId}: {ex.Message}", ex);
+            }
+        }
+
         public async Task<IEnumerable<FieldResponseDTO>> GetFieldsByFacilityAsync(int facId)
         {
             try

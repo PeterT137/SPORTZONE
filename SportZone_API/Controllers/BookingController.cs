@@ -14,13 +14,16 @@ namespace SportZone_API.Controllers
         private readonly IBookingService _bookingService;
         private readonly IOrderService _orderService;
         private readonly IOrderFieldIdService _orderFieldIdService;
+        private readonly IFieldService _fieldService;
         public BookingController(IBookingService bookingService,
                                  IOrderService orderService,
-                                 IOrderFieldIdService orderFieldIdService)
+                                 IOrderFieldIdService orderFieldIdService,
+                                 IFieldService fieldService)
         {
             _bookingService = bookingService;
             _orderService = orderService;
             _orderFieldIdService = orderFieldIdService;
+            _fieldService = fieldService;
         }
 
         /// <summary>
@@ -50,6 +53,8 @@ namespace SportZone_API.Controllers
                     var bookingEntity = await _bookingService.GetBookingDetailAsync(booking.BookingId);
                     if (bookingEntity != null)
                     {
+                        var fieldinfo = await _fieldService.GetFieldEntityByIdAsync(booking.FieldId);
+                        var facilityId = fieldinfo?.FacId;
                         // Tạo Order từ Booking
                         var bookingModel = new Booking
                         {
@@ -59,7 +64,7 @@ namespace SportZone_API.Controllers
                             GuestName = booking.GuestName,
                             GuestPhone = booking.GuestPhone,
                             CreateAt = booking.CreateAt,
-                            Field = new Field { FacId = 1 } // Default facility, sẽ update logic sau
+                            Field = new Field { FacId = facilityId }
                         };
 
                         var order = await _orderService.CreateOrderFromBookingAsync(bookingModel);

@@ -33,7 +33,7 @@ namespace SportZone_API.Repository.Interfaces
         /// <summary>
         /// Validate slots có available không và thuộc cùng facility/date không
         /// </summary>
-        Task<(bool IsValid, string ErrorMessage)> ValidateSelectedSlotsAsync(List<int> selectedSlotIds, int? fieldId = null, int? facilityId = null, int? categoryId = null);
+        Task<(bool IsValid, string ErrorMessage)> ValidateSelectedSlotsAsync(List<int> selectedSlotIds, int? fieldId = null, int? facilityId = null);
 
     }
 
