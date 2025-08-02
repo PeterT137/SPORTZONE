@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -32,32 +33,27 @@ type Service = {
 
 type Facility = {
   fac_id: number;
+  userId: number;
+  name: string;
   open_time: string;
   close_time: string;
   address: string;
   description: string;
   subdescription?: string;
-  picture?: string;
+  imageUrls: string[];
   fields: Field[];
   services: Service[];
-  images: Image[];
 };
 
 type ApiFacility = {
-  facId: number;
-  uId: number;
+  userId: number;
   name: string;
   openTime: string;
   closeTime: string;
   address: string;
   description: string;
   subdescription?: string;
-  discounts: any[];
-  fields: Field[];
-  images: { imgId: number; facId: number; imageUrl: string }[];
-  orders: any[];
-  services: Service[];
-  staff: any[];
+  imageUrls: string[];
 };
 
 const FacilityManager: React.FC = () => {
@@ -70,13 +66,15 @@ const FacilityManager: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [facilityToDelete, setFacilityToDelete] = useState<number | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [formData, setFormData] = useState<Omit<Facility, 'fac_id' | 'fields' | 'services' | 'images'>>({
+  const [formData, setFormData] = useState<Omit<Facility, 'fac_id' | 'fields' | 'services'> & { imageUrls: string[] }>({
+    userId: 0,
+    name: '',
     open_time: '08:00',
     close_time: '17:00',
     address: '',
     description: '',
     subdescription: '',
-    picture: '',
+    imageUrls: [],
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -95,7 +93,7 @@ const FacilityManager: React.FC = () => {
     });
   };
 
-  const fetchFacilities = async () => {
+  const fetchFacilities = async (searchText: string = '') => {
     setIsLoading(true);
     setError(null);
     const token = localStorage.getItem('token');
@@ -106,8 +104,14 @@ const FacilityManager: React.FC = () => {
       return;
     }
 
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const baseUrl = user?.RoleId === 2
+      ? `https://localhost:7057/api/Facility?userId=${user.UId}`
+      : 'https://localhost:7057/api/Facility';
+    const url = searchText ? `${baseUrl}&searchText=${encodeURIComponent(searchText)}` : baseUrl;
+
     try {
-      const response = await fetch('https://localhost:7057/api/Facility', {
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -116,34 +120,23 @@ const FacilityManager: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.log('Lỗi khi lấy danh sách cơ sở:', response.status, errorText);
-        if (response.status === 401) {
-          throw new Error('Không được phép truy cập. Vui lòng đăng nhập lại.');
-        } else if (response.status === 403) {
-          throw new Error('Bạn không có quyền truy cập danh sách cơ sở.');
-        } else if (response.status === 500) {
-          throw new Error('Lỗi server. Vui lòng thử lại sau.');
-        }
-        throw new Error(`Lỗi HTTP: ${response.status}`);
+        const errorMessage = await response.text();
+        throw new Error(errorMessage || `Lỗi HTTP ${response.status}`);
       }
 
       const apiData: ApiFacility[] = await response.json();
-      const mappedData: Facility[] = apiData.map(fac => ({
-        fac_id: fac.facId,
+      const mappedData: Facility[] = apiData.map((fac, index) => ({
+        fac_id: index + 1, // Generate a temporary ID since API doesn't provide one
+        userId: fac.userId,
+        name: fac.name,
         open_time: fac.openTime.slice(0, 5),
         close_time: fac.closeTime.slice(0, 5),
         address: fac.address,
         description: fac.description,
         subdescription: fac.subdescription,
-        picture: fac.images[0]?.imageUrl || '',
-        fields: fac.fields,
-        services: fac.services,
-        images: fac.images.map(img => ({
-          img_id: img.imgId,
-          fac_id: img.facId,
-          imageUrl: img.imageUrl,
-        })),
+        imageUrls: fac.imageUrls,
+        fields: [],
+        services: [],
       }));
 
       setFacilities(mappedData);
@@ -167,30 +160,26 @@ const FacilityManager: React.FC = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-  
+
     const token = localStorage.getItem('token');
     if (!token) {
       showToast('Không tìm thấy token xác thực. Vui lòng đăng nhập.', 'error');
       setError('Yêu cầu xác thực');
       return;
     }
-  
+
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const userId = user?.UId || 0;
-  
     const payload = {
-      userId: userId,
-      name: formData.description,
+      userId: user?.UId || 0,
+      name: formData.name,
       openTime: formData.open_time,
       closeTime: formData.close_time,
       address: formData.address,
       description: formData.description,
       subdescription: formData.subdescription,
-      imageUrls: formData.picture ? [formData.picture] : [],
+      imageUrls: formData.imageUrls || [],
     };
-  
-    console.log('Payload:', payload);
-  
+
     try {
       const response = await fetch(
         editId !== null
@@ -205,69 +194,91 @@ const FacilityManager: React.FC = () => {
           body: JSON.stringify(payload),
         }
       );
-  
-      console.log('Response status:', response.status);
-  
-      if (response.status === 200 || response.status === 201) {
-        const responseData = await response.json();
-        console.log('Response data:', responseData);
-  
-        // Response có dạng { Message: string, Data: ApiFacility }
-        const updatedFacility: ApiFacility = responseData.Data;
-        if (!updatedFacility) {
-          console.error('No Data in response');
+
+      console.log('Mã trạng thái HTTP:', response.status); // Ghi log mã trạng thái
+
+      if (response.status === 204) {
+        // Xử lý trường hợp 204 No Content (không có body)
+        const mappedFacility: Facility = {
+          fac_id: editId || facilities.length + 1,
+          userId: payload.userId,
+          name: payload.name,
+          open_time: payload.openTime.slice(0, 5),
+          close_time: payload.closeTime.slice(0, 5),
+          address: payload.address,
+          description: payload.description,
+          subdescription: payload.subdescription,
+          imageUrls: payload.imageUrls,
+          fields: [],
+          services: [],
+        };
+
+        if (editId !== null) {
+          setFacilities(prev => prev.map(f => (f.fac_id === editId ? mappedFacility : f)));
+          setFilteredFacilities(prev => prev.map(f => (f.fac_id === editId ? mappedFacility : f)));
+          showToast('Cập nhật cơ sở thành công!');
+        } else {
+          setFacilities(prev => [...prev, mappedFacility]);
+          setFilteredFacilities(prev => [...prev, mappedFacility]);
+          showToast('Thêm cơ sở thành công!');
+        }
+        resetForm();
+        return;
+      }
+
+      const responseData = await response.json();
+      console.log('Phản hồi từ server:', responseData); // Ghi log để kiểm tra cấu trúc
+
+      if (response.ok) {
+        // Lấy đối tượng facility từ responseData.data (hoặc responseData.Data)
+        const updatedFacility: ApiFacility = responseData.data || responseData.Data || responseData;
+
+        // Kiểm tra dữ liệu hợp lệ
+        if (!updatedFacility || !updatedFacility.name) {
           showToast('Dữ liệu từ server không hợp lệ.', 'error');
           return;
         }
-  
+
+        console.log('Cơ sở đã cập nhật:', updatedFacility); // Ghi log để kiểm tra dữ liệu đã cập nhật
+
         const mappedFacility: Facility = {
-          fac_id: updatedFacility.facId ?? 0,
-          open_time: updatedFacility.openTime?.slice(0, 5) ?? formData.open_time.slice(0, 5),
-          close_time: updatedFacility.closeTime?.slice(0, 5) ?? formData.close_time.slice(0, 5),
-          address: updatedFacility.address ?? formData.address,
-          description: updatedFacility.description ?? formData.description,
-          subdescription: updatedFacility.subdescription ?? formData.subdescription,
-          picture: updatedFacility.images?.[0]?.imageUrl ?? formData.picture ?? '',
-          fields: updatedFacility.fields ?? [],
-          services: updatedFacility.services ?? [],
-          images: updatedFacility.images?.map(img => ({
-            img_id: img.imgId ?? 0,
-            fac_id: img.facId ?? 0,
-            imageUrl: img.imageUrl ?? '',
-          })) ?? [],
+          fac_id: editId || facilities.length + 1,
+          userId: updatedFacility.userId,
+          name: updatedFacility.name,
+          open_time: updatedFacility.openTime.slice(0, 5),
+          close_time: updatedFacility.closeTime.slice(0, 5),
+          address: updatedFacility.address,
+          description: updatedFacility.description,
+          subdescription: updatedFacility.subdescription,
+          imageUrls: updatedFacility.imageUrls,
+          fields: [],
+          services: [],
         };
-  
-        try {
-          if (editId !== null) {
-            setFacilities(prev => prev.map(f => (f.fac_id === editId ? mappedFacility : f)));
-            setFilteredFacilities(prev => prev.map(f => (f.fac_id === editId ? mappedFacility : f)));
-            showToast('Cập nhật cơ sở thành công!');
-          } else {
-            setFacilities(prev => [...prev, mappedFacility]);
-            setFilteredFacilities(prev => [...prev, mappedFacility]);
-            showToast('Thêm cơ sở thành công!');
-          }
-          resetForm();
-        } catch (stateError) {
-          console.error('State update error:', stateError);
-          showToast('Lỗi khi cập nhật trạng thái. Vui lòng thử lại.', 'error');
+
+        if (editId !== null) {
+          setFacilities(prev => prev.map(f => (f.fac_id === editId ? mappedFacility : f)));
+          setFilteredFacilities(prev => prev.map(f => (f.fac_id === editId ? mappedFacility : f)));
+          showToast('Cập nhật cơ sở thành công!');
+        } else {
+          setFacilities(prev => [...prev, mappedFacility]);
+          setFilteredFacilities(prev => [...prev, mappedFacility]);
+          showToast('Thêm cơ sở thành công!');
         }
+        resetForm();
       } else {
-        const errorData = await response.json();
-        console.log('Error response:', errorData);
-        showToast(`Lỗi: ${errorData.Message || response.statusText}`, 'error');
+        const errorMessage = responseData.message || responseData.Message || `Lỗi HTTP ${response.status}`;
+        showToast(`Lỗi: ${errorMessage}`, 'error');
       }
     } catch (err) {
-      console.error('Request error:', err);
+      console.error('Lỗi trong handleSubmit:', err); // Ghi log lỗi chi tiết
       showToast('Không thể xử lý yêu cầu. Vui lòng thử lại.', 'error');
       setError(err instanceof Error ? err.message : 'Lỗi không xác định');
     }
   };
-
   const handleEdit = (id: number) => {
     const target = facilities.find(f => f.fac_id === id);
     if (target) {
-      const { fac_id: _, fields: __, services: ___, images: ____, ...rest } = target;
+      const { fac_id: _, fields: __, services: ___, ...rest } = target;
       setFormData(rest);
       setEditId(id);
       setShowModal(true);
@@ -292,7 +303,6 @@ const FacilityManager: React.FC = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('Lỗi khi xóa cơ sở:', response.status, errorText);
         if (response.status === 401) {
           showToast('Không được phép truy cập. Vui lòng đăng nhập lại.', 'error');
           setError('Không được phép truy cập');
@@ -305,15 +315,34 @@ const FacilityManager: React.FC = () => {
         throw new Error(`Lỗi HTTP: ${response.status}`);
       }
 
+      // ✅ Cập nhật state của facility
       setFacilities(prev => prev.filter(f => f.fac_id !== facilityToDelete));
       setFilteredFacilities(prev => prev.filter(f => f.fac_id !== facilityToDelete));
       showToast('Xóa cơ sở thành công!', 'success');
 
+      // ✅ Cập nhật localStorage["user"]
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+
+        // Xóa facility khỏi user.FieldOwner.facilities
+        if (user.FieldOwner && Array.isArray(user.FieldOwner.facilities)) {
+          user.FieldOwner.facilities = user.FieldOwner.facilities.filter(
+            (fac: any) => fac.facId !== facilityToDelete
+          );
+        }
+
+        // Ghi lại vào localStorage
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
+      // ✅ Cập nhật pagination nếu cần
       const totalPages = Math.ceil(filteredFacilities.length / pageSize);
       if (currentPage > totalPages && totalPages > 0) {
         setCurrentPage(totalPages);
       }
 
+      // ✅ Đóng modal và reset ID
       setShowDeleteModal(false);
       setFacilityToDelete(null);
     } catch (err) {
@@ -321,6 +350,7 @@ const FacilityManager: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Lỗi không xác định');
     }
   };
+
 
   const handleViewDetails = async (facility: Facility) => {
     const token = localStorage.getItem('token');
@@ -341,7 +371,6 @@ const FacilityManager: React.FC = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.log('Lỗi khi xem chi tiết cơ sở:', response.status, errorText);
         if (response.status === 401) {
           showToast('Không được phép truy cập. Vui lòng đăng nhập lại.', 'error');
           setError('Không được phép truy cập');
@@ -356,20 +385,17 @@ const FacilityManager: React.FC = () => {
 
       const apiFacility: ApiFacility = await response.json();
       const mappedFacility: Facility = {
-        fac_id: apiFacility.facId,
+        fac_id: facility.fac_id,
+        userId: apiFacility.userId,
+        name: apiFacility.name,
         open_time: apiFacility.openTime.slice(0, 5),
         close_time: apiFacility.closeTime.slice(0, 5),
         address: apiFacility.address,
         description: apiFacility.description,
         subdescription: apiFacility.subdescription,
-        picture: apiFacility.images[0]?.imageUrl || '',
-        fields: apiFacility.fields,
-        services: apiFacility.services,
-        images: apiFacility.images.map(img => ({
-          img_id: img.imgId,
-          fac_id: img.facId,
-          imageUrl: img.imageUrl,
-        })),
+        imageUrls: apiFacility.imageUrls,
+        fields: [],
+        services: [],
       };
 
       navigate(`/facility/${facility.fac_id}`, { state: { facility: mappedFacility } });
@@ -381,34 +407,24 @@ const FacilityManager: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
+      userId: 0,
+      name: '',
       open_time: '08:00',
       close_time: '17:00',
       address: '',
       description: '',
       subdescription: '',
-      picture: '',
+      imageUrls: [],
     });
     setEditId(null);
     setShowModal(false);
   };
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    const searchTerm = e.target.value.toLowerCase();
+    const searchTerm = e.target.value;
     setSearchKeyword(searchTerm);
     setCurrentPage(1);
-
-    if (searchTerm.trim() === '') {
-      setFilteredFacilities(facilities);
-    } else {
-      setFilteredFacilities(
-        facilities.filter(
-          f =>
-            f.address.toLowerCase().includes(searchTerm) ||
-            f.description.toLowerCase().includes(searchTerm) ||
-            (f.subdescription && f.subdescription.toLowerCase().includes(searchTerm))
-        )
-      );
-    }
+    fetchFacilities(searchTerm);
   };
 
   const goToPage = (page: number) => {
@@ -498,11 +514,10 @@ const FacilityManager: React.FC = () => {
       pageNumbers.push(
         <button
           key={i}
-          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium whitespace-nowrap ${
-            i === currentPage
-              ? 'z-10 bg-blue-600 border-blue-600 text-white'
-              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-          }`}
+          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium whitespace-nowrap ${i === currentPage
+            ? 'z-10 bg-blue-600 border-blue-600 text-white'
+            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+            }`}
           onClick={() => goToPage(i)}
           disabled={i === currentPage}
         >
@@ -562,12 +577,14 @@ const FacilityManager: React.FC = () => {
                 onClick={() => {
                   setEditId(null);
                   setFormData({
+                    userId: 0,
+                    name: '',
                     open_time: '08:00',
                     close_time: '17:00',
                     address: '',
                     description: '',
                     subdescription: '',
-                    picture: '',
+                    imageUrls: [],
                   });
                   setShowModal(true);
                 }}
@@ -586,7 +603,7 @@ const FacilityManager: React.FC = () => {
               <div className="text-center py-4 text-red-600">{error}</div>
             ) : (
               <>
-                <p className="text-sm text-gray-500 mb-4">👉 Nhấn đúp vào một cơ sở để xem chi tiết hoặc nhấp vào nút Chi tiết.</p>
+                {/* <p className="text-sm text-gray-500 mb-4">👉 Nhấn đúp vào một cơ sở để xem chi tiết hoặc nhấp vào nút Chi tiết.</p> */}
                 <div className="bg-white shadow rounded-lg overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -594,6 +611,9 @@ const FacilityManager: React.FC = () => {
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             ID
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tên
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Hình ảnh
@@ -622,7 +642,7 @@ const FacilityManager: React.FC = () => {
                         {currentFacilities.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={8}
+                              colSpan={9}
                               className="px-6 py-4 text-center text-sm text-gray-500"
                             >
                               Không tìm thấy cơ sở nào
@@ -639,8 +659,11 @@ const FacilityManager: React.FC = () => {
                                 {fac.fac_id}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {fac.name || '-'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <img
-                                  src={fac.picture || 'https://co-nhan-tao.com/wp-content/uploads/2020/03/san-co-nhan-tao-1-1024x768.jpg'}
+                                  src={fac.imageUrls?.[0] || 'https://co-nhan-tao.com/wp-content/uploads/2020/03/san-co-nhan-tao-1-1024x768.jpg'}
                                   alt="Cơ sở"
                                   className="h-12 w-12 object-cover rounded"
                                 />
@@ -692,9 +715,8 @@ const FacilityManager: React.FC = () => {
                 <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                   <div className="flex-1 flex justify-between sm:hidden">
                     <button
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap ${
-                        currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       onClick={goToPrevPage}
                       disabled={currentPage === 1}
                     >
@@ -704,11 +726,10 @@ const FacilityManager: React.FC = () => {
                       <span>{currentPage}</span> / <span>{totalPages}</span>
                     </div>
                     <button
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap ${
-                        currentPage === totalPages || totalPages === 0
-                          ? 'opacity-50 cursor-not-allowed'
-                          : ''
-                      }`}
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap ${currentPage === totalPages || totalPages === 0
+                        ? 'opacity-50 cursor-not-allowed'
+                        : ''
+                        }`}
                       onClick={goToNextPage}
                       disabled={currentPage === totalPages || totalPages === 0}
                     >
@@ -743,9 +764,8 @@ const FacilityManager: React.FC = () => {
                         aria-label="Phân trang"
                       >
                         <button
-                          className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 whitespace-nowrap ${
-                            currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
+                          className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 whitespace-nowrap ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           onClick={goToPrevPage}
                           disabled={currentPage === 1}
                         >
@@ -754,11 +774,10 @@ const FacilityManager: React.FC = () => {
                         </button>
                         <div className="flex">{renderPaginationNumbers()}</div>
                         <button
-                          className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 whitespace-nowrap ${
-                            currentPage === totalPages || totalPages === 0
-                              ? 'opacity-50 cursor-not-allowed'
-                              : ''
-                          }`}
+                          className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 whitespace-nowrap ${currentPage === totalPages || totalPages === 0
+                            ? 'opacity-50 cursor-not-allowed'
+                            : ''
+                            }`}
                           onClick={goToNextPage}
                           disabled={currentPage === totalPages || totalPages === 0}
                         >
@@ -796,6 +815,22 @@ const FacilityManager: React.FC = () => {
                       <div className="mt-4">
                         <form id="facility-form" className="space-y-4" onSubmit={handleSubmit}>
                           <input type="hidden" id="facility-id" value={editId || ''} />
+                          <div>
+                            <label
+                              htmlFor="name"
+                              className="block text-sm font-medium text-gray-700"
+                            >
+                              Tên cơ sở
+                            </label>
+                            <input
+                              type="text"
+                              id="name"
+                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                              value={formData.name}
+                              onChange={handleChange}
+                              required
+                            />
+                          </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <label
@@ -879,17 +914,20 @@ const FacilityManager: React.FC = () => {
                           </div>
                           <div>
                             <label
-                              htmlFor="picture"
+                              htmlFor="imageUrls"
                               className="block text-sm font-medium text-gray-700"
                             >
-                              Hình ảnh (URL)
+                              Hình ảnh (URLs, phân tách bằng dấu phẩy)
                             </label>
                             <input
                               type="text"
-                              id="picture"
+                              id="imageUrls"
                               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
-                              value={formData.picture || ''}
-                              onChange={handleChange}
+                              value={formData.imageUrls?.join(',') || ''}
+                              onChange={(e) => {
+                                const urls = e.target.value.split(',').map(url => url.trim());
+                                setFormData(prev => ({ ...prev, imageUrls: urls }));
+                              }}
                             />
                           </div>
                           <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
@@ -932,7 +970,7 @@ const FacilityManager: React.FC = () => {
               >
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <div className="sm:flex sm:items-start">
-                    <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red- 100 sm:mx-0 sm:h-10 sm:w-10">
+                    <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
                       ⚠️
                     </div>
                     <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">

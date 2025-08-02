@@ -1,31 +1,11 @@
 ﻿using AutoMapper;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
-using System.Linq;
-using System.Collections.Generic;
 
-namespace SportZone_API.Mappings
+public class FacilityProfile : Profile
 {
-    public class FacilityProfile : Profile
+    public FacilityProfile()
     {
-        public FacilityProfile()
-        {
-            CreateMap<FacilityDto, Facility>()
-                .ForMember(dest => dest.Images, opt => opt.MapFrom(src =>
-                    src.ImageUrls != null ? src.ImageUrls.Select(url => new Image { ImageUrl = url }).ToList() : new List<Image>()
-                ))
-                .ForMember(dest => dest.FacId, opt => opt.Ignore())
-                .ForMember(dest => dest.UId, opt => opt.MapFrom(src => src.UserId));
-
-
-            CreateMap<Facility, FacilityDto>()
-                .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src =>
-                    src.Images != null ? src.Images.Select(img => img.ImageUrl).ToList() : new List<string>()
-                ))
-                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UId));
-
-
-
 
             CreateMap<FacilityUpdateDto, Facility>()
                 .ForMember(dest => dest.UId, opt => opt.MapFrom(src => src.UserId))
@@ -41,6 +21,23 @@ namespace SportZone_API.Mappings
                     src.Fields != null ? src.Fields.Select(f => f.Category).Distinct().Where(c => c != null).ToList() : new List<CategoryField>()));
 
             CreateMap<CategoryField, CategoryFieldDto>();
-        }
+        
+
+        CreateMap<FacilityDto, Facility>()
+            .ForMember(dest => dest.Images, opt => opt.MapFrom(src =>
+                src.Images != null ? new List<Image>() : new List<Image>()
+            ))
+            .ForMember(dest => dest.FacId, opt => opt.Ignore())
+            .ForMember(dest => dest.UId, opt => opt.MapFrom(src => src.UserId));
+
+        CreateMap<Facility, FacilityDto>()
+            .ForMember(dest => dest.Images, opt => opt.Ignore())
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UId));
+
+        CreateMap<FacilityUpdateDto, Facility>()
+            .ForMember(dest => dest.UId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.Images, opt => opt.Ignore())
+            .ForMember(dest => dest.FacId, opt => opt.Ignore());
+
     }
 }

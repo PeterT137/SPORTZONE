@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
 using System.Collections.Generic;
@@ -8,6 +10,7 @@ namespace SportZone_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class FieldBookingScheduleController : ControllerBase
     {
         private readonly IFieldBookingScheduleService _scheduleService;
@@ -19,6 +22,7 @@ namespace SportZone_API.Controllers
 
         // GET: api/FieldBookingSchedule
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<FieldBookingScheduleDto>>> GetFieldBookingSchedules()
         {
             var schedules = await _scheduleService.GetAllFieldBookingSchedulesAsync();
@@ -27,6 +31,7 @@ namespace SportZone_API.Controllers
 
         // GET: api/FieldBookingSchedule/5
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<FieldBookingScheduleDto>> GetFieldBookingSchedule(int id)
         {
             var schedule = await _scheduleService.GetFieldBookingScheduleByIdAsync(id);
@@ -39,6 +44,7 @@ namespace SportZone_API.Controllers
 
         // POST: api/FieldBookingSchedule/generate
         [HttpPost("generate")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> GenerateFieldBookingSchedules([FromBody] FieldBookingScheduleGenerateDto generateDto)
         {
             if (!ModelState.IsValid)
@@ -60,6 +66,7 @@ namespace SportZone_API.Controllers
 
         // PUT: api/FieldBookingSchedule/5
         [HttpPut("{id}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> UpdateFieldBookingSchedule(int id, FieldBookingScheduleUpdateDto updateDto)
         {
             var updatedSchedule = await _scheduleService.UpdateFieldBookingScheduleAsync(id, updateDto);
@@ -72,6 +79,7 @@ namespace SportZone_API.Controllers
 
         // DELETE: api/FieldBookingSchedule/5
         [HttpDelete("{id}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> DeleteFieldBookingSchedule(int id)
         {
             var response = await _scheduleService.DeleteFieldBookingScheduleAsync(id);
@@ -94,6 +102,25 @@ namespace SportZone_API.Controllers
             {
                 return Ok(new { Message = response.Message });
             }
+        }
+
+        // GET: api/FieldBookingSchedule/facility/{facilityId}/date/{date}
+        [HttpGet("facility/{facilityId}/date/{date}")]
+        public async Task<ActionResult<ServiceResponse<FieldBookingScheduleByDateDto>>> GetSchedulesByFacilityAndDate(int facilityId, DateOnly date)
+        {
+            if (facilityId <= 0)
+            {
+                return BadRequest("Facility ID phải lớn hơn 0");
+            }
+
+            var result = await _scheduleService.GetSchedulesByFacilityAndDateAsync(facilityId, date);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            
+            return NotFound(result);
         }
     }
 }

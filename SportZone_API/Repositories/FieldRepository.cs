@@ -169,7 +169,7 @@ namespace SportZone_API.Repositories
                     throw new ArgumentException($"Loại sân với ID {fieldDto.CategoryId} không tồn tại.");
                 }
                 var field = _mapper.Map<Field>(fieldDto);
-                field.IsBookingEnable = false;
+                //field.IsBookingEnable = true;
                 _context.Fields.Add(field);
                 await _context.SaveChangesAsync();
                 return field;
@@ -235,6 +235,11 @@ namespace SportZone_API.Repositories
         public async Task<bool> CategoryExistAsync(int categoryId)
         {
             return await _context.CategoryFields.AnyAsync(c => c.CategoryFieldId == categoryId);
+        }
+
+        public async Task<bool> FieldNameExistsInFacilityAsync(string fieldName, int facId)
+        {
+            return await _context.Fields.AnyAsync(f => f.FieldName.ToLower() == fieldName && f.FacId == facId);
         }
 
         public Task<bool> CategoryExistsAsync(int categoryId)

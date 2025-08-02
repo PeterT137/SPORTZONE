@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Types
@@ -33,16 +34,15 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-  const unreadNotifications = 2; // Mock unread count
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const unreadNotifications = 2; // Mock
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    console.log("Stored user from localStorage:", storedUser);
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        console.log("Parsed user:", parsedUser);
-
         const transformedUser: User = {
           UId: parsedUser.uId || parsedUser.UId,
           RoleId: parsedUser.roleId || parsedUser.RoleId,
@@ -64,7 +64,6 @@ const Header: React.FC = () => {
         if (transformedUser.UId && transformedUser.UEmail) {
           setUser(transformedUser);
         } else {
-          console.warn("Invalid user data format:", parsedUser);
           setUser(null);
         }
       } catch (error) {
@@ -72,6 +71,20 @@ const Header: React.FC = () => {
         setUser(null);
       }
     }
+  }, []);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
@@ -90,37 +103,21 @@ const Header: React.FC = () => {
           </a>
         </div>
         <div className="hidden md:flex items-center gap-8 ml-12 flex-grow">
-          <a href="/homepage" className="text-white hover:text-[#1ebd6f]">
-            Trang chủ
-          </a>
+          <a href="/homepage" className="text-white hover:text-[#1ebd6f]">Trang chủ</a>
           <div className="relative group">
             <button className="text-white hover:text-[#1ebd6f]">Đặt sân</button>
             <div className="absolute hidden group-hover:block top-full bg-white text-[#333] rounded shadow-md w-48">
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">
-                Tìm sân
-              </a>
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">
-                Lịch đặt sân
-              </a>
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">
-                Hủy đặt sân
-              </a>
+              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Tìm sân</a>
+              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Lịch đặt sân</a>
+              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Hủy đặt sân</a>
             </div>
           </div>
-          <a href="/field_list" className="text-white hover:text-[#1ebd6f]">
-            Danh sách sân
-          </a>
-          {user && (user.RoleId === 4 || user.RoleId ===2|| user.RoleId ===3) && (
-            <a href="/facility_manager" className="text-white hover:text-[#1ebd6f]">
-              Quản lý chủ sân
-            </a>
+          <a href="/field_list" className="text-white hover:text-[#1ebd6f]">Danh sách sân</a>
+          {user && (user.RoleId === 2 || user.RoleId === 3 || user.RoleId === 4) && (
+            <a href="/facility_manager" className="text-white hover:text-[#1ebd6f]">Quản lý chủ sân</a>
           )}
-          <a href="#" className="text-white hover:text-[#1ebd6f]">
-            Báo cáo
-          </a>
-          <a href="#" className="text-white hover:text-[#1ebd6f]">
-            Liên hệ
-          </a>
+          <a href="#" className="text-white hover:text-[#1ebd6f]">Báo cáo</a>
+          <a href="#" className="text-white hover:text-[#1ebd6f]">Liên hệ</a>
         </div>
 
         <div className="flex items-center gap-4 relative">
@@ -139,10 +136,11 @@ const Header: React.FC = () => {
             </button>
           ) : (
             <div className="flex items-center gap-4 relative">
-              <div className="relative group">
+              {/* Notification bell */}
+              <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="text-white hover:text-[#1ebd6f] flex items-center"
+                  className="text-white hover:text-[#1ebd6f]"
                 >
                   <span className="relative">
                     <svg
@@ -178,8 +176,13 @@ const Header: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div className="relative group">
-                <div className="flex items-center gap-2 cursor-pointer">
+
+              {/* Profile dropdown */}
+              <div className="relative" ref={profileMenuRef}>
+                <div
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => setShowProfileMenu((prev) => !prev)}
+                >
                   <img
                     src={user.avatarUrl}
                     alt="avatar"
@@ -187,27 +190,38 @@ const Header: React.FC = () => {
                   />
                   <span className="text-sm font-medium">{user.UEmail}</span>
                 </div>
-                <div className="absolute right-0 mt-2 hidden group-hover:block bg-white text-[#333] rounded shadow-md w-48 z-50">
-                  <button
-                    onClick={() => navigate("/profile")}
-                    className="block w-full text-left px-4 py-2 hover:bg-[#e6f0ea]"
-                  >
-                    Thông tin tài khoản
-                  </button>
-                  <button
-                    onClick={() => navigate("/weekly_schedule")}
-                    className="block w-full text-left px-4 py-2 hover:bg-[#e6f0ea]"
-                  >
-                    Lịch đặt sân
-                  </button>
-                  <hr />
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-red-500 hover:bg-[#fbeaea]"
-                  >
-                    Đăng xuất
-                  </button>
-                </div>
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-2 bg-white text-[#333] rounded shadow-md w-48 z-50">
+                    <button
+                      onClick={() => {
+                        navigate("/profile");
+                        setShowProfileMenu(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 hover:bg-[#e6f0ea]"
+                    >
+                      Thông tin tài khoản
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate("/weekly_schedule");
+                        setShowProfileMenu(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 hover:bg-[#e6f0ea]"
+                    >
+                      Lịch đặt sân
+                    </button>
+                    <hr />
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setShowProfileMenu(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-red-500 hover:bg-[#fbeaea]"
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

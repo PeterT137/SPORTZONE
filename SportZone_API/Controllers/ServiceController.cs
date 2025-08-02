@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
 using System.ComponentModel.DataAnnotations;
@@ -8,6 +10,7 @@ namespace SportZone_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ServiceController : ControllerBase
     {
         private readonly IServiceService _serviceService;
@@ -16,10 +19,8 @@ namespace SportZone_API.Controllers
             _serviceService = serviceService;
         }
 
-        /// <summary>
-        /// Lấy danh sách tất cả dịch vụ
-        /// </summary>
         [HttpGet("GetAllService")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllServices()
         {
             try
@@ -44,10 +45,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy thông tin chi tiết dịch vụ theo ID
-        /// </summary>
         [HttpGet("GetServiceById/{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetServiceById(int id)
         {
             try
@@ -79,10 +78,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách dịch vụ theo Facility ID
-        /// </summary>
         [HttpGet("facility/{facilityId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetServicesByFacilityId(int facilityId)
         {
             try
@@ -107,10 +104,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách dịch vụ theo trạng thái
-        /// </summary>
         [HttpGet("status/{status}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetServicesByStatus(string status)
         {
             try
@@ -143,11 +138,9 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Tạo dịch vụ mới
-        /// </summary>
         [HttpPost("Add/Service")]
-        public async Task<IActionResult> CreateService([FromBody] CreateServiceDTO createServiceDTO)
+        [RoleAuthorize("2,4")]
+        public async Task<IActionResult> CreateService([FromForm] CreateServiceDTO createServiceDTO)
         {
             try
             {
@@ -169,14 +162,6 @@ namespace SportZone_API.Controllers
                     data = service
                 });
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new
@@ -188,11 +173,9 @@ namespace SportZone_API.Controllers
             }
         }
 
-        // <summary>
-        /// Cập nhật thông tin dịch vụ
-        /// </summary>
         [HttpPut("UpdateService/{id}")]
-        public async Task<IActionResult> UpdateService(int id, [FromBody] UpdateServiceDTO updateServiceDto)
+        [RoleAuthorize("2,4")]
+        public async Task<IActionResult> UpdateService(int id, [FromForm] UpdateServiceDTO updateServiceDto)
         {
             try
             {
@@ -242,10 +225,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Xóa dịch vụ
-        /// </summary>
         [HttpDelete("DeleteService/{id}")]
+        [RoleAuthorize("2,4")]
         public async Task<IActionResult> DeleteService(int id)
         {
             try
@@ -285,10 +266,8 @@ namespace SportZone_API.Controllers
             }
         }
 
-        /// <summary>
-        /// Lấy danh sách dịch vụ với phân trang
-        /// </summary>
         [HttpGet("pagination")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetServicesWithPagination([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try

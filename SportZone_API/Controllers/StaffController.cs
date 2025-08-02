@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
 using System.Collections.Generic;
@@ -9,6 +11,7 @@ namespace SportZone_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class StaffController : ControllerBase
     {
         private readonly IStaffService _staffService;
@@ -19,6 +22,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("GetAll")]
+        [RoleAuthorize("3")]
         public async Task<IActionResult> GetAllStaff()
         {
             var result = await _staffService.GetAllStaffAsync();
@@ -34,6 +38,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("by-facility/{facilityId}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> GetStaffByFacilityId(int facilityId)
         {
             var result = await _staffService.GetStaffByFacilityIdAsync(facilityId);
@@ -49,6 +54,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("{uId}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> GetStaffByUId(int uId)
         {
             var result = await _staffService.GetStaffByUIdAsync(uId);
@@ -60,7 +66,8 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPut("{uId}")]
-        public async Task<IActionResult> UpdateStaff(int uId, [FromBody] UpdateStaffDto dto)
+        [RoleAuthorize("2")]
+        public async Task<IActionResult> UpdateStaff(int uId, [FromForm] UpdateStaffDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -76,6 +83,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpDelete("{uId}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> DeleteStaff(int uId)
         {
             var result = await _staffService.DeleteStaffAsync(uId);
@@ -85,5 +93,24 @@ namespace SportZone_API.Controllers
             }
             return BadRequest(new { success = false, error = result.Message });
         }
+
+        [HttpGet("field-owner/{fieldOwnerId}")]
+        [RoleAuthorize("2")]
+        public async Task<IActionResult> GetStaffByFieldOwnerId(int fieldOwnerId)
+        {
+            if (fieldOwnerId <= 0)
+            {
+                return BadRequest("Field Owner ID phải lớn hơn 0");
+            }
+
+            var result = await _staffService.GetStaffByFieldOwnerIdAsync(fieldOwnerId);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            
+            return NotFound(result);
+        }        
     }
 }

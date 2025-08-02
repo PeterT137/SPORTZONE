@@ -106,7 +106,7 @@ namespace SportZone_API.Controllers
 
         [HttpPost]
         [RoleAuthorize("2")]
-        public async Task<IActionResult> Create([FromBody] FacilityDto dto)
+        public async Task<IActionResult> Create([FromForm] FacilityDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -129,7 +129,7 @@ namespace SportZone_API.Controllers
 
         [HttpPut("{id}")]
         [RoleAuthorize("2")]
-        public async Task<IActionResult> Update(int id, [FromBody] FacilityDto dto)
+        public async Task<IActionResult> Update(int id, [FromForm] FacilityUpdateDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -148,9 +148,10 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi cập nhật cơ sở. Vui lòng thử lại sau." }); 
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi cập nhật cơ sở. Vui lòng thử lại sau." });
             }
         }
+
 
         [HttpDelete("{id}")]
         [RoleAuthorize("2")]

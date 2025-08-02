@@ -333,7 +333,6 @@ namespace SportZone_API.Services
 
 
 
-
         public async Task<ServiceResponse<FieldBookingScheduleByDateDto>> GetSchedulesByFacilityAndDateAsync(int facilityId, DateOnly date)
         {
             var response = new ServiceResponse<FieldBookingScheduleByDateDto>();
@@ -341,7 +340,6 @@ namespace SportZone_API.Services
             try
             {
                 var result = await _scheduleRepository.GetSchedulesByFacilityAndDateAsync(facilityId, date);
-
                 response.Data = result;
                 response.Success = true;
                 response.Message = $"Lấy lịch đặt sân thành công cho facility {result.FacilityName} ngày {date:dd/MM/yyyy}";
@@ -355,7 +353,10 @@ namespace SportZone_API.Services
             return response;
         }
 
+
     }
 }
+
+
 
 

@@ -20,6 +20,7 @@ namespace SportZone_API.DTOs
 
 
 
+
     public class ScheduleDto
     {
         public int ScheduleId { get; set; }

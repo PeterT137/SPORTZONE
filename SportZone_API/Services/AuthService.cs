@@ -237,7 +237,8 @@ namespace SportZone_API.Services
                     {
                         new Claim(ClaimTypes.NameIdentifier, user.UId.ToString()),
                         new Claim(ClaimTypes.Email, user.UEmail ?? string.Empty),
-                        new Claim("Role", user.RoleId?.ToString() ?? "0")
+                        new Claim("Role", user.RoleId?.ToString() ?? "0"),
+
                     }),
                     Expires = DateTime.UtcNow.AddDays(1),
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

@@ -16,5 +16,6 @@ namespace SportZone_API.Repositories.Interfaces
         Task DeleteAsync(Facility facility);
         Task SaveChangesAsync();
         Task<IEnumerable<CategoryField>> GetCategoryFieldsByFacilityIdAsync(int facilityId);
+        Task AddImagesAsync(IEnumerable<Image> images);
     }
 }
