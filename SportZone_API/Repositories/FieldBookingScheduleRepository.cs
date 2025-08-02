@@ -5,6 +5,7 @@ using SportZone_API.Repositories.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System;
 
 namespace SportZone_API.Repositories
 {
@@ -27,12 +28,6 @@ namespace SportZone_API.Repositories
             return await _context.FieldBookingSchedules.FindAsync(id);
         }
 
-        public async Task AddScheduleAsync(FieldBookingSchedule schedule)
-        {
-            await _context.FieldBookingSchedules.AddAsync(schedule);
-            await _context.SaveChangesAsync();
-        }
-
         public async Task AddRangeSchedulesAsync(IEnumerable<FieldBookingSchedule> schedules)
         {
             await _context.FieldBookingSchedules.AddRangeAsync(schedules);
@@ -45,14 +40,16 @@ namespace SportZone_API.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteScheduleAsync(int id)
+        public async Task<bool> DeleteScheduleAsync(int id)
         {
             var schedule = await _context.FieldBookingSchedules.FindAsync(id);
-            if (schedule != null)
+            if (schedule == null)
             {
-                _context.FieldBookingSchedules.Remove(schedule);
-                await _context.SaveChangesAsync();
+                return false;
             }
+            _context.FieldBookingSchedules.Remove(schedule);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<IEnumerable<FieldBookingSchedule>> GetSchedulesByFieldAndDateRangeAsync(int fieldId, DateOnly startDate, DateOnly endDate)
@@ -62,11 +59,12 @@ namespace SportZone_API.Repositories
                                  .ToListAsync();
         }
 
+
         public async Task<FieldBookingScheduleByDateDto> GetSchedulesByFacilityAndDateAsync(int facilityId, DateOnly date)
         {
             try
             {
-                
+
                 var facility = await _context.Facilities
                     .Where(f => f.FacId == facilityId)
                     .FirstOrDefaultAsync();
@@ -129,6 +127,20 @@ namespace SportZone_API.Repositories
             {
                 throw new Exception($"Lỗi khi lấy lịch đặt sân theo facility và ngày: {ex.Message}", ex);
             }
+        }
+
+        public async Task<IEnumerable<FieldBookingSchedule>> GetSchedulesByFieldIdAsync(int fieldId)
+        {
+            return await _context.FieldBookingSchedules
+                                 .Where(s => s.FieldId == fieldId)
+                                 .ToListAsync();
+        }
+
+        public async Task UpdateRangeSchedulesAsync(IEnumerable<FieldBookingSchedule> schedules)
+        {
+            _context.FieldBookingSchedules.UpdateRange(schedules);
+            await _context.SaveChangesAsync();
+
         }
     }
 }

@@ -3,6 +3,7 @@ import {
   Building2,
   ClipboardList,
   Home,
+  User2, // Thêm icon mới ở đây
 } from "lucide-react";
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -12,9 +13,10 @@ const Sidebar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const linkClasses = (path: string) =>
-    `flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition ${isActive(path)
-      ? "bg-[#1ebd6f] text-white"
-      : "text-gray-700 hover:bg-gray-100"
+    `flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition ${
+      isActive(path)
+        ? "bg-[#1ebd6f] text-white"
+        : "text-gray-700 hover:bg-gray-100"
     }`;
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -29,6 +31,9 @@ const Sidebar: React.FC = () => {
         </Link>
         <Link to="/facility_manager" className={linkClasses("/facility_manager")}>
           <Building2 size={18} /> Cơ sở
+        </Link>
+        <Link to="/staff_manager" className={linkClasses("/staff_manager")}>
+          <User2 size={18} /> Nhân viên
         </Link>
         <div className="relative">
           <button
@@ -58,6 +63,8 @@ const Sidebar: React.FC = () => {
         <Link to="/order_manager" className={linkClasses("/order_manager")}>
           <ClipboardList size={18} /> Đơn đặt
         </Link>
+        {/* ✅ Thêm đường dẫn staff_manager */}
+        
       </nav>
     </aside>
   );

@@ -4,9 +4,9 @@ using SportZone_API.Models;
 
 namespace SportZone_API.Mappings
 {
-    public class MappingProfile : Profile
+    public class MappingField : Profile
     {
-        public MappingProfile()
+        public MappingField()
         {
             // Field Mappings
             CreateMap<FieldCreateDTO, Field>()

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
 using System.Collections.Generic;
@@ -8,6 +10,7 @@ namespace SportZone_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class FieldBookingScheduleController : ControllerBase
     {
         private readonly IFieldBookingScheduleService _scheduleService;
@@ -19,6 +22,7 @@ namespace SportZone_API.Controllers
 
         // GET: api/FieldBookingSchedule
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<FieldBookingScheduleDto>>> GetFieldBookingSchedules()
         {
             var schedules = await _scheduleService.GetAllFieldBookingSchedulesAsync();
@@ -27,6 +31,7 @@ namespace SportZone_API.Controllers
 
         // GET: api/FieldBookingSchedule/5
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<FieldBookingScheduleDto>> GetFieldBookingSchedule(int id)
         {
             var schedule = await _scheduleService.GetFieldBookingScheduleByIdAsync(id);
@@ -37,24 +42,31 @@ namespace SportZone_API.Controllers
             return Ok(schedule);
         }
 
-        // POST: api/FieldBookingSchedule
-        [HttpPost]
-        public async Task<ActionResult<FieldBookingScheduleDto>> CreateFieldBookingSchedule(FieldBookingScheduleCreateDto createDto)
-        {
-            var createdSchedule = await _scheduleService.CreateFieldBookingScheduleAsync(createDto);
-            return CreatedAtAction(nameof(GetFieldBookingSchedule), new { id = createdSchedule.ScheduleId }, createdSchedule);
-        }
-
         // POST: api/FieldBookingSchedule/generate
         [HttpPost("generate")]
-        public async Task<ActionResult<IEnumerable<FieldBookingScheduleDto>>> GenerateFieldBookingSchedules(FieldBookingScheduleGenerateDto generateDto)
+        [RoleAuthorize("2")]
+        public async Task<IActionResult> GenerateFieldBookingSchedules([FromBody] FieldBookingScheduleGenerateDto generateDto)
         {
-            var generatedSchedules = await _scheduleService.GenerateFieldBookingSchedulesAsync(generateDto);
-            return Ok(generatedSchedules);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var response = await _scheduleService.GenerateFieldBookingSchedulesAsync(generateDto);
+
+            if (!response.IsSuccess)
+            {
+                return BadRequest(new { Message = response.Message });
+            }
+            else
+            {
+                return Ok(new { Message = response.Message });
+            }
         }
 
         // PUT: api/FieldBookingSchedule/5
         [HttpPut("{id}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> UpdateFieldBookingSchedule(int id, FieldBookingScheduleUpdateDto updateDto)
         {
             var updatedSchedule = await _scheduleService.UpdateFieldBookingScheduleAsync(id, updateDto);
@@ -67,14 +79,29 @@ namespace SportZone_API.Controllers
 
         // DELETE: api/FieldBookingSchedule/5
         [HttpDelete("{id}")]
+        [RoleAuthorize("2")]
         public async Task<IActionResult> DeleteFieldBookingSchedule(int id)
         {
-            var result = await _scheduleService.DeleteFieldBookingScheduleAsync(id);
-            if (!result)
+            var response = await _scheduleService.DeleteFieldBookingScheduleAsync(id);
+            if (!response.IsSuccess)
             {
-                return NotFound("Không tìm thấy lịch đặt sân để xóa.");
+                if (response.Message.Contains("Không tìm thấy"))
+                {
+                    return NotFound(new { Message = response.Message });
+                }
+                else if (response.Message.Contains("đã có booking"))
+                {
+                    return Conflict(new { Message = response.Message });
+                }
+                else
+                {
+                    return BadRequest(new { Message = response.Message });
+                }
             }
-            return NoContent(); 
+            else
+            {
+                return Ok(new { Message = response.Message });
+            }
         }
 
         // GET: api/FieldBookingSchedule/facility/{facilityId}/date/{date}

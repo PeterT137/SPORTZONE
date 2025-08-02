@@ -14,7 +14,7 @@ const RightSide: React.FC = () => {
           onClick={handleSupportClick}
         >
           <i className="fas fa-headset"></i>
-          <span>Support</span>
+          <span>Hỗ trợ</span>
         </button>
       </div>
 
@@ -22,13 +22,12 @@ const RightSide: React.FC = () => {
       <div className="flex-1 flex flex-col justify-center items-center text-center px-4">
         <img
           src="https://storage.googleapis.com/a1aa/image/53b116e7-3417-44b1-c894-eaa9f5d55c22.jpg"
-          alt="Soccer field"
+          alt="Sân bóng đá"
           className="rounded-md mb-6 w-full max-w-md"
         />
-        <h2 className="text-2xl font-semibold mb-3">Introducing new features</h2>
+        <h2 className="text-2xl font-semibold mb-3">Quản lý sân bóng dễ dàng</h2>
         <p className="text-gray-300 text-sm leading-relaxed max-w-sm">
-          Analyzing previous trends ensures that businesses always make the right decision. And as
-          the scale of the decision and its impact magnifies...
+          Ứng dụng web của chúng tôi giúp bạn quản lý sân bóng hiệu quả với các tính năng như đặt sân trực tuyến, theo dõi lịch sử đặt sân, và tối ưu hóa vận hành sân bóng. Dù bạn là chủ sân hay người chơi, mọi thứ đều trở nên đơn giản và thuận tiện!
         </p>
       </div>
 

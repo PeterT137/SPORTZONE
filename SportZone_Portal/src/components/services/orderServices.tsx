@@ -1,6 +1,7 @@
+// services/orderServices.ts
 import type { Order, OrderServiceType, Service } from "../interface"
 
-// Mock data - replace with actual API calls
+// Mock data
 const mockOrders: Order[] = [
   {
     order_id: "1",
@@ -34,48 +35,48 @@ const mockOrderServices: OrderServiceType[] = [
     order_id: "1",
     service_id: "srv_1",
     quantity: 2,
-    price: 200000,
-    service_name: "Massage thư giãn",
-    service_description: "Massage toàn thân 60 phút",
+    price: 100000,
+    service_name: "Bim bim",
+    service_description: "Bim bim lớn",
   },
   {
     order_service_id: "2",
     order_id: "1",
     service_id: "srv_2",
     quantity: 1,
-    price: 300000,
-    service_name: "Spa chăm sóc da",
-    service_description: "Chăm sóc da mặt cao cấp",
+    price: 10000,
+    service_name: "Nước lọc",
+    service_description: "Nước lọc",
   },
 ]
 
 const mockServices: Service[] = [
   {
     service_id: "srv_1",
-    name: "Massage thư giãn",
-    description: "Massage toàn thân 60 phút",
-    price: 200000,
+    name: "Bim bim",
+    description: "Bim bim lớn",
+    price: 10000,
     duration: 60,
   },
   {
     service_id: "srv_2",
-    name: "Spa chăm sóc da",
-    description: "Chăm sóc da mặt cao cấp",
-    price: 300000,
+    name: "Nước lọc",
+    description: "Nước lọc",
+    price: 10000,
     duration: 90,
   },
   {
     service_id: "srv_3",
-    name: "Tắm hơi",
-    description: "Tắm hơi thảo dược",
-    price: 150000,
+    name: "Thuốc lá",
+    description: "Vina",
+    price: 30000,
     duration: 45,
   },
 ]
 
 export class OrderService {
   static async getOrders(): Promise<Order[]> {
-    // Simulate API call
+    console.log("Current mockOrders:", mockOrders) // Debug log
     return new Promise((resolve) => {
       setTimeout(() => resolve(mockOrders), 500)
     })
@@ -134,5 +135,15 @@ export class OrderService {
     if (orderIndex !== -1) {
       mockOrders[orderIndex].total_amount += additionalCost
     }
+  }
+
+  static async updateOrderPaymentStatus(orderId: string, status: "pending" | "paid" | "cancelled"): Promise<Order> {
+    console.log(`Updating order ${orderId} to status ${status}`) // Debug log
+    const orderIndex = mockOrders.findIndex((order) => order.order_id === orderId)
+    if (orderIndex !== -1) {
+      mockOrders[orderIndex].status_payment = status
+      return mockOrders[orderIndex]
+    }
+    throw new Error("Order not found")
   }
 }
