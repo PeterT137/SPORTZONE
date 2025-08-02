@@ -103,17 +103,8 @@ namespace SportZone_API.Services
             try
             {
                 // Basic validation
-                if (bookingDto.StartTime >= bookingDto.EndTime)
-                    return (false, "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc");
-
-                // Check if booking is not in the past
-                var bookingDateTime = CombineDateAndTime(bookingDto.Date, bookingDto.StartTime);
-                if (bookingDateTime <= DateTime.Now)
-                    return (false, "Không thể đặt thời gian trong quá khứ");
-
-                // Check if it's not too far in the future (e.g., max 3 months)
-                if (bookingDateTime > DateTime.Now.AddMonths(3))
-                    return (false, "Không thể đặt sân quá 3 tháng trước");
+                if (!bookingDto.SelectedSlotIds.Any())
+                    return (false, "Phải chọn ít nhất 1 slot thời gian");
 
                 // Validate guest booking requirements
                 if (!bookingDto.UserId.HasValue)
@@ -128,18 +119,14 @@ namespace SportZone_API.Services
                         return (false, "Số điện thoại không hợp lệ");
                 }
 
-                // Check field availability if specified
-                if (bookingDto.FieldId.HasValue)
-                {
-                    var isAvailable = await CheckTimeSlotAvailabilityAsync(
-                        bookingDto.FieldId.Value,
-                        bookingDto.Date,
-                        bookingDto.StartTime,
-                        bookingDto.EndTime);
-
-                    if (!isAvailable)
-                        return (false, "Thời gian đã được đặt, vui lòng chọn thời gian khác");
-                }
+                // Validate selected slots với filter constraints
+                var slotsValidation = await _bookingRepository.ValidateSelectedSlotsAsync(
+                    bookingDto.SelectedSlotIds,
+                    bookingDto.FieldId,
+                    bookingDto.FacilityId,
+                    bookingDto.CategoryId);
+                if (!slotsValidation.IsValid)
+                    return (false, slotsValidation.ErrorMessage);
 
                 // Additional business rules can be added here
                 return (true, string.Empty);
