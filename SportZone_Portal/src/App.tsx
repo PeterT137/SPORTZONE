@@ -1,20 +1,21 @@
-import { config } from '@fortawesome/fontawesome-svg-core';
+import { config } from "@fortawesome/fontawesome-svg-core";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 config.autoAddCss = false;
 
-import React from 'react';
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import LoginComponent from './components/auth/AuthComponent';
-import PublicRoute from './components/auth/PublicRoute';
+import React from "react";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import LoginComponent from "./components/auth/AuthComponent";
+import PublicRoute from "./components/auth/PublicRoute";
+import BookingPage from "./components/booking/BookingPage";
 import FacilityDetail from "./components/facility/FacilityDetail";
-import FacilityManager from './components/facility/FacilityManager';
-import FieldListPage from './components/field/FieldListPage';
+import FacilityManager from "./components/facility/FacilityManager";
+import FieldListPage from "./components/field/FieldListPage";
 import FieldManager from "./components/field/FieldManager";
-import GoogleAuthCallback from './components/GoogleAuthCallback';
-import WeeklySchedule from './components/booking/lich';
-import OrdersTable from './components/order/OrderTable';
-import HomePage from './components/Pages/HomePage';
-import PaymentPage from './components/payment/PaymentPage';
+import GoogleAuthCallback from "./components/GoogleAuthCallback";
+import WeeklySchedule from "./components/booking/lich";
+import OrdersTable from "./components/order/OrderTable";
+import HomePage from "./components/Pages/HomePage";
+import PaymentPage from "./components/payment/PaymentPage";
 import ServiceManager from "./components/services/ServiceManager";
 import StaffManager from "./components/staff/StaffManager";
 const AppContent: React.FC = () => {
@@ -36,8 +37,9 @@ const AppContent: React.FC = () => {
       <Route path="/weekly_schedule" element={<WeeklySchedule />} />
       <Route path="/google-auth-callback" element={<GoogleAuthCallback />} />
       <Route path="/service_manager" element={<ServiceManager />} />
-      <Route path="/order_manager" element={<OrdersTable />} /> {/* Sửa tên component */}
+      <Route path="/order_manager" element={<OrdersTable />} />
       <Route path="/field_list" element={<FieldListPage />} />
+      <Route path="/booking" element={<BookingPage />} />
       <Route path="/payment" element={<PaymentPage />} />
       <Route path="/staff_manager" element={<StaffManager />} />
     </Routes>
