@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -32,6 +33,7 @@ namespace SportZone_API.Controllers
         // GET: api/FieldPricing/{id}
         [HttpGet("{id}")]
         [AllowAnonymous]
+        [SwaggerOperation(Summary = "Lấy giá của từng sân cho bảng giá  : Customer")]
         public async Task<ActionResult<FieldPricingDto>> GetFieldPricing(int id)
         {
             var pricing = await _fieldPricingService.GetFieldPricingByIdAsync(id);
