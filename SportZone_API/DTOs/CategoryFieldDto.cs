@@ -1,5 +1,8 @@
-﻿public class CategoryFieldDto
+﻿namespace SportZone_API.DTOs
 {
-    public int CategoryFieldId { get; set; }
-    public string? CategoryFieldName { get; set; }
+    public class CategoryFieldDto
+    {
+        public int CategoryFieldId { get; set; }
+        public string? CategoryFieldName { get; set; }
+    }
 }

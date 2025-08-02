@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SportZone_API.DTOs; 
 using SportZone_API.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,6 +20,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet] // GET: api/CategoryField
+        [SwaggerOperation(Summary = "Lấy tất cả category_field để đẩy lên homepage phần filter : Customer")]
         public async Task<IActionResult> GetAllCategoryFields()
         {
             var result = await _categoryFieldService.GetAllCategoryFields();

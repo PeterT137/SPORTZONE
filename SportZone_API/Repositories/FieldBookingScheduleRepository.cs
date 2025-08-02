@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using SportZone_API.DTOs;
 
 namespace SportZone_API.Repositories
 {
@@ -69,6 +70,11 @@ namespace SportZone_API.Repositories
         {
             _context.FieldBookingSchedules.UpdateRange(schedules);
             await _context.SaveChangesAsync();
+        }
+
+        public Task<FieldBookingScheduleByDateDto?> GetSchedulesByFacilityAndDateAsync(int facilityId, DateOnly date)
+        {
+            throw new NotImplementedException();
         }
     }
 }

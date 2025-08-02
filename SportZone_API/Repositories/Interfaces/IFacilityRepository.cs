@@ -7,6 +7,8 @@ namespace SportZone_API.Repositories.Interfaces
     public interface IFacilityRepository
     {
         Task<List<Facility>> GetAllAsync(string? searchText = null);
+        Task<List<Facility>> GetAllWithDetailsAsync(string? searchText = null);
+        Task<List<Facility>> GetFacilitiesByFilterAsync(string? categoryFieldName = null, string? address = null);
         Task<List<Facility>> GetByUserIdAsync(int userId);
         Task<Facility?> GetByIdAsync(int id);
         Task AddAsync(Facility facility);

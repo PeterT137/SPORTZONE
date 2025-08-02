@@ -113,7 +113,18 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "SportZone API",
+        Version = "v1",
+        Description = "API cho ứng dụng SportZone - Hệ thống đặt sân thể thao"
+    });
+    
+    // Bật hỗ trợ Swagger Annotations
+    c.EnableAnnotations();
+});
 
 var app = builder.Build();
 app.UseExceptionHandler(appBuilder =>

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
+using SportZone_API.DTOs;
 
 namespace SportZone_API.Repositories.Interfaces
 {
@@ -15,5 +16,6 @@ namespace SportZone_API.Repositories.Interfaces
         Task<IEnumerable<FieldBookingSchedule>> GetSchedulesByFieldAndDateRangeAsync(int fieldId, DateOnly startDate, DateOnly endDate);
         Task<IEnumerable<FieldBookingSchedule>> GetSchedulesByFieldIdAsync(int fieldId); 
         Task UpdateRangeSchedulesAsync(IEnumerable<FieldBookingSchedule> schedules);
+        Task<FieldBookingScheduleByDateDto?> GetSchedulesByFacilityAndDateAsync(int facilityId, DateOnly date);
     }
 }

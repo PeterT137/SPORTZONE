@@ -30,6 +30,51 @@ namespace SportZone_API.Repositories
             return await query.ToListAsync();
         }
 
+        public async Task<List<Facility>> GetAllWithDetailsAsync(string? searchText = null)
+        {
+            var query = _context.Facilities
+                .Include(f => f.Images)
+                .Include(f => f.Fields)
+                    .ThenInclude(field => field.Category)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                query = query.Where(f => (f.Name ?? "").Contains(searchText) ||
+                                         (f.Address ?? "").Contains(searchText) ||
+                                         (f.Description ?? "").Contains(searchText) ||
+                                         (f.Subdescription ?? "").Contains(searchText));
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<Facility>> GetFacilitiesByFilterAsync(string? categoryFieldName = null, string? address = null)
+        {
+            var query = _context.Facilities
+                .Include(f => f.Images)
+                .Include(f => f.Fields)
+                    .ThenInclude(field => field.Category)
+                .AsQueryable();
+
+            // Lọc theo Category Field Name
+            if (!string.IsNullOrWhiteSpace(categoryFieldName))
+            {
+                query = query.Where(f => f.Fields.Any(field => 
+                    field.Category != null && 
+                    field.Category.CategoryFieldName != null && 
+                    field.Category.CategoryFieldName.Contains(categoryFieldName)));
+            }
+
+            // Lọc theo địa chỉ
+            if (!string.IsNullOrWhiteSpace(address))
+            {
+                query = query.Where(f => f.Address != null && f.Address.Contains(address));
+            }
+
+            return await query.ToListAsync();
+        }
+
         public async Task<Facility?> GetByIdAsync(int id)
         {
             return await _context.Facilities

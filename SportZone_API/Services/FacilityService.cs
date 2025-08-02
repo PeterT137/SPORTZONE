@@ -55,6 +55,76 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<ServiceResponse<List<FacilityDetailDto>>> GetAllFacilitiesWithDetails(string? searchText = null)
+        {
+            try
+            {
+                var facilities = await _repository.GetAllWithDetailsAsync(searchText);
+                var facilityDetailDtos = _mapper.Map<List<FacilityDetailDto>>(facilities);
+
+                if (facilityDetailDtos == null || !facilityDetailDtos.Any())
+                {
+                    return new ServiceResponse<List<FacilityDetailDto>>
+                    {
+                        Success = true,
+                        Message = "Không tìm thấy cơ sở nào.", 
+                        Data = new List<FacilityDetailDto>()
+                    };
+                }
+
+                return new ServiceResponse<List<FacilityDetailDto>>
+                {
+                    Success = true,
+                    Message = "Lấy danh sách cơ sở chi tiết thành công.", 
+                    Data = facilityDetailDtos
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<List<FacilityDetailDto>>
+                {
+                    Success = false,
+                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở chi tiết: {ex.Message}", 
+                    Data = null
+                };
+            }
+        }
+
+        public async Task<ServiceResponse<List<FacilityDetailDto>>> GetFacilitiesByFilter(string? categoryFieldName = null, string? address = null)
+        {
+            try
+            {
+                var facilities = await _repository.GetFacilitiesByFilterAsync(categoryFieldName, address);
+                var facilityDetailDtos = _mapper.Map<List<FacilityDetailDto>>(facilities);
+
+                if (facilityDetailDtos == null || !facilityDetailDtos.Any())
+                {
+                    return new ServiceResponse<List<FacilityDetailDto>>
+                    {
+                        Success = true,
+                        Message = "Không tìm thấy cơ sở nào phù hợp với bộ lọc.", 
+                        Data = new List<FacilityDetailDto>()
+                    };
+                }
+
+                return new ServiceResponse<List<FacilityDetailDto>>
+                {
+                    Success = true,
+                    Message = "Lấy danh sách cơ sở theo bộ lọc thành công.", 
+                    Data = facilityDetailDtos
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<List<FacilityDetailDto>>
+                {
+                    Success = false,
+                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở theo bộ lọc: {ex.Message}", 
+                    Data = null
+                };
+            }
+        }
+
         public async Task<FacilityDto?> GetFacilityById(int id)
         {
             var facility = await _repository.GetByIdAsync(id);
