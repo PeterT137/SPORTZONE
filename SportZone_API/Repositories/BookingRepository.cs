@@ -214,6 +214,7 @@ namespace SportZone_API.Repository
                     .Include(b => b.Orders)
                         .ThenInclude(o => o.Discount)
                     .Include(b => b.FieldBookingSchedules)
+                        .ThenInclude(s => s.Field)
                     .FirstOrDefaultAsync(b => b.BookingId == bookingId);
 
                 if (booking == null)

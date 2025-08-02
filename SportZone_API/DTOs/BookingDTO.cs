@@ -103,6 +103,25 @@ namespace SportZone_API.DTOs
         public FieldInfoDTO? Field { get; set; }
         public CustomerInfoDTO? Customer { get; set; }
         public OrderInfoDTO? Order { get; set; }
+
+        public List<BookingSlotDetailDTO>? BookedSlots { get; set; }
+
+    }
+
+    /// <summary>
+    /// DTO chi tiết slot trong booking
+    /// </summary>
+    public class BookingSlotDetailDTO
+    {
+        public int ScheduleId { get; set; }
+        public int FieldId { get; set; }
+        public string? FieldName { get; set; }
+        public DateOnly Date { get; set; }
+        public TimeOnly StartTime { get; set; }
+        public TimeOnly EndTime { get; set; }
+        public decimal? Price { get; set; }
+        public string Status { get; set; } = "Booked";
+        public string? Notes { get; set; }
     }
 
     /// <summary>
@@ -310,7 +329,20 @@ namespace SportZone_API.DTOs
                         DiscountPercentage = booking.Orders.First().Discount.DiscountPercentage,
                         Description = booking.Orders.First().Discount.Description
                     } : null
-                } : null
+                } : null,
+
+                BookedSlots = booking.FieldBookingSchedules?.Select(slot => new BookingSlotDetailDTO
+                {
+                    ScheduleId = slot.ScheduleId,
+                    FieldId = slot.FieldId ?? 0,
+                    FieldName = slot.Field?.FieldName,
+                    Date = slot.Date ?? DateOnly.MinValue,
+                    StartTime = slot.StartTime ?? TimeOnly.MinValue,
+                    EndTime = slot.EndTime ?? TimeOnly.MinValue,
+                    Price = slot.Price,
+                    Status = slot.Status ?? "Booked",
+                    Notes = slot.Notes
+                }).OrderBy(s => s.Date).ThenBy(s => s.StartTime).ToList()
             };
         }
     }
