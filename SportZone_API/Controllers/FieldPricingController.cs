@@ -33,7 +33,6 @@ namespace SportZone_API.Controllers
         // GET: api/FieldPricing/{id}
         [HttpGet("{id}")]
         [AllowAnonymous]
-        [SwaggerOperation(Summary = "Lấy giá của từng sân cho bảng giá  : Customer")]
         public async Task<ActionResult<FieldPricingDto>> GetFieldPricing(int id)
         {
             var pricing = await _fieldPricingService.GetFieldPricingByIdAsync(id);
@@ -47,6 +46,7 @@ namespace SportZone_API.Controllers
         // GET: api/FieldPricing/byField/{fieldId}
         [HttpGet("byField/{fieldId}")]
         [AllowAnonymous]
+        [SwaggerOperation(Summary = "Lấy giá của từng sân cho bảng giá  : Customer")]
         public async Task<ActionResult<IEnumerable<FieldPricingDto>>> GetFieldPricingsByField(int fieldId)
         {
             var pricings = await _fieldPricingService.GetFieldPricingsByFieldIdAsync(fieldId);
@@ -56,6 +56,7 @@ namespace SportZone_API.Controllers
         // POST: api/FieldPricing
         [HttpPost]
         [RoleAuthorize("2")]
+        [SwaggerOperation(Summary = "Tạo bảng giá cho sân  : Field Owner")]
         public async Task<ActionResult<FieldPricingDto>> CreateFieldPricing(FieldPricingCreateDto createDto)
         {
             if (!ModelState.IsValid)
@@ -71,6 +72,7 @@ namespace SportZone_API.Controllers
         // PUT: api/FieldPricing/{id}
         [HttpPut("{id}")]
         [RoleAuthorize("2")]
+        [SwaggerOperation(Summary = "Sửa bảng giá cho sân  : Field Owner")]
         public async Task<IActionResult> UpdateFieldPricing(int id, FieldPricingUpdateDto updateDto)
         {
             if (!ModelState.IsValid)
@@ -89,6 +91,7 @@ namespace SportZone_API.Controllers
         // DELETE: api/FieldPricing/{id}
         [HttpDelete("{id}")]
         [RoleAuthorize("2")]
+        [SwaggerOperation(Summary = "Xoá bảng giá cho sân  : Field Owner")]
         public async Task<IActionResult> DeleteFieldPricing(int id)
         {
             var result = await _fieldPricingService.DeleteFieldPricingAsync(id);

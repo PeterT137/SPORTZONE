@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -39,6 +40,7 @@ namespace SportZone_API.Controllers
 
         [HttpGet("by-facility/{facilityId}")]
         [RoleAuthorize("2")]
+        [SwaggerOperation(Summary = "Lấy thông tin Staff của sân nào đó  : Field Owner")]
         public async Task<IActionResult> GetStaffByFacilityId(int facilityId)
         {
             var result = await _staffService.GetStaffByFacilityIdAsync(facilityId);
@@ -67,6 +69,7 @@ namespace SportZone_API.Controllers
 
         [HttpPut("{uId}")]
         [RoleAuthorize("2")]
+        [SwaggerOperation(Summary = "Update thông tin Staff  : Field Owner")]
         public async Task<IActionResult> UpdateStaff(int uId, [FromForm] UpdateStaffDto dto)
         {
             if (!ModelState.IsValid)
@@ -84,6 +87,7 @@ namespace SportZone_API.Controllers
 
         [HttpDelete("{uId}")]
         [RoleAuthorize("2")]
+        [SwaggerOperation(Summary = "Xoá Staff  : Field Owner")]
         public async Task<IActionResult> DeleteStaff(int uId)
         {
             var result = await _staffService.DeleteStaffAsync(uId);
