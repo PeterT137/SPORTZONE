@@ -10,6 +10,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiDownload,
+  FiEdit,
   FiMinus,
   FiPlus,
   FiSearch,
@@ -55,6 +56,14 @@ interface Schedule {
   date: string;
   notes: string;
   status: string;
+  price: number;
+}
+
+interface SlotPricing {
+  id: number;
+  fieldId: number;
+  startTime: string;
+  endTime: string;
   price: number;
 }
 
@@ -373,19 +382,20 @@ const BookingDetailsModal: React.FC<{
   );
 };
 
-const WeeklySchedule: React.FC = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
+const PricingModal: React.FC<{
+  fieldId: number;
+  onClose: () => void;
+  fetchSchedule: () => void;
+}> = ({ fieldId, onClose, fetchSchedule }) => {
+  const [slotPricings, setSlotPricings] = useState<SlotPricing[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
-  const fieldId = Number(searchParams.get("fieldId")) || 1;
-  const fieldName = searchParams.get("fieldName") || "Sân không xác định";
-  const facId = Number(searchParams.get("facId")) || 0; // Lấy facId từ searchParams
+  const [newSlot, setNewSlot] = useState<{ startTime: string; endTime: string; price: string }>({
+    startTime: "",
+    endTime: "",
+    price: "",
+  });
+  const [editingSlotId, setEditingSlotId] = useState<number | null>(null);
+  const [editPrice, setEditPrice] = useState<string>("");
 
   const showToast = (message: string, type: "success" | "error") => {
     Swal.fire({
@@ -403,12 +413,309 @@ const WeeklySchedule: React.FC = () => {
     });
   };
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
+  const fetchSlotPricings = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/FieldPricing/byField/${fieldId}`, {
+        method: "GET",
+        headers: { ...getAuthHeaders() },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi khi lấy danh sách giá slot: ${response.status} - ${errorText || response.statusText}`);
+      }
+      const result = await response.json();
+      // Handle both single object and array responses
+      if (result && typeof result === "object") {
+        // If result is a single object, wrap it in an array
+        const data = Array.isArray(result) ? result : [result];
+        // Ensure each item has an id; if not, assign a temporary one
+        const mappedData: SlotPricing[] = data.map((item: any, index: number) => ({
+          id: item.id || index + 1, // Use index-based id if API doesn't provide one
+          fieldId: item.fieldId,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          price: item.price,
+        }));
+        setSlotPricings(mappedData);
+        showToast("Lấy danh sách giá slot thành công!", "success");
+      } else {
+        setSlotPricings([]);
+        showToast("Không có dữ liệu giá slot.", "error");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Lỗi không xác định khi lấy danh sách giá slot";
+      console.error("Fetch slot pricings error:", err);
+      showToast(errorMessage, "error");
+      setSlotPricings([]);
+    } finally {
+      setLoading(false);
     }
-    return {};
+  };
+
+  const handleSave = async () => {
+    if (!newSlot.startTime || !newSlot.endTime || !newSlot.price) {
+      showToast("Vui lòng điền đầy đủ thông tin", "error");
+      return;
+    }
+    try {
+      const response = await fetch(`${API_URL}/api/FieldPricing`, {
+        method: "POST",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fieldId,
+          startTime: newSlot.startTime,
+          endTime: newSlot.endTime,
+          price: parseInt(newSlot.price),
+        }),
+      });
+      const result = await response.json();
+      if ([200, 201, 204, 209].includes(response.status)) {
+        fetchSlotPricings();
+        setNewSlot({ startTime: "", endTime: "", price: "" });
+        showToast("Thêm giá slot thành công", "success");
+      } else {
+        showToast(result.message || "Không thể thêm giá slot", "error");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Lỗi không xác định khi thêm giá slot";
+      console.error("Save slot pricing error:", err);
+      showToast(errorMessage, "error");
+    }
+  };
+
+  const handleEdit = (slot: SlotPricing) => {
+    setEditingSlotId(slot.id);
+    setEditPrice(slot.price.toString());
+  };
+
+  const handleSaveEdit = async (id: number) => {
+    if (!editPrice || isNaN(parseInt(editPrice))) {
+      showToast("Vui lòng nhập giá hợp lệ", "error");
+      return;
+    }
+    try {
+      const slot = slotPricings.find((s) => s.id === id);
+      if (!slot) {
+        showToast("Không tìm thấy slot để cập nhật", "error");
+        return;
+      }
+      const response = await fetch(`${API_URL}/api/FieldPricing/${id}`, {
+        method: "PUT",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fieldId: slot.fieldId,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          price: parseInt(editPrice),
+        }),
+      });
+      const result = await response.json();
+      if ([200, 201, 204, 209].includes(response.status)) {
+        fetchSlotPricings();
+        setEditingSlotId(null);
+        setEditPrice("");
+        showToast("Cập nhật giá slot thành công", "success");
+      } else {
+        showToast(result.message || "Không thể cập nhật giá slot", "error");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Lỗi không xác định khi cập nhật giá slot";
+      console.error("Update slot pricing error:", err);
+      showToast(errorMessage, "error");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSlotId(null);
+    setEditPrice("");
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm("Bạn có chắc muốn xóa giá slot này?")) {
+      try {
+        const response = await fetch(`${API_URL}/api/FieldPricing/${id}`, {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        });
+        const result = await response.json();
+        if ([200, 201, 202, 204, 209].includes(response.status)) {
+          fetchSlotPricings();
+          showToast("Xóa giá slot thành công", "success");
+        } else {
+          showToast(result.message || "Không thể xóa giá slot", "error");
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Lỗi không xác định khi xóa giá slot";
+        console.error("Delete slot pricing error:", err);
+        showToast(errorMessage, "error");
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchSlotPricings();
+  }, [fieldId]);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-800">Quản lý bảng giá slot</h2>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <FiX className="w-6 h-6 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-gray-50 rounded-xl p-4">
+            <h3 className="font-semibold text-gray-700 mb-3">Thiết lập giá slot</h3>
+            <div className="grid grid-cols-1 gap-4 mb-4">
+              <input
+                type="time"
+                value={newSlot.startTime}
+                onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
+                className="border p-2 rounded w-full"
+                placeholder="Giờ bắt đầu"
+                required
+              />
+              <input
+                type="time"
+                value={newSlot.endTime}
+                onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
+                className="border p-2 rounded w-full"
+                placeholder="Giờ kết thúc"
+                required
+              />
+              <input
+                type="number"
+                value={newSlot.price}
+                onChange={(e) => setNewSlot({ ...newSlot, price: e.target.value })}
+                className="border p-2 rounded w-full"
+                placeholder="Giá (VND)"
+                required
+                min="0"
+              />
+            </div>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors w-full"
+              disabled={!newSlot.startTime || !newSlot.endTime || !newSlot.price}
+            >
+              Thêm slot
+            </button>
+
+            {loading ? (
+              <p className="text-center py-4">Đang tải...</p>
+            ) : slotPricings.length === 0 ? (
+              <p className="text-center py-4">Không có slot giá nào.</p>
+            ) : (
+              <div className="space-y-3 mt-4">
+                {slotPricings.map((pricing) => (
+                  <div key={pricing.id} className="flex items-center justify-between bg-white rounded-lg p-3">
+                    <div>
+                      <p>{pricing.startTime} - {pricing.endTime}</p>
+                      <p className="text-sm text-gray-500">{pricing.price.toLocaleString("vi-VN")}đ</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      {editingSlotId === pricing.id ? (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                            className="border p-1 rounded w-24"
+                            placeholder="Giá mới"
+                            min="0"
+                          />
+                          <button
+                            onClick={() => handleSaveEdit(pricing.id)}
+                            className="p-1 bg-green-500 text-white rounded hover:bg-green-600"
+                          >
+                            Lưu
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="p-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleEdit(pricing)}
+                            className="p-1 text-blue-500 hover:bg-blue-50 rounded"
+                          >
+                            <FiEdit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(pricing.id)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-4">
+            <h3 className="font-semibold text-gray-700 mb-3">Hướng dẫn</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-600">
+              <li>Phân lô giờ đặt sân thành các slot theo ngày.</li>
+              <li>Đặt giá theo khung giờ cụ thể (ví dụ: 6h-8h, 8h-10h).</li>
+              <li>Các slot được hiển thị trên lịch sân và tính giá tự động.</li>
+              <li>Chủ sân có thể thêm, sửa, xóa slot giá bất kỳ lúc nào.</li>
+              <li>Bạn cần làm mới lịch sân để áp dụng giá mới.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const WeeklySchedule: React.FC = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+
+  const fieldId = Number(searchParams.get("fieldId")) || 1;
+  const fieldName = searchParams.get("fieldName") || "Sân không xác định";
+  const facId = Number(searchParams.get("facId")) || 0;
+
+  const showToast = (message: string, type: "success" | "error") => {
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: type,
+      title: message,
+      showConfirmButton: false,
+      timer: 5000,
+      timerProgressBar: true,
+      didOpen: (toast) => {
+        toast.addEventListener("mouseenter", () => Swal.stopTimer());
+        toast.addEventListener("mouseleave", () => Swal.resumeTimer());
+      },
+    });
   };
 
   const fetchSchedule = async () => {
@@ -426,8 +733,6 @@ const WeeklySchedule: React.FC = () => {
       }
 
       const result = await response.json();
-      console.log("Schedule API response:", result);
-
       if (result.success) {
         const mappedBookings: Booking[] = result.data.map((schedule: Schedule) => {
           const startDateTime = parse(
@@ -440,21 +745,16 @@ const WeeklySchedule: React.FC = () => {
             "yyyy-MM-dd HH:mm:ss",
             new Date(),
           );
-          const duration = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60); // Tính duration theo giờ
+          const duration = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);
 
           return {
             id: schedule.scheduleId,
             customerName: schedule.bookingTitle,
             date: startDateTime,
-            duration: duration,
+            duration,
             field: schedule.fieldName,
-            status:
-              schedule.status === "Booked"
-                ? "confirmed"
-                : schedule.status === "Scheduled"
-                  ? "pending"
-                  : "cancelled",
-            contact: "Unknown", // API không cung cấp contact, gán mặc định
+            status: schedule.status === "Booked" ? "confirmed" : schedule.status === "Scheduled" ? "pending" : "cancelled",
+            contact: "Unknown",
             basePrice: schedule.price,
           };
         });
@@ -491,8 +791,6 @@ const WeeklySchedule: React.FC = () => {
       }
 
       const result = await response.json();
-      console.log("Services API response:", result);
-
       if (result.success) {
         const mappedServices: Service[] = result.data.map((service: any) => {
           const { icon, unit } = mapServiceToIconAndUnit(service.serviceName);
@@ -500,7 +798,7 @@ const WeeklySchedule: React.FC = () => {
             id: service.serviceId,
             name: service.serviceName,
             price: service.price,
-            quantity: 1, // Mặc định quantity là 1
+            quantity: 1,
             icon,
             unit,
           };
@@ -534,7 +832,7 @@ const WeeklySchedule: React.FC = () => {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
-  const timeSlots = Array.from({ length: 12 }, (_, i) => i + 6); // 6AM to 5PM
+  const timeSlots = Array.from({ length: 12 }, (_, i) => i + 6);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter(
@@ -585,6 +883,12 @@ const WeeklySchedule: React.FC = () => {
                 Quay lại
               </button>
               <h1 className="text-3xl font-bold text-gray-900">Lịch sân: {fieldName}</h1>
+              <button
+                onClick={() => setIsPricingModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Quản lý bảng giá slot
+              </button>
             </div>
 
             <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm">
@@ -677,6 +981,13 @@ const WeeklySchedule: React.FC = () => {
               onConfirm={handleBookingConfirm}
               availableServices={services}
             />
+            {isPricingModalOpen && (
+              <PricingModal
+                fieldId={fieldId}
+                onClose={() => setIsPricingModalOpen(false)}
+                fetchSchedule={fetchSchedule}
+              />
+            )}
           </div>
         </div>
       </div>

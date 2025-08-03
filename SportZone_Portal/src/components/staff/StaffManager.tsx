@@ -32,6 +32,9 @@ type EditStaff = {
     email: string;
     status: "Active" | "Inactive";
     facIds: number[];
+    password: string;
+    confirmPassword: string;
+    roleName: string;
 };
 
 const StaffManager: React.FC = () => {
@@ -51,6 +54,9 @@ const StaffManager: React.FC = () => {
         email: "",
         status: "Active",
         facIds: [],
+        password: "",
+        confirmPassword: "",
+        roleName: "Nhân viên",
     });
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -80,6 +86,7 @@ const StaffManager: React.FC = () => {
         setError(null);
         try {
             const userString = localStorage.getItem("user");
+            const token = localStorage.getItem("token");
             const user = userString ? JSON.parse(userString) : null;
             const roleId = user?.roleId;
             const userId = user?.UId;
@@ -92,23 +99,29 @@ const StaffManager: React.FC = () => {
 
             let allStaffs: any[] = [];
 
+            const headers = {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            };
+
             if (roleId === 3) {
-                // Admin lấy toàn bộ staff
-                const response = await fetch(`https://localhost:7057/api/Staff/GetAll`);
+                const response = await fetch(`https://localhost:7057/api/Staff/GetAll`, {
+                    headers,
+                });
                 if (!response.ok) throw new Error(`Lỗi tải tất cả nhân viên (HTTP ${response.status})`);
                 const apiResponse = await response.json();
                 if (apiResponse.success) allStaffs = apiResponse.data || [];
                 else throw new Error(apiResponse.message || "Không thể lấy nhân viên.");
-            } else{
-                // FieldOwner lấy theo userId
-                const response = await fetch(`https://localhost:7057/api/Staff/field-owner/${userId}`);
+            } else {
+                const response = await fetch(`https://localhost:7057/api/Staff/field-owner/${userId}`, {
+                    headers,
+                });
                 if (!response.ok) throw new Error(`Lỗi tải nhân viên chủ sân (HTTP ${response.status})`);
                 const apiResponse = await response.json();
                 if (apiResponse.success) allStaffs = apiResponse.data || [];
                 else throw new Error(apiResponse.message || "Không thể lấy nhân viên.");
-            } 
+            }
 
-            // Gộp danh sách staff không trùng uId
             const staffMap = new Map<number, Staff>();
 
             allStaffs.forEach((item: any) => {
@@ -133,7 +146,7 @@ const StaffManager: React.FC = () => {
                         dob: item.dob || "",
                         image: userNav.image || "/default-avatar.jpg",
                         startTime: item.startTime || "",
-                        endTime: "", // nếu có thì thêm
+                        endTime: "",
                         email: userNav.uEmail || "",
                         status: userNav.uStatus || "Inactive",
                         facIds: [facId],
@@ -155,7 +168,6 @@ const StaffManager: React.FC = () => {
         }
     };
 
-
     useEffect(() => {
         fetchStaffs();
     }, []);
@@ -174,7 +186,6 @@ const StaffManager: React.FC = () => {
         );
     }, [searchTerm, staffs]);
 
-    // Delete staff via API
     const deleteStaff = async (id: number, name: string) => {
         const result = await Swal.fire({
             title: `Bạn có chắc muốn xóa nhân viên "${name}"?`,
@@ -186,8 +197,14 @@ const StaffManager: React.FC = () => {
 
         if (result.isConfirmed) {
             try {
+                const token = localStorage.getItem("token");
+                const headers = {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                };
+
                 const response = await fetch(`https://localhost:7057/api/Staff/${id}`, {
                     method: "DELETE",
+                    headers,
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
@@ -209,7 +226,6 @@ const StaffManager: React.FC = () => {
         }
     };
 
-    // Toggle staff status via API
     const toggleStatus = async (id: number) => {
         const staff = staffs.find((s) => s.id === id);
         if (!staff) return;
@@ -229,8 +245,15 @@ const StaffManager: React.FC = () => {
 
         if (result.isConfirmed) {
             try {
+                const token = localStorage.getItem("token");
+                const headers = {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                };
+
                 const response = await fetch(`https://localhost:7057/api/staff/${id}/status`, {
                     method: "PATCH",
+                    headers,
                     body: JSON.stringify({ status: newStatus }),
                 });
                 if (!response.ok) {
@@ -272,6 +295,9 @@ const StaffManager: React.FC = () => {
             email: staff.email,
             status: staff.status,
             facIds: staff.facIds,
+            password: "",
+            confirmPassword: "",
+            roleName: staff.roleName,
         });
         setIsModalOpen(true);
     };
@@ -279,6 +305,11 @@ const StaffManager: React.FC = () => {
     const handleSave = async () => {
         if (!formData.name || !formData.phone || !formData.email) {
             Swal.fire("Lỗi", "Vui lòng điền đầy đủ tên, email và SĐT", "error");
+            return;
+        }
+
+        if (!selectedStaff && (!formData.password || formData.password !== formData.confirmPassword)) {
+            Swal.fire("Lỗi", "Mật khẩu và xác nhận mật khẩu không khớp hoặc chưa được nhập", "error");
             return;
         }
 
@@ -291,11 +322,23 @@ const StaffManager: React.FC = () => {
         if (formData.facIds.length > 0) formDataToSend.append("FacId", formData.facIds[0].toString());
         if (formData.startTime) formDataToSend.append("StartTime", formData.startTime.split("T")[0]);
         if (formData.endTime) formDataToSend.append("EndTime", formData.endTime.split("T")[0]);
+        formDataToSend.append("Status", formData.status);
+        formDataToSend.append("RoleName", "Staff");
+        if (!selectedStaff) {
+            formDataToSend.append("Password", formData.password);
+            formDataToSend.append("ConfirmPassword", formData.confirmPassword);
+        }
 
         try {
+            const token = localStorage.getItem("token");
+            const headers = {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            };
+
             if (selectedStaff) {
                 const response = await fetch(`https://localhost:7057/api/staff/${selectedStaff.id}`, {
                     method: "PUT",
+                    headers,
                     body: formDataToSend,
                 });
                 if (!response.ok) {
@@ -326,32 +369,43 @@ const StaffManager: React.FC = () => {
                     throw new Error(apiResponse.error || "Lỗi khi cập nhật nhân viên.");
                 }
             } else {
-                const response = await fetch(`https://localhost:7057/api/staff`, {
+                const response = await fetch(`https://localhost:7057/api/Register/register`, {
                     method: "POST",
+                    headers,
                     body: formDataToSend,
                 });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `Lỗi khi thêm nhân viên (HTTP ${response.status}).`);
+
+                let apiResponse: any = {};
+                try {
+                    apiResponse = await response.json();
+                } catch {
+                    throw new Error("Phản hồi không hợp lệ từ máy chủ.");
                 }
-                const apiResponse = await response.json();
-                if (apiResponse.success) {
+
+                if (response.ok && apiResponse.message?.toLowerCase().includes("thành công")) {
                     setStaffs((prev) => [
                         ...prev,
                         {
-                            ...apiResponse.data,
-                            facIds: apiResponse.data.facIds || [apiResponse.data.facId],
-                            facilityNames:
-                                facilities
-                                    .filter((f) =>
-                                        (apiResponse.data.facIds || [apiResponse.data.facId]).includes(f.id)
-                                    )
-                                    .map((f) => f.name) || [apiResponse.data.facilityName],
+                            id: prev.length + 1,
+                            name: formData.name,
+                            phone: formData.phone,
+                            dob: formData.dob,
+                            image: formData.imageFile ? URL.createObjectURL(formData.imageFile) : "/default-avatar.jpg",
+                            startTime: formData.startTime,
+                            endTime: formData.endTime || "",
+                            email: formData.email,
+                            status: formData.status,
+                            facIds: formData.facIds,
+                            roleName: "Staff",
+                            facilityNames: facilities
+                                .filter((f) => formData.facIds.includes(f.id))
+                                .map((f) => f.name),
                         },
                     ]);
-                    Swal.fire("Thành công", "Đã thêm nhân viên mới", "success");
+
+                    Swal.fire("Thành công", apiResponse.message || "Đã thêm nhân viên mới", "success");
                 } else {
-                    throw new Error(apiResponse.error || "Lỗi khi thêm nhân viên.");
+                    throw new Error(apiResponse.message || "Lỗi khi thêm nhân viên.");
                 }
             }
         } catch (err: any) {
@@ -379,7 +433,6 @@ const StaffManager: React.FC = () => {
         }));
     };
 
-    // Handle multiple facility selection
     const handleFacilityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedOptions = Array.from(e.target.selectedOptions).map((opt) =>
             Number(opt.value)
@@ -400,6 +453,9 @@ const StaffManager: React.FC = () => {
             email: "",
             status: "Active",
             facIds: [],
+            password: "",
+            confirmPassword: "",
+            roleName: "Nhân viên",
         });
         setIsModalOpen(false);
     };
@@ -428,6 +484,9 @@ const StaffManager: React.FC = () => {
                                     email: "",
                                     status: "Active",
                                     facIds: [],
+                                    password: "",
+                                    confirmPassword: "",
+                                    roleName: "Nhân viên",
                                 });
                                 setIsModalOpen(true);
                             }}
@@ -518,8 +577,8 @@ const StaffManager: React.FC = () => {
                                                 <button
                                                     onClick={() => toggleStatus(staff.id)}
                                                     className={`${staff.status === "Active"
-                                                            ? "text-red-600 hover:text-red-800"
-                                                            : "text-blue-600 hover:text-blue-800"
+                                                        ? "text-red-600 hover:text-red-800"
+                                                        : "text-blue-600 hover:text-blue-800"
                                                         }`}
                                                     title={
                                                         staff.status === "Active"
@@ -640,19 +699,23 @@ const StaffManager: React.FC = () => {
                                     className="border px-3 py-2 rounded"
                                 />
                             </label>
-                            <select
-                                name="facIds"
-                                multiple
-                                value={formData.facIds.map(String)}
-                                onChange={handleFacilityChange}
-                                className="border px-3 py-2 rounded col-span-2"
-                            >
-                                {facilities.map((facility) => (
-                                    <option key={facility.id} value={facility.id}>
-                                        {facility.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <label className="col-span-2 flex flex-col text-sm text-gray-700">
+                                Cơ sở:
+                                <select
+                                    name="facIds"
+                                    multiple
+                                    value={formData.facIds.map(String)}
+                                    onChange={handleFacilityChange}
+                                    className="border px-3 py-2 rounded h-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    size={Math.min(facilities.length, 5)}
+                                >
+                                    {facilities.map((facility) => (
+                                        <option key={facility.id} value={facility.id}>
+                                            {facility.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
                             <select
                                 name="status"
                                 value={formData.status}
@@ -662,6 +725,26 @@ const StaffManager: React.FC = () => {
                                 <option value="Active">Hoạt động</option>
                                 <option value="Inactive">Không hoạt động</option>
                             </select>
+                            {!selectedStaff && (
+                                <>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        placeholder="Mật khẩu"
+                                        value={formData.password}
+                                        onChange={handleInputChange}
+                                        className="border px-3 py-2 rounded"
+                                    />
+                                    <input
+                                        type="password"
+                                        name="confirmPassword"
+                                        placeholder="Xác nhận mật khẩu"
+                                        value={formData.confirmPassword}
+                                        onChange={handleInputChange}
+                                        className="border px-3 py-2 rounded"
+                                    />
+                                </>
+                            )}
                         </div>
                         <div className="mt-6 flex justify-end gap-4">
                             <button
