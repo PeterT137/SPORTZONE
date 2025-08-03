@@ -126,12 +126,16 @@ namespace SportZone_API.Repositories
             {
                 var order = await _context.Orders.FindAsync(orderId);
                 if (order == null)
-                {
                     return false;
-                }
+                var oldTotalServicePrice = order.TotalServicePrice ?? 0;
                 order.TotalServicePrice = totalServicePrice;
+                var fieldPrice = order.TotalPrice - oldTotalServicePrice;
+                var totalPrice = fieldPrice + totalServicePrice;
+                order.TotalPrice = totalPrice;
+
                 _context.Orders.Update(order);
                 await _context.SaveChangesAsync();
+
                 return true;
             }
             catch (Exception ex)

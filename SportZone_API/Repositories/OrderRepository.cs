@@ -23,7 +23,7 @@ namespace SportZone_API.Repositories
             try
             {
                 var order = _mapper.Map<Order>(orderDto);
-                order.TotalPrice = 0;
+                order.TotalPrice = orderDto.TotalPrice ?? 0;
                 order.TotalServicePrice = 0;
                 order.CreateAt = orderDto.CreateAt ?? DateTime.UtcNow;
 

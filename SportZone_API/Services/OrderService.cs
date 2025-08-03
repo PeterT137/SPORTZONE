@@ -6,31 +6,33 @@ using SportZone_API.Services.Interfaces;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using SportZone_API.Repository.Interfaces;
 
 namespace SportZone_API.Services
 {
     public class OrderService : IOrderService
     {
         private readonly IOrderRepository _orderRepository;
+        private readonly IBookingRepository _bookingRepository;
         private readonly IMapper _mapper;
         private readonly SportZoneContext _context;
 
-        public OrderService(IOrderRepository orderRepository, IMapper mapper, SportZoneContext context)
+        public OrderService(IOrderRepository orderRepository, IMapper mapper, SportZoneContext context, IBookingRepository bookingRepository)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;
             _context = context;
+            _bookingRepository = bookingRepository;
         }
 
         public async Task<OrderDTO> CreateOrderFromBookingAsync(Booking booking)
         {
             try
             {
-                // Tính tổng tiền từ booking (tạm thời = 0, sẽ update sau khi add services)
                 var totalPrice = await CalculateBookingFieldPriceAsync(booking);
 
                 // Lấy FacId từ Field của booking
-                var facId = booking.Field?.FacId ?? 1; // Default facility nếu không có
+                var facId = booking.Field?.FacId ?? 1;
 
                 var orderCreateDto = new OrderCreateDTO
                 {
@@ -82,10 +84,23 @@ namespace SportZone_API.Services
 
         private async Task<decimal> CalculateBookingFieldPriceAsync(Booking booking)
         {
-            // TODO: Logic tính tiền field price từ slots
-            // Hiện tại return 0, sẽ update sau
-            await Task.CompletedTask; // Placeholder for async
-            return 0;
+            try
+            {
+                var bookedSlots = await _bookingRepository.GetBookedSlotsByBookingIdAsync(booking.BookingId);
+
+                if (!bookedSlots.Any())
+                {
+                    throw new Exception($"Không tìm thấy slot nào cho booking ID {booking.BookingId}");
+                }
+                var totalAfterFirstDivision = bookedSlots.Sum(slot => (slot.Price ?? 0) / 2);
+                var fieldPrice = totalAfterFirstDivision / 2;
+
+                return fieldPrice;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tính giá field cho booking: {ex.Message}", ex);
+            }
         }
 
         //public async Task<ServiceResponse<OrderDTO>> GetOrderDetailsAsync(int orderId)

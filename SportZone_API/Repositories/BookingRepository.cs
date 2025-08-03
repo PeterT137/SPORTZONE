@@ -232,6 +232,22 @@ namespace SportZone_API.Repository
             }
         }
 
+        public async Task<IEnumerable<FieldBookingSchedule>> GetBookedSlotsByBookingIdAsync(int bookingId)
+        {
+            try
+            {
+                var bookedSlots = await _context.FieldBookingSchedules
+                    .Where(s => s.BookingId == bookingId)
+                    .ToListAsync();
+
+                return bookedSlots;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách slot đã book: {ex.Message}", ex);
+            }
+        }
+
         private void ValidateBookingInput(BookingCreateDTO bookingDto)
         {
 
@@ -271,13 +287,6 @@ namespace SportZone_API.Repository
             {
                 throw new Exception($"Lỗi khi kiểm tra slot availability: {ex.Message}", ex);
             }
-        }
-
-        private decimal CalculateBookingAmount(decimal fieldPrice, DateTime startTime, DateTime endTime)
-        {
-            var duration = endTime - startTime;
-            var hours = (decimal)duration.TotalHours;
-            return fieldPrice * hours;
         }
 
         public async Task<bool> CancelBookingAsync(int bookingId)
