@@ -11,5 +11,8 @@ namespace SportZone_API.Services.Interfaces
         Task<ScheduleGenerationResponseDto> GenerateFieldBookingSchedulesAsync(FieldBookingScheduleGenerateDto generateDto);
         Task<FieldBookingScheduleDto?> UpdateFieldBookingScheduleAsync(int id, FieldBookingScheduleUpdateDto updateDto);
         Task<ScheduleGenerationResponseDto> DeleteFieldBookingScheduleAsync(int id);
+
+        Task<ServiceResponse<FieldBookingScheduleByDateDto>> GetSchedulesByFacilityAndDateAsync(int facilityId, DateOnly date);
+
     }
 }

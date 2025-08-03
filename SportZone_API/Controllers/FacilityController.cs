@@ -7,6 +7,7 @@ using SportZone_API.Attributes;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace SportZone_API.Controllers
 {
@@ -42,6 +43,50 @@ namespace SportZone_API.Controllers
             }
         }
 
+        [HttpGet("with-details")]
+        [AllowAnonymous]
+        [SwaggerOperation(Summary = "Lấy các cơ sở lên Homepage bao gồm cả search text : Customer")]
+        public async Task<IActionResult> GetAllWithDetails([FromQuery] string? searchText)
+        {
+            try
+            {
+                var result = await _facilityService.GetAllFacilitiesWithDetails(searchText);
+
+                if (result.Success)
+                {
+                    return Ok(result.Data ?? Enumerable.Empty<FacilityDetailDto>());
+                }
+                return BadRequest(new { error = result.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi lấy danh sách cơ sở chi tiết. Vui lòng thử lại sau." });
+            }
+        }
+
+        [HttpGet("filter")]
+        [AllowAnonymous]
+        [SwaggerOperation(Summary = "Lọc cơ sở theo Category Field và địa chỉ : Customer")]
+        public async Task<IActionResult> GetFacilitiesByFilter(
+            [FromQuery] string? categoryFieldName = null, 
+            [FromQuery] string? address = null)
+        {
+            try
+            {
+                var result = await _facilityService.GetFacilitiesByFilter(categoryFieldName, address);
+
+                if (result.Success)
+                {
+                    return Ok(result.Data ?? Enumerable.Empty<FacilityDetailDto>());
+                }
+                return BadRequest(new { error = result.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi lọc danh sách cơ sở. Vui lòng thử lại sau." });
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -61,7 +106,7 @@ namespace SportZone_API.Controllers
 
         [HttpPost]
         [RoleAuthorize("2")]
-        public async Task<IActionResult> Create([FromBody] FacilityDto dto)
+        public async Task<IActionResult> Create([FromForm] FacilityDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -84,7 +129,7 @@ namespace SportZone_API.Controllers
 
         [HttpPut("{id}")]
         [RoleAuthorize("2")]
-        public async Task<IActionResult> Update(int id, [FromBody] FacilityDto dto)
+        public async Task<IActionResult> Update(int id, [FromForm] FacilityUpdateDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -103,9 +148,10 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi cập nhật cơ sở. Vui lòng thử lại sau." }); 
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi cập nhật cơ sở. Vui lòng thử lại sau." });
             }
         }
+
 
         [HttpDelete("{id}")]
         [RoleAuthorize("2")]

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using SportZone_API.DTOs;
+using SportZone_API.Helpers;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services.Interfaces;
@@ -15,15 +16,18 @@ namespace SportZone_API.Services
         private readonly IStaffRepository _staffRepository;
         private readonly IFacilityRepository _facilityRepository; 
         private readonly IMapper _mapper;
+        private readonly IWebHostEnvironment _env;
 
         public StaffService(
             IStaffRepository staffRepository,
             IFacilityRepository facilityRepository,
-            IMapper mapper)
+            IMapper mapper,
+            IWebHostEnvironment env)
         {
             _staffRepository = staffRepository;
             _facilityRepository = facilityRepository;
             _mapper = mapper;
+            _env = env;
         }
 
         public async Task<ServiceResponse<IEnumerable<StaffDto>>> GetAllStaffAsync()
@@ -73,10 +77,40 @@ namespace SportZone_API.Services
                 return Fail<string>("Không tìm thấy nhân viên để cập nhật.");
             }
 
+            // Xử lý upload và cập nhật file ảnh
+            if (dto.ImageFile != null)
+            {
+                const string subFolderName = "StaffImages";
+                var (isValid, errorMessage) = ImageUpload.ValidateImage(dto.ImageFile);
+                if (!isValid)
+                {
+                    return Fail<string>(errorMessage);
+                }
+
+                var newImageUrl = await ImageUpload.SaveImageAsync(dto.ImageFile, _env.WebRootPath, subFolderName);
+                if (newImageUrl == null)
+                {
+                    return Fail<string>("Lỗi khi lưu file ảnh mới.");
+                }
+
+                // Xóa ảnh cũ nếu tồn tại
+                if (!string.IsNullOrEmpty(staffToUpdate.Image))
+                {
+                    ImageUpload.DeleteImage(staffToUpdate.Image, _env.WebRootPath);
+                }
+                staffToUpdate.Image = newImageUrl;
+            }
+            else if (string.IsNullOrEmpty(dto.Name) && string.IsNullOrEmpty(dto.Phone) && !dto.Dob.HasValue && !dto.FacId.HasValue && !dto.StartTime.HasValue && !dto.EndTime.HasValue)
+            {
+                // Trường hợp người dùng gửi rỗng và không có file ảnh, có thể là muốn xóa ảnh cũ
+                // Tùy theo logic nghiệp vụ, bạn có thể thêm một cờ `RemoveImage` vào DTO.
+                // Ở đây, tôi sẽ không làm gì cả, giữ lại ảnh cũ. Nếu bạn muốn xóa ảnh, hãy thêm logic vào đây.
+                // Ví dụ: staffToUpdate.Image = null;
+            }
+
             if (!string.IsNullOrEmpty(dto.Name)) staffToUpdate.Name = dto.Name;
             if (!string.IsNullOrEmpty(dto.Phone)) staffToUpdate.Phone = dto.Phone;
             if (dto.Dob.HasValue) staffToUpdate.Dob = dto.Dob.Value;
-            if (!string.IsNullOrEmpty(dto.Image)) staffToUpdate.Image = dto.Image;
 
             if (dto.FacId.HasValue)
             {
@@ -103,8 +137,20 @@ namespace SportZone_API.Services
                 return Fail<string>("Thời gian bắt đầu không thể sau thời gian kết thúc.");
             }
 
-            await _staffRepository.UpdateStaffAsync(staffToUpdate);
-            return Success("Cập nhật thông tin nhân viên thành công.");
+            try
+            {
+                await _staffRepository.UpdateStaffAsync(staffToUpdate);
+                return Success("Cập nhật thông tin nhân viên thành công.");
+            }
+            catch (Exception ex)
+            {
+                // Nếu có lỗi, xóa ảnh mới đã upload để tránh file rác
+                if (dto.ImageFile != null && !string.IsNullOrEmpty(staffToUpdate.Image))
+                {
+                    ImageUpload.DeleteImage(staffToUpdate.Image, _env.WebRootPath);
+                }
+                return Fail<string>($"Đã xảy ra lỗi khi cập nhật: {ex.Message}");
+            }
         }
 
         public async Task<ServiceResponse<string>> DeleteStaffAsync(int uId)
@@ -121,5 +167,38 @@ namespace SportZone_API.Services
         private ServiceResponse<T> Fail<T>(string msg) => new() { Success = false, Message = msg };
         private ServiceResponse<T> Success<T>(T data, string msg = "") => new() { Success = true, Data = data, Message = msg };
         private ServiceResponse<string> Success(string msg) => new() { Success = true, Message = msg };
+
+        public StaffService(IStaffRepository staffRepository)
+        {
+            _staffRepository = staffRepository;
+        }
+
+        public async Task<ServiceResponse<List<Staff>>> GetStaffByFieldOwnerIdAsync(int fieldOwnerId)
+        {
+            var response = new ServiceResponse<List<Staff>>();
+
+            try
+            {
+                var staff = await _staffRepository.GetStaffByFieldOwnerIdAsync(fieldOwnerId);
+                
+                if (staff == null || !staff.Any())
+                {
+                    response.Success = false;
+                    response.Message = "Không tìm thấy staff nào cho field owner này.";
+                    return response;
+                }
+
+                response.Data = staff;
+                response.Message = $"Tìm thấy {staff.Count} staff.";
+                response.Success = true;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+            }
+
+            return response;
+        }
     }
 }
