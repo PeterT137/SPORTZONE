@@ -2,20 +2,42 @@
 using SportZone_API.Models;
 using SportZone_API.Services.Interfaces;
 using AutoMapper;
-using Azure.Core.Pipeline;
 using SportZone_API.Repositories.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using SportZone_API.Hubs;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Security.Claims;
+using SportZone_API.Repositories;
 
 namespace SportZone_API.Services
 {
     public class FieldService : IFieldService
     {
         private readonly IFieldRepository _fieldRepository;
+        private readonly IFacilityRepository _facilityRepository; 
         private readonly IMapper _mapper;
-        public FieldService(IFieldRepository fieldRepository, IMapper mapper)
+        private readonly IHubContext<NotificationHub> _hubContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public FieldService(
+            IFieldRepository fieldRepository,
+            IFacilityRepository facilityRepository, 
+            IMapper mapper,
+            IHubContext<NotificationHub> hubContext,
+            IHttpContextAccessor httpContextAccessor)
         {
             _fieldRepository = fieldRepository;
+            _facilityRepository = facilityRepository; 
             _mapper = mapper;
+            _hubContext = hubContext;
+            _httpContextAccessor = httpContextAccessor;
         }
+
+        // --- Các phương thức Read không thay đổi ---
 
         public async Task<IEnumerable<FieldResponseDTO>> GetAllFieldsAsync()
         {
@@ -107,7 +129,6 @@ namespace SportZone_API.Services
                 if (fieldId <= 0)
                     throw new ArgumentException("ID sân không hợp lệ");
 
-                // Kiểm tra sân có tồn tại không
                 if (!await _fieldRepository.FieldExistsAsync(fieldId))
                     throw new ArgumentException("Sân không tồn tại");
 
@@ -119,6 +140,8 @@ namespace SportZone_API.Services
             }
         }
 
+        // --- Các phương thức Create, Update, Delete có áp dụng SignalR ---
+
         public async Task<Field> CreateFieldAsync(FieldCreateDTO fieldDto)
         {
             try
@@ -126,15 +149,30 @@ namespace SportZone_API.Services
                 if (fieldDto == null)
                     throw new ArgumentNullException(nameof(fieldDto), "Dữ liệu sân không được để trống");
 
-                // Validate business rules
                 if (string.IsNullOrWhiteSpace(fieldDto.FieldName))
                     throw new ArgumentException("Tên sân là bắt buộc");
 
-                // Kiểm tra tên sân đã tồn tại trong cơ sở này chưa
                 if (await _fieldRepository.FieldNameExistsInFacilityAsync(fieldDto.FieldName, fieldDto.FacId))
                     throw new ArgumentException($"Tên sân '{fieldDto.FieldName}' đã tồn tại trong cơ sở này");
 
-                return await _fieldRepository.CreateFieldAsync(fieldDto);
+                var newField = await _fieldRepository.CreateFieldAsync(fieldDto);
+
+                if (newField.FacId.HasValue)
+                {
+                    // Sửa dòng này để gọi đúng Repository
+                    var facility = await _facilityRepository.GetByIdAsync(newField.FacId.Value);
+
+                    var message = new
+                    {
+                        Action = "Create",
+                        Message = $"Sân mới '{newField.FieldName}' đã được tạo thành công tại cơ sở '{facility?.Name}'.",
+                        Field = _mapper.Map<FieldResponseDTO>(newField)
+                    };
+
+                    await _hubContext.Clients.All.SendAsync("ReceiveFieldUpdate", message);
+                }
+
+                return newField;
             }
             catch (Exception ex)
             {
@@ -148,33 +186,41 @@ namespace SportZone_API.Services
             {
                 if (fieldId <= 0)
                     throw new ArgumentException("ID sân không hợp lệ");
-
                 if (fieldDto == null)
                     throw new ArgumentNullException(nameof(fieldDto), "Dữ liệu cập nhật không được để trống");
-
-                // Validate business rules
-                // Note: Price validation removed as Price is now managed in separate Price table
-
-                // Kiểm tra sân có tồn tại không
                 if (!await _fieldRepository.FieldExistsAsync(fieldId))
                     throw new ArgumentException("Sân không tồn tại");
 
-                // Kiểm tra tên sân có bị trùng không (nếu có thay đổi tên)
-                if (!string.IsNullOrWhiteSpace(fieldDto.FieldName))
+                var currentField = await _fieldRepository.GetFieldByIdAsync(fieldId);
+                if (currentField != null && currentField.FacId.HasValue)
                 {
-                    var currentField = await _fieldRepository.GetFieldByIdAsync(fieldId);
-                    if (currentField != null && currentField.FacId.HasValue)
+                    if (!string.IsNullOrWhiteSpace(fieldDto.FieldName) && fieldDto.FieldName != currentField.FieldName)
                     {
-                        // Kiểm tra có field nào khác trong cùng facility có tên này không
                         var existingFields = await _fieldRepository.GetFieldsByFacilityAsync(currentField.FacId.Value);
                         if (existingFields.Any(f => f.FieldId != fieldId && f.FieldName == fieldDto.FieldName))
                         {
                             throw new ArgumentException($"Tên sân '{fieldDto.FieldName}' đã tồn tại trong cơ sở này");
                         }
                     }
+
+                    var isSuccess = await _fieldRepository.UpdateFieldAsync(fieldId, fieldDto);
+                    if (isSuccess)
+                    {
+                        var updatedField = await _fieldRepository.GetFieldByIdAsync(fieldId);
+
+                        var message = new
+                        {
+                            Action = "Update",
+                            Message = $"Thông tin sân '{currentField.FieldName}' đã được cập nhật thành công.",
+                            Field = _mapper.Map<FieldResponseDTO>(updatedField)
+                        };
+
+                        await _hubContext.Clients.Group($"facility-{currentField.FacId.Value}").SendAsync("ReceiveFieldUpdate", message);
+                    }
+                    return isSuccess;
                 }
 
-                return await _fieldRepository.UpdateFieldAsync(fieldId, fieldDto);
+                return false;
             }
             catch (Exception ex)
             {
@@ -188,9 +234,26 @@ namespace SportZone_API.Services
             {
                 if (fieldId <= 0)
                     throw new ArgumentException("ID sân không hợp lệ", nameof(fieldId));
-                if (!await _fieldRepository.FieldExistsAsync(fieldId))
+
+                var fieldToDelete = await _fieldRepository.GetFieldByIdAsync(fieldId);
+                if (fieldToDelete == null)
                     throw new Exception("Sân không tồn tại");
-                return await _fieldRepository.DeleteFieldAsync(fieldId);
+
+                bool isDeleted = await _fieldRepository.DeleteFieldAsync(fieldId);
+                if (isDeleted)
+                {
+                    if (fieldToDelete.FacId.HasValue)
+                    {
+                        var message = new
+                        {
+                            Action = "Delete",
+                            Message = $"Sân '{fieldToDelete.FieldName}' đã bị xóa khỏi hệ thống.",
+                            FieldId = fieldId
+                        };
+                        await _hubContext.Clients.Group($"facility-{fieldToDelete.FacId.Value}").SendAsync("ReceiveFieldUpdate", message);
+                    }
+                }
+                return isDeleted;
             }
             catch (Exception ex)
             {

@@ -1,5 +1,4 @@
-﻿// SportZone_API/Services/RegisterService.cs
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
@@ -9,9 +8,11 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Hosting; // Cần thêm using này
-using SportZone_API.Helpers; // Cần thêm using này
+using Microsoft.AspNetCore.Hosting;
+using SportZone_API.Helpers;
 using System.IO;
+using Microsoft.AspNetCore.SignalR;
+using SportZone_API.Hubs;
 
 namespace SportZone_API.Services
 {
@@ -22,7 +23,8 @@ namespace SportZone_API.Services
         private readonly IMapper _mapper;
         private readonly IFacilityRepository _facilityRepository;
         private readonly SportZoneContext _context;
-        private readonly IWebHostEnvironment _env; // Thêm IWebHostEnvironment
+        private readonly IWebHostEnvironment _env;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
         public RegisterService(
             IRegisterRepository repository,
@@ -30,18 +32,31 @@ namespace SportZone_API.Services
             IMapper mapper,
             IFacilityRepository facilityRepository,
             SportZoneContext context,
-            IWebHostEnvironment env) // Cập nhật constructor
+            IWebHostEnvironment env,
+            IHubContext<NotificationHub> hubContext)
         {
             _repository = repository;
             _passwordHasher = passwordHasher;
             _mapper = mapper;
             _facilityRepository = facilityRepository;
             _context = context;
-            _env = env; // Gán giá trị
+            _env = env;
+            _hubContext = hubContext;
         }
 
         public async Task<ServiceResponse<string>> RegisterUserAsync(RegisterDto dto)
         {
+            // Các thông báo lỗi sẽ được trả về trực tiếp, không gửi qua SignalR
+            if (!IsValidPhoneNumber(dto.Phone))
+            {
+                return Fail("Định dạng số điện thoại không hợp lệ.");
+            }
+
+            if (!IsValidEmail(dto.Email))
+            {
+                return Fail("Định dạng email không hợp lệ.");
+            }
+
             if (!IsValidPassword(dto.Password))
             {
                 return Fail("Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.");
@@ -50,11 +65,10 @@ namespace SportZone_API.Services
             var existing = await _repository.GetUserByEmailAsync(dto.Email);
             if (existing != null)
             {
-                return Fail("Email đã tồn tại.");
+                return Fail($"Email '{dto.Email}' đã tồn tại.");
             }
 
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == dto.RoleName);
-
             if (role == null)
             {
                 return Fail($"Tên vai trò '{dto.RoleName}' không hợp lệ. Vui lòng chọn 'Customer', 'Field Owner' hoặc 'Staff'.");
@@ -74,6 +88,9 @@ namespace SportZone_API.Services
                 var customer = _mapper.Map<Customer>(dto);
                 await _repository.RegisterUserWithCustomerAsync(user, customer);
 
+                // Gửi thông báo tới Admin khi có khách hàng mới
+                await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Người dùng mới '{dto.Email}' đã đăng ký với vai trò Customer.");
+
                 return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản khách hàng thành công." };
             }
             else if (dto.RoleName == "Field_Owner")
@@ -91,6 +108,9 @@ namespace SportZone_API.Services
                 var fieldOwner = _mapper.Map<FieldOwner>(dto);
                 await _repository.RegisterUserWithFieldOwnerAsync(user, fieldOwner);
 
+                // Gửi thông báo tới Admin khi có chủ sân mới
+                await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Chủ sân mới '{dto.Email}' đã đăng ký. Vui lòng xác minh.");
+
                 return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản chủ sân thành công." };
             }
             else if (dto.RoleName == "Staff")
@@ -99,17 +119,14 @@ namespace SportZone_API.Services
                 {
                     return Fail("Vui lòng cung cấp FacId hợp lệ cho nhân viên.");
                 }
-
                 if (!dto.Dob.HasValue)
                 {
                     return Fail("Ngày sinh không được để trống cho nhân viên.");
                 }
-
                 if (!dto.StartTime.HasValue)
                 {
                     return Fail("Thời gian bắt đầu làm việc không được để trống cho nhân viên.");
                 }
-
                 if (dto.StartTime.HasValue && dto.EndTime.HasValue && dto.StartTime.Value > dto.EndTime.Value)
                 {
                     return Fail("Thời gian bắt đầu không thể sau thời gian kết thúc.");
@@ -122,7 +139,6 @@ namespace SportZone_API.Services
                 }
 
                 string? imageUrl = null;
-                // Xử lý upload file ảnh nếu có
                 if (dto.ImageFile != null)
                 {
                     const string subFolderName = "StaffImages";
@@ -146,19 +162,23 @@ namespace SportZone_API.Services
                     user.UStatus = "Active";
 
                     var staff = _mapper.Map<Staff>(dto);
-                    staff.Image = imageUrl; // Gán URL ảnh đã lưu vào model
+                    staff.Image = imageUrl;
 
                     await _repository.RegisterUserWithStaffAsync(user, staff);
+
+                    // Gửi thông báo tới Admin khi có nhân viên mới
+                    await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Nhân viên mới '{dto.Email}' đã được đăng ký cho cơ sở '{facility.Name}'.");
 
                     return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản nhân viên thành công." };
                 }
                 catch (Exception ex)
                 {
-                    // Nếu có lỗi DB, xóa file ảnh vừa upload để tránh file rác
                     if (!string.IsNullOrEmpty(imageUrl))
                     {
                         ImageUpload.DeleteImage(imageUrl, _env.WebRootPath);
                     }
+
+                    // Không gửi lỗi qua SignalR, chỉ trả về response
                     return Fail($"Đã xảy ra lỗi khi đăng ký: {ex.Message}");
                 }
             }
@@ -169,6 +189,18 @@ namespace SportZone_API.Services
         }
 
         private static ServiceResponse<string> Fail(string msg) => new() { Success = false, Message = msg };
+
+        private static bool IsValidPhoneNumber(string phoneNumber)
+        {
+            var phonePattern = @"^[\+]?[0-9]?[\(\)\-\s\.]*[0-9]{8,15}$";
+            return Regex.IsMatch(phoneNumber, phonePattern);
+        }
+
+        private static bool IsValidEmail(string email)
+        {
+            var emailPattern = @"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$";
+            return Regex.IsMatch(email, emailPattern);
+        }
 
         public static bool IsValidPassword(string password)
         {

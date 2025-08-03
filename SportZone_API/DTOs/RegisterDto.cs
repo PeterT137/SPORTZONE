@@ -1,25 +1,23 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations; 
+using System.ComponentModel.DataAnnotations;
 
 namespace SportZone_API.DTOs
 {
-    public class RegisterDto 
+    public class RegisterDto
     {
         [Required(ErrorMessage = "Tên vai trò không được để trống.")]
         [StringLength(50, ErrorMessage = "Tên vai trò không được vượt quá 50 ký tự.")]
-        public string RoleName { get; set; } = string.Empty; 
+        public string RoleName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Tên không được để trống.")]
         [StringLength(100, ErrorMessage = "Tên không được vượt quá 100 ký tự.")]
         public string Name { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Số điện thoại không được để trống.")]
-        [Phone(ErrorMessage = "Định dạng số điện thoại không hợp lệ.")]
         [StringLength(20, MinimumLength = 10, ErrorMessage = "Số điện thoại phải từ 10 đến 20 ký tự.")]
         public string Phone { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Email không được để trống.")]
-        [EmailAddress(ErrorMessage = "Định dạng email không hợp lệ.")]
         [StringLength(100, ErrorMessage = "Email không được vượt quá 100 ký tự.")]
         public string Email { get; set; } = string.Empty;
 
@@ -37,7 +35,7 @@ namespace SportZone_API.DTOs
         public IFormFile? ImageFile { get; set; }
 
         [Range(1, int.MaxValue, ErrorMessage = "FacId phải là một số nguyên dương.")]
-        public int? FacId { get; set; } 
+        public int? FacId { get; set; }
         public DateOnly? StartTime { get; set; }
         public DateOnly? EndTime { get; set; }
     }

@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.SignalR;
 using SportZone_API.DTOs;
 using SportZone_API.Helpers;
+using SportZone_API.Hubs;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services.Interfaces;
@@ -14,20 +16,23 @@ namespace SportZone_API.Services
     public class StaffService : IStaffService
     {
         private readonly IStaffRepository _staffRepository;
-        private readonly IFacilityRepository _facilityRepository; 
+        private readonly IFacilityRepository _facilityRepository;
         private readonly IMapper _mapper;
         private readonly IWebHostEnvironment _env;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
         public StaffService(
             IStaffRepository staffRepository,
             IFacilityRepository facilityRepository,
             IMapper mapper,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            IHubContext<NotificationHub> hubContext)
         {
             _staffRepository = staffRepository;
             _facilityRepository = facilityRepository;
             _mapper = mapper;
             _env = env;
+            _hubContext = hubContext;
         }
 
         public async Task<ServiceResponse<IEnumerable<StaffDto>>> GetAllStaffAsync()
@@ -77,7 +82,7 @@ namespace SportZone_API.Services
                 return Fail<string>("Không tìm thấy nhân viên để cập nhật.");
             }
 
-            // Xử lý upload và cập nhật file ảnh
+            var oldFacId = staffToUpdate.FacId;
             if (dto.ImageFile != null)
             {
                 const string subFolderName = "StaffImages";
@@ -93,7 +98,6 @@ namespace SportZone_API.Services
                     return Fail<string>("Lỗi khi lưu file ảnh mới.");
                 }
 
-                // Xóa ảnh cũ nếu tồn tại
                 if (!string.IsNullOrEmpty(staffToUpdate.Image))
                 {
                     ImageUpload.DeleteImage(staffToUpdate.Image, _env.WebRootPath);
@@ -102,16 +106,10 @@ namespace SportZone_API.Services
             }
             else if (string.IsNullOrEmpty(dto.Name) && string.IsNullOrEmpty(dto.Phone) && !dto.Dob.HasValue && !dto.FacId.HasValue && !dto.StartTime.HasValue && !dto.EndTime.HasValue)
             {
-                // Trường hợp người dùng gửi rỗng và không có file ảnh, có thể là muốn xóa ảnh cũ
-                // Tùy theo logic nghiệp vụ, bạn có thể thêm một cờ `RemoveImage` vào DTO.
-                // Ở đây, tôi sẽ không làm gì cả, giữ lại ảnh cũ. Nếu bạn muốn xóa ảnh, hãy thêm logic vào đây.
-                // Ví dụ: staffToUpdate.Image = null;
             }
-
             if (!string.IsNullOrEmpty(dto.Name)) staffToUpdate.Name = dto.Name;
             if (!string.IsNullOrEmpty(dto.Phone)) staffToUpdate.Phone = dto.Phone;
             if (dto.Dob.HasValue) staffToUpdate.Dob = dto.Dob.Value;
-
             if (dto.FacId.HasValue)
             {
                 var facility = await _facilityRepository.GetByIdAsync(dto.FacId.Value);
@@ -140,11 +138,28 @@ namespace SportZone_API.Services
             try
             {
                 await _staffRepository.UpdateStaffAsync(staffToUpdate);
+                var updatedStaffDto = _mapper.Map<StaffDto>(staffToUpdate);
+                if (oldFacId.HasValue && oldFacId.Value != staffToUpdate.FacId)
+                {
+                    var messageOld = $"Nhân viên '{staffToUpdate.Name}' (ID: {uId}) đã được chuyển khỏi cơ sở của bạn.";
+                    await _hubContext.Clients.Group($"facility-{oldFacId.Value}").SendAsync("ReceiveNotification", messageOld);
+                    await _hubContext.Clients.Group($"facility-{oldFacId.Value}").SendAsync("StaffDeleted", uId);
+                }
+                if (staffToUpdate.FacId.HasValue)
+                {
+                    var messageNew = $"Nhân viên '{staffToUpdate.Name}' (ID: {uId}) đã được cập nhật thông tin.";
+                    await _hubContext.Clients.Group($"facility-{staffToUpdate.FacId.Value}").SendAsync("ReceiveNotification", messageNew);
+                    await _hubContext.Clients.Group($"facility-{staffToUpdate.FacId.Value}").SendAsync("StaffUpdated", updatedStaffDto);
+                }
+                else
+                {
+                    var message = $"Nhân viên '{staffToUpdate.Name}' (ID: {uId}) hiện không thuộc cơ sở nào.";
+                    await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", message); 
+                }
                 return Success("Cập nhật thông tin nhân viên thành công.");
             }
             catch (Exception ex)
             {
-                // Nếu có lỗi, xóa ảnh mới đã upload để tránh file rác
                 if (dto.ImageFile != null && !string.IsNullOrEmpty(staffToUpdate.Image))
                 {
                     ImageUpload.DeleteImage(staffToUpdate.Image, _env.WebRootPath);
@@ -160,18 +175,28 @@ namespace SportZone_API.Services
             {
                 return Fail<string>("Không tìm thấy nhân viên để xóa.");
             }
+
+            var facId = staffToDelete.FacId;
+            var staffName = staffToDelete.Name;
+            if (!string.IsNullOrEmpty(staffToDelete.Image))
+            {
+                ImageUpload.DeleteImage(staffToDelete.Image, _env.WebRootPath);
+            }
+
             await _staffRepository.DeleteStaffAsync(staffToDelete);
+            if (facId.HasValue)
+            {
+                var message = $"Nhân viên '{staffName}' (ID: {uId}) đã bị xóa khỏi cơ sở của bạn.";
+                await _hubContext.Clients.Group($"facility-{facId.Value}").SendAsync("ReceiveNotification", message);
+                await _hubContext.Clients.Group($"facility-{facId.Value}").SendAsync("StaffDeleted", uId);
+            }
+
             return Success("Xóa nhân viên thành công.");
         }
 
         private ServiceResponse<T> Fail<T>(string msg) => new() { Success = false, Message = msg };
         private ServiceResponse<T> Success<T>(T data, string msg = "") => new() { Success = true, Data = data, Message = msg };
         private ServiceResponse<string> Success(string msg) => new() { Success = true, Message = msg };
-
-        public StaffService(IStaffRepository staffRepository)
-        {
-            _staffRepository = staffRepository;
-        }
 
         public async Task<ServiceResponse<List<Staff>>> GetStaffByFieldOwnerIdAsync(int fieldOwnerId)
         {
@@ -180,7 +205,7 @@ namespace SportZone_API.Services
             try
             {
                 var staff = await _staffRepository.GetStaffByFieldOwnerIdAsync(fieldOwnerId);
-                
+
                 if (staff == null || !staff.Any())
                 {
                     response.Success = false;

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Hosting;
 using SportZone_API.DTOs;
 using SportZone_API.Helpers;
 using SportZone_API.Models;
@@ -7,6 +8,9 @@ using SportZone_API.Services.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System;
+using Microsoft.AspNetCore.SignalR; // Thêm using này
+using SportZone_API.Hubs; // Thêm using này
 
 namespace SportZone_API.Services
 {
@@ -15,12 +19,18 @@ namespace SportZone_API.Services
         private readonly IFacilityRepository _repository;
         private readonly IMapper _mapper;
         private readonly IWebHostEnvironment _env;
+        private readonly IHubContext<NotificationHub> _hubContext; // Khai báo HubContext
 
-        public FacilityService(IFacilityRepository repository, IMapper mapper, IWebHostEnvironment env)
+        public FacilityService(
+            IFacilityRepository repository,
+            IMapper mapper,
+            IWebHostEnvironment env,
+            IHubContext<NotificationHub> hubContext) // Thêm vào constructor
         {
             _repository = repository;
             _mapper = mapper;
             _env = env;
+            _hubContext = hubContext;
         }
 
         public async Task<ServiceResponse<List<FacilityDto>>> GetAllFacilities(string? searchText = null)
@@ -35,7 +45,7 @@ namespace SportZone_API.Services
                     return new ServiceResponse<List<FacilityDto>>
                     {
                         Success = true,
-                        Message = "Không tìm thấy cơ sở nào.", 
+                        Message = "Không tìm thấy cơ sở nào.",
                         Data = new List<FacilityDto>()
                     };
                 }
@@ -43,7 +53,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDto>>
                 {
                     Success = true,
-                    Message = "Lấy danh sách cơ sở thành công.", 
+                    Message = "Lấy danh sách cơ sở thành công.",
                     Data = facilityDtos
                 };
             }
@@ -52,7 +62,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDto>>
                 {
                     Success = false,
-                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở: {ex.Message}", 
+                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở: {ex.Message}",
                     Data = null
                 };
             }
@@ -70,7 +80,7 @@ namespace SportZone_API.Services
                     return new ServiceResponse<List<FacilityDetailDto>>
                     {
                         Success = true,
-                        Message = "Không tìm thấy cơ sở nào.", 
+                        Message = "Không tìm thấy cơ sở nào.",
                         Data = new List<FacilityDetailDto>()
                     };
                 }
@@ -78,7 +88,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDetailDto>>
                 {
                     Success = true,
-                    Message = "Lấy danh sách cơ sở chi tiết thành công.", 
+                    Message = "Lấy danh sách cơ sở chi tiết thành công.",
                     Data = facilityDetailDtos
                 };
             }
@@ -87,7 +97,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDetailDto>>
                 {
                     Success = false,
-                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở chi tiết: {ex.Message}", 
+                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở chi tiết: {ex.Message}",
                     Data = null
                 };
             }
@@ -105,7 +115,7 @@ namespace SportZone_API.Services
                     return new ServiceResponse<List<FacilityDetailDto>>
                     {
                         Success = true,
-                        Message = "Không tìm thấy cơ sở nào phù hợp với bộ lọc.", 
+                        Message = "Không tìm thấy cơ sở nào phù hợp với bộ lọc.",
                         Data = new List<FacilityDetailDto>()
                     };
                 }
@@ -113,7 +123,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDetailDto>>
                 {
                     Success = true,
-                    Message = "Lấy danh sách cơ sở theo bộ lọc thành công.", 
+                    Message = "Lấy danh sách cơ sở theo bộ lọc thành công.",
                     Data = facilityDetailDtos
                 };
             }
@@ -122,7 +132,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDetailDto>>
                 {
                     Success = false,
-                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở theo bộ lọc: {ex.Message}", 
+                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở theo bộ lọc: {ex.Message}",
                     Data = null
                 };
             }
@@ -138,8 +148,6 @@ namespace SportZone_API.Services
         {
             var imageUrls = new List<string>();
             var uploadedFilesPaths = new List<string>();
-
-            // Tên thư mục con bạn muốn sử dụng
             const string subFolderName = "FacilityImages";
 
             if (dto.Images != null && dto.Images.Any())
@@ -151,19 +159,15 @@ namespace SportZone_API.Services
                     {
                         return new ServiceResponse<FacilityDto> { Success = false, Message = errorMessage };
                     }
-
-                    // Gọi phương thức SaveImageAsync với tên thư mục con
                     var imageUrl = await ImageUpload.SaveImageAsync(imageFile, _env.WebRootPath, subFolderName);
                     if (imageUrl == null)
                     {
-                        // Xóa các file đã upload thành công trước đó nếu có lỗi
                         foreach (var path in uploadedFilesPaths)
                         {
                             System.IO.File.Delete(Path.Combine(_env.WebRootPath, path.TrimStart('/')));
                         }
                         return new ServiceResponse<FacilityDto> { Success = false, Message = "Lỗi khi lưu file ảnh." };
                     }
-
                     imageUrls.Add(imageUrl);
                     uploadedFilesPaths.Add(imageUrl);
                 }
@@ -179,6 +183,9 @@ namespace SportZone_API.Services
 
                 var createdFacility = await _repository.GetByIdAsync(facility.FacId);
 
+                // Gửi thông báo tới Admin khi có cơ sở mới được tạo
+                await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Cơ sở mới '{facility.Name}' đã được tạo.");
+
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = true,
@@ -188,7 +195,6 @@ namespace SportZone_API.Services
             }
             catch (Exception ex)
             {
-                // Xóa các file đã upload nếu có lỗi DB
                 foreach (var url in uploadedFilesPaths)
                 {
                     ImageUpload.DeleteImage(url, _env.WebRootPath);
@@ -211,15 +217,14 @@ namespace SportZone_API.Services
                 if (facility == null)
                     return new ServiceResponse<FacilityDto> { Success = false, Message = "Không tìm thấy cơ sở." };
 
-                // Logic xử lý ảnh
+                var oldName = facility.Name; // Lưu tên cũ để dùng cho thông báo
+
                 var imageUrls = new List<string>();
-                // 1. Thêm các URL ảnh cũ được giữ lại
                 if (dto.ExistingImageUrls != null)
                 {
                     imageUrls.AddRange(dto.ExistingImageUrls);
                 }
 
-                // 2. Tải lên và thêm các ảnh mới
                 if (dto.NewImages != null && dto.NewImages.Any())
                 {
                     foreach (var imageFile in dto.NewImages)
@@ -238,23 +243,30 @@ namespace SportZone_API.Services
                     }
                 }
 
-                // Xóa các file ảnh cũ không còn trong danh sách
                 var imagesToDelete = facility.Images.Where(img => !imageUrls.Contains(img.ImageUrl)).ToList();
                 foreach (var img in imagesToDelete)
                 {
                     ImageUpload.DeleteImage(img.ImageUrl, _env.WebRootPath);
                 }
 
-                // Cập nhật thông tin cơ bản
                 _mapper.Map(dto, facility);
-
-                // Cập nhật danh sách ảnh trong model
                 facility.Images = imageUrls.Select(url => new Image { ImageUrl = url, FacId = facility.FacId }).ToList();
 
                 await _repository.UpdateAsync(facility);
                 await _repository.SaveChangesAsync();
 
                 var updatedFacility = await _repository.GetByIdAsync(id);
+
+                // Gửi thông báo tới Admin khi có cơ sở được cập nhật
+                if (oldName != updatedFacility?.Name)
+                {
+                    await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Cơ sở '{oldName}' đã được cập nhật thành '{updatedFacility.Name}'.");
+                }
+                else
+                {
+                    await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Thông tin cơ sở '{updatedFacility?.Name}' đã được cập nhật.");
+                }
+
                 return new ServiceResponse<FacilityDto>
                 {
                     Success = true,
@@ -279,15 +291,21 @@ namespace SportZone_API.Services
             {
                 var facility = await _repository.GetByIdAsync(id);
                 if (facility == null)
-                    return new ServiceResponse<object> { Success = false, Message = "Không tìm thấy cơ sở." }; 
+                    return new ServiceResponse<object> { Success = false, Message = "Không tìm thấy cơ sở." };
+
+                // Lấy tên cơ sở trước khi xóa
+                var facilityName = facility.Name;
 
                 await _repository.DeleteAsync(facility);
                 await _repository.SaveChangesAsync();
 
+                // Gửi thông báo tới Admin khi có cơ sở bị xóa
+                await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Cơ sở '{facilityName}' (ID: {id}) đã bị xóa.");
+
                 return new ServiceResponse<object>
                 {
                     Success = true,
-                    Message = "Xóa cơ sở thành công." 
+                    Message = "Xóa cơ sở thành công."
                 };
             }
             catch (Exception ex)
@@ -295,7 +313,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<object>
                 {
                     Success = false,
-                    Message = $"Đã xảy ra lỗi khi xóa cơ sở: {ex.Message}" 
+                    Message = $"Đã xảy ra lỗi khi xóa cơ sở: {ex.Message}"
                 };
             }
         }
@@ -311,7 +329,7 @@ namespace SportZone_API.Services
                     return new ServiceResponse<List<FacilityDto>>
                     {
                         Success = true,
-                        Message = $"Không tìm thấy cơ sở nào cho người dùng có ID {userId}.", 
+                        Message = $"Không tìm thấy cơ sở nào cho người dùng có ID {userId}.",
                         Data = new List<FacilityDto>()
                     };
                 }
@@ -319,7 +337,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDto>>
                 {
                     Success = true,
-                    Message = $"Lấy danh sách cơ sở cho người dùng có ID {userId} thành công.", 
+                    Message = $"Lấy danh sách cơ sở cho người dùng có ID {userId} thành công.",
                     Data = facilityDtos
                 };
             }
@@ -328,7 +346,7 @@ namespace SportZone_API.Services
                 return new ServiceResponse<List<FacilityDto>>
                 {
                     Success = false,
-                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở cho người dùng có ID {userId}: {ex.Message}", 
+                    Message = $"Đã xảy ra lỗi khi lấy danh sách cơ sở cho người dùng có ID {userId}: {ex.Message}",
                     Data = null
                 };
             }
