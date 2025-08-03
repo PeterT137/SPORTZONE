@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
@@ -52,7 +53,6 @@ type Discount = {
   isActive: boolean;
   quantity: number;
 };
-
 type Image = {
   imgId: number;
   facId: number;
@@ -98,6 +98,10 @@ type EditDiscount = {
   description: string;
   isActive: boolean;
   quantity: number;
+  fac: {
+    name: string;
+    address: string;
+  };
 };
 
 type Category = {
