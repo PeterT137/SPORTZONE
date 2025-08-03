@@ -62,15 +62,8 @@ public partial class SportZoneContext : DbContext
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var ConnectionString = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build().GetConnectionString("MyCnn");
-            optionsBuilder.UseSqlServer(ConnectionString);
-        }
-
-    }
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-R6O5PCR;database=SportZone;Trusted_Connection=SSPI;Encrypt=false;TrustServerCertificate=true");
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

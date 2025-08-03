@@ -14,39 +14,48 @@ namespace SportZone_API.Services
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IBookingRepository _bookingRepository;
+        private readonly IDiscountService _discountService;
         private readonly IMapper _mapper;
         private readonly SportZoneContext _context;
 
-        public OrderService(IOrderRepository orderRepository, IMapper mapper, SportZoneContext context, IBookingRepository bookingRepository)
+        public OrderService(IOrderRepository orderRepository, IMapper mapper, SportZoneContext context, IBookingRepository bookingRepository, IDiscountService discountService)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;
             _context = context;
             _bookingRepository = bookingRepository;
+            _discountService = discountService;
         }
 
-        public async Task<OrderDTO> CreateOrderFromBookingAsync(Booking booking)
+        public async Task<OrderDTO> CreateOrderFromBookingAsync(Booking booking, int? discountId = null)
         {
             try
             {
-                var totalPrice = await CalculateBookingFieldPriceAsync(booking);
+                var fieldPrice = await CalculateBookingFieldPriceAsync(booking);
 
                 // Lấy FacId từ Field của booking
                 var facId = booking.Field?.FacId ?? 1;
+                var discountedFieldPrice = await _discountService.CalculateDiscountedPriceAsync(fieldPrice, discountId, facId);
 
                 var orderCreateDto = new OrderCreateDTO
                 {
                     BookingId = booking.BookingId,
                     UId = booking.UId,
                     FacId = facId,
+                    DiscountId = discountId,
                     GuestName = booking.GuestName,
                     GuestPhone = booking.GuestPhone,
-                    TotalPrice = totalPrice,
+                    TotalPrice = discountedFieldPrice, 
                     StatusPayment = "Pending",
                     CreateAt = booking.CreateAt ?? DateTime.Now
                 };
 
                 var order = await _orderRepository.CreateOrderFromBookingAsync(orderCreateDto);
+
+                if(discountId.HasValue && discountedFieldPrice < fieldPrice)
+                {
+                    await _discountService.DecreaseDiscountQuantityAsync(discountId.Value);
+                }
 
                 // Lấy OrderDTO để return
                 var orderDto = await _orderRepository.GetOrderByIdAsync(order.OrderId);

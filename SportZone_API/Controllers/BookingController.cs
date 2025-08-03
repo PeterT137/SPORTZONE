@@ -63,7 +63,7 @@ namespace SportZone_API.Controllers
                             Field = new Field { FacId = facilityId }
                         };
 
-                        var order = await _orderService.CreateOrderFromBookingAsync(bookingModel);
+                        var order = await _orderService.CreateOrderFromBookingAsync(bookingModel, bookingDto.DiscountId);
 
                         // Tạo OrderFieldId linking Order với Field
                         await _orderFieldIdService.CreateOrderFieldIdAsync(order.OrderId, booking.FieldId);

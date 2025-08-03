@@ -8,7 +8,7 @@ namespace SportZone_API.Services.Interfaces
         /// <summary>
         /// Tạo Order từ Booking data
         /// </summary>
-        Task<OrderDTO> CreateOrderFromBookingAsync(Booking booking);
+        Task<OrderDTO> CreateOrderFromBookingAsync(Booking booking, int? discountId = null);
 
         /// <summary>
         /// Lấy Order theo ID
