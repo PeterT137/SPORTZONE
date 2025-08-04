@@ -29,16 +29,11 @@ namespace SportZone_API.Attributes
                 return;
             }
 
-            var allowedRoles = _roleId.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(r => r.Trim())
-                .ToArray();
-            
-            if (!allowedRoles.Contains(userRole))
+            if (!_allowedRoles.Contains(userRole))
             {
                 context.Result = new ForbidResult();
                 return;
             }
         }
     }
-
 }
