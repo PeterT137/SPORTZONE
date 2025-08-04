@@ -113,6 +113,19 @@ namespace SportZone_API.Services
 
                 return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản chủ sân thành công." };
             }
+            else if (dto.RoleName == "Admin")
+            {
+                var user = _mapper.Map<User>(dto);
+                user.RoleId = role.RoleId;
+                user.UPassword = _passwordHasher.HashPassword(user, dto.Password);
+                user.UStatus = "Active";
+
+                var admin = _mapper.Map<Admin>(dto);
+                await _repository.RegisterUserWithAdminAsync(user, admin);
+
+                return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản Admin thành công." };
+            }
+
             else if (dto.RoleName == "Staff")
             {
                 if (!dto.FacId.HasValue || dto.FacId.Value <= 0)

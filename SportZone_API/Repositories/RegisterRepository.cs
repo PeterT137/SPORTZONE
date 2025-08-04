@@ -46,5 +46,14 @@ namespace SportZone_API.Repositories
             await _context.Staff.AddAsync(staff);
             await _context.SaveChangesAsync();
         }
+
+        public async Task RegisterUserWithAdminAsync(User user, Admin admin)
+        {
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+            admin.UId = user.UId;
+            await _context.Admins.AddAsync(admin);
+            await _context.SaveChangesAsync();
+        }
     }
 }
