@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
@@ -9,26 +10,78 @@ namespace SportZone_API.Repositories
     public class OrderRepository : IOrderRepository
     {
         private readonly SportZoneContext _context;
+        private readonly IMapper _mapper;
 
-        public OrderRepository(SportZoneContext context)
+        public OrderRepository(SportZoneContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        public async Task<Order?> GetOrderByIdAsync(int orderId)
+        public async Task<Order> CreateOrderFromBookingAsync(OrderCreateDTO orderDto)
         {
-            return await _context.Orders
-                .Include(o => o.Booking)
-                    .ThenInclude(b => b.UIdNavigation) 
-                        .ThenInclude(u => u.Customer) 
-                .Include(o => o.Booking)
-                    .ThenInclude(b => b.Field)
-                .Include(o => o.Booking)
-                    .ThenInclude(b => b.FieldBookingSchedules)
-                .Include(o => o.Discount)
-                .Include(o => o.OrderServices)
-                    .ThenInclude(os => os.Service)
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+            try
+            {
+                var order = _mapper.Map<Order>(orderDto);
+                order.TotalPrice = orderDto.TotalPrice ?? 0;
+                order.TotalServicePrice = 0;
+                order.CreateAt = orderDto.CreateAt ?? DateTime.UtcNow;
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+
+                return order;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tạo Order từ Booking: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<OrderDTO?> GetOrderByBookingIdAsync(int bookingId)
+        {
+            try
+            {
+                var order = await _context.Orders
+                    .Include(o => o.Booking)
+                    .Include(o => o.Fac)
+                    .Include(o => o.Discount)
+                    .Include(o => o.OrderServices)
+                        .ThenInclude(os => os.Service)
+                    .FirstOrDefaultAsync(o => o.BookingId == bookingId);
+
+                if (order == null)
+                {
+                    return null;                   
+                }
+                return _mapper.Map<OrderDTO>(order);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy Order theo BookingId: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<OrderDTO?> GetOrderByIdAsync(int orderId)
+        {
+            try
+            {
+                var order = await _context.Orders
+                    .Include(o => o.Booking)
+                    .Include(o => o.Fac)
+                    .Include(o => o.Discount)
+                    .Include(o => o.OrderServices)
+                        .ThenInclude(os => os.Service)
+                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+                if (order == null) return null;
+
+                return _mapper.Map<OrderDTO>(order);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy Order: {ex.Message}", ex);
+            }
         }
 
         public async Task<bool> AddOrderServiceAsync(OrderService order_Service)

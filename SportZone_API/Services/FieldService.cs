@@ -56,6 +56,20 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<Field?> GetFieldEntityByIdAsync(int fieldId)
+        {
+            try
+            {
+                if (fieldId <= 0)
+                    throw new ArgumentException("ID sân phải lớn hơn 0", nameof(fieldId));
+                return await _fieldRepository.GetFieldEntityByIdAsync(fieldId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi service khi lấy thực thể sân với ID {fieldId}: {ex.Message}", ex);
+            }
+        }
+
         public async Task<IEnumerable<FieldResponseDTO>> GetFieldsByFacilityAsync(int facId)
         {
             try

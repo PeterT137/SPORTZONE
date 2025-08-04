@@ -6,105 +6,186 @@ using SportZone_API.Services.Interfaces;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using SportZone_API.Repository.Interfaces;
 
 namespace SportZone_API.Services
 {
     public class OrderService : IOrderService
     {
         private readonly IOrderRepository _orderRepository;
+        private readonly IBookingRepository _bookingRepository;
         private readonly IMapper _mapper;
         private readonly SportZoneContext _context;
 
-        public OrderService(IOrderRepository orderRepository, IMapper mapper, SportZoneContext context)
+        public OrderService(IOrderRepository orderRepository, IMapper mapper, SportZoneContext context, IBookingRepository bookingRepository)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;
             _context = context;
+            _bookingRepository = bookingRepository;
         }
 
-        public async Task<ServiceResponse<OrderDTO>> GetOrderDetailsAsync(int orderId)
+        public async Task<OrderDTO> CreateOrderFromBookingAsync(Booking booking)
         {
-            var response = new ServiceResponse<OrderDTO>();
-            var order = await _orderRepository.GetOrderByIdAsync(orderId);
-            if (order == null)
+            try
             {
-                response.Success = false;
-                response.Message = $"Không tìm thấy Order với OrderId: {orderId}.";
-                response.Data = new OrderDTO();
-                return response;
-            }
-            if (order.Booking == null)
-            {
-                response.Success = false;
-                response.Message = $"Order với OrderId: {orderId} không có thông tin Booking hợp lệ.";
-                response.Data = new OrderDTO();
-                return response;
-            }
-            var orderDTO = _mapper.Map<OrderDTO>(order);
-            orderDTO.TotalServicePrice = order.OrderServices?.Sum(os => (os.Price ?? 0m) * (os.Quantity ?? 0)) ?? 0m;
-            orderDTO.Deposit = orderDTO.FieldRentalPrice * 0.5m;
-            orderDTO.TotalPrice = orderDTO.FieldRentalPrice + (orderDTO.TotalServicePrice ?? 0m) - orderDTO.DiscountAmount - orderDTO.Deposit;
-            await _orderRepository.UpdateOrderTotalPriceAsync(order.OrderId, orderDTO.TotalPrice, orderDTO.TotalServicePrice);
+                var totalPrice = await CalculateBookingFieldPriceAsync(booking);
 
-            response.Success = true;
-            response.Message = "Lấy chi tiết đơn hàng thành công.";
-            response.Data = orderDTO;
-            return response;
-        }
+                // Lấy FacId từ Field của booking
+                var facId = booking.Field?.FacId ?? 1;
 
-        public async Task<bool> AddServiceToOrderAsync(AddServiceToOrderDTO addServiceDto)
-        {
-            var order = await _orderRepository.GetOrderByIdAsync(addServiceDto.OrderId);
-            if (order == null)
-            {
-                return false;
-            }
-            var service = await _orderRepository.GetServiceByIdAsync(addServiceDto.ServiceId);
-            if (service == null)
-            {
-                return false;
-            }
-            var existingOrderService = (await _orderRepository.GetOrderServicesByOrderIdAsync(addServiceDto.OrderId))
-                                                 .FirstOrDefault(os => os.ServiceId == addServiceDto.ServiceId);
-            if (existingOrderService != null)
-            {
-                existingOrderService.Quantity = (existingOrderService.Quantity ?? 0) + addServiceDto.Quantity;
-                if (!await _orderRepository.UpdateOrderServiceAsync(existingOrderService))
+                var orderCreateDto = new OrderCreateDTO
                 {
-                    return false;
-                }
-            }
-            else
-            {
-                var newOrderServiceModel = new SportZone_API.Models.OrderService
-                {
-                    OrderId = addServiceDto.OrderId,
-                    ServiceId = addServiceDto.ServiceId,
-                    Quantity = addServiceDto.Quantity,
-                    Price = service.Price
+                    BookingId = booking.BookingId,
+                    UId = booking.UId,
+                    FacId = facId,
+                    GuestName = booking.GuestName,
+                    GuestPhone = booking.GuestPhone,
+                    TotalPrice = totalPrice,
+                    StatusPayment = "Pending",
+                    CreateAt = booking.CreateAt ?? DateTime.Now
                 };
-                if (!await _orderRepository.AddOrderServiceAsync(newOrderServiceModel))
-                {
-                    return false;
-                }
+
+                var order = await _orderRepository.CreateOrderFromBookingAsync(orderCreateDto);
+
+                // Lấy OrderDTO để return
+                var orderDto = await _orderRepository.GetOrderByIdAsync(order.OrderId);
+                return orderDto ?? throw new Exception("Không thể lấy thông tin Order vừa tạo");
             }
-            await GetOrderDetailsAsync(addServiceDto.OrderId);
-            return true;
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tạo Order từ Booking: {ex.Message}", ex);
+            }
         }
 
-        public async Task<bool> RemoveServiceFromOrderAsync(RemoveServiceFromOrderDTO removeServiceDto)
+        public async Task<OrderDTO?> GetOrderByIdAsync(int orderId)
         {
-            var order = await _orderRepository.GetOrderByIdAsync(removeServiceDto.OrderId);
-            if (order == null)
+            try
             {
-                return false;
+                return await _orderRepository.GetOrderByIdAsync(orderId);
             }
-            if (!await _orderRepository.RemoveOrderServiceAsync(removeServiceDto.OrderId, removeServiceDto.ServiceId))
+            catch (Exception ex)
             {
-                return false;
+                throw new Exception($"Lỗi khi lấy Order: {ex.Message}", ex);
             }
-            await GetOrderDetailsAsync(removeServiceDto.OrderId);
-            return true;
         }
+
+        public async Task<OrderDTO?> GetOrderByBookingIdAsync(int bookingId)
+        {
+            try
+            {
+                return await _orderRepository.GetOrderByBookingIdAsync(bookingId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy Order theo BookingId: {ex.Message}", ex);
+            }
+        }
+
+        private async Task<decimal> CalculateBookingFieldPriceAsync(Booking booking)
+        {
+            try
+            {
+                var bookedSlots = await _bookingRepository.GetBookedSlotsByBookingIdAsync(booking.BookingId);
+
+                if (!bookedSlots.Any())
+                {
+                    throw new Exception($"Không tìm thấy slot nào cho booking ID {booking.BookingId}");
+                }
+                var totalAfterFirstDivision = bookedSlots.Sum(slot => (slot.Price ?? 0) / 2);
+                var fieldPrice = totalAfterFirstDivision / 2;
+
+                return fieldPrice;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tính giá field cho booking: {ex.Message}", ex);
+            }
+        }
+
+        //public async Task<ServiceResponse<OrderDTO>> GetOrderDetailsAsync(int orderId)
+        //{
+        //    var response = new ServiceResponse<OrderDTO>();
+        //    var order = await _orderRepository.GetOrderByIdAsync(orderId);
+        //    if (order == null)
+        //    {
+        //        response.Success = false;
+        //        response.Message = $"Không tìm thấy Order với OrderId: {orderId}.";
+        //        response.Data = new OrderDTO();
+        //        return response;
+        //    }
+        //    if (order.Booking == null)
+        //    {
+        //        response.Success = false;
+        //        response.Message = $"Order với OrderId: {orderId} không có thông tin Booking hợp lệ.";
+        //        response.Data = new OrderDTO();
+        //        return response;
+        //    }
+        //    var orderDTO = _mapper.Map<OrderDTO>(order);
+        //    orderDTO.TotalServicePrice = order.OrderServices?.Sum(os => (os.Price ?? 0m) * (os.Quantity ?? 0)) ?? 0m;
+        //    orderDTO.Deposit = orderDTO.FieldRentalPrice * 0.5m;
+        //    orderDTO.TotalPrice = orderDTO.FieldRentalPrice + (orderDTO.TotalServicePrice ?? 0m) - orderDTO.DiscountAmount - orderDTO.Deposit;
+        //    await _orderRepository.UpdateOrderTotalPriceAsync(order.OrderId, orderDTO.TotalPrice, orderDTO.TotalServicePrice);
+
+        //    response.Success = true;
+        //    response.Message = "Lấy chi tiết đơn hàng thành công.";
+        //    response.Data = orderDTO;
+        //    return response;
+        //}
+
+        //public async Task<bool> AddServiceToOrderAsync(AddServiceToOrderDTO addServiceDto)
+        //{
+        //    var order = await _orderRepository.GetOrderByIdAsync(addServiceDto.OrderId);
+        //    if (order == null)
+        //    {
+        //        return false;
+        //    }
+        //    var service = await _orderRepository.GetServiceByIdAsync(addServiceDto.ServiceId);
+        //    if (service == null)
+        //    {
+        //        return false;
+        //    }
+        //    var existingOrderService = (await _orderRepository.GetOrderServicesByOrderIdAsync(addServiceDto.OrderId))
+        //                                         .FirstOrDefault(os => os.ServiceId == addServiceDto.ServiceId);
+        //    if (existingOrderService != null)
+        //    {
+        //        existingOrderService.Quantity = (existingOrderService.Quantity ?? 0) + addServiceDto.Quantity;
+        //        if (!await _orderRepository.UpdateOrderServiceAsync(existingOrderService))
+        //        {
+        //            return false;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        var newOrderServiceModel = new SportZone_API.Models.OrderService
+        //        {
+        //            OrderId = addServiceDto.OrderId,
+        //            ServiceId = addServiceDto.ServiceId,
+        //            Quantity = addServiceDto.Quantity,
+        //            Price = service.Price
+        //        };
+        //        if (!await _orderRepository.AddOrderServiceAsync(newOrderServiceModel))
+        //        {
+        //            return false;
+        //        }
+        //    }
+        //    await GetOrderDetailsAsync(addServiceDto.OrderId);
+        //    return true;
+        //}
+
+        //public async Task<bool> RemoveServiceFromOrderAsync(RemoveServiceFromOrderDTO removeServiceDto)
+        //{
+        //    var order = await _orderRepository.GetOrderByIdAsync(removeServiceDto.OrderId);
+        //    if (order == null)
+        //    {
+        //        return false;
+        //    }
+        //    if (!await _orderRepository.RemoveOrderServiceAsync(removeServiceDto.OrderId, removeServiceDto.ServiceId))
+        //    {
+        //        return false;
+        //    }
+        //    await GetOrderDetailsAsync(removeServiceDto.OrderId);
+        //    return true;
+        //}
     }
 }

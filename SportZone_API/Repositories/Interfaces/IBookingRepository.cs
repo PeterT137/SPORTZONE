@@ -14,6 +14,10 @@ namespace SportZone_API.Repository.Interfaces
         /// </summary>
         Task<BookingDetailDTO?> GetBookingByIdAsync(int bookingId);
         /// <summary>
+        /// Lấy tất cả các slot đã được book cho một booking
+        /// </summary>
+        Task<IEnumerable<FieldBookingSchedule>> GetBookedSlotsByBookingIdAsync(int bookingId);
+        /// <summary>
         /// Kiểm tra slot thời gian có khả dụng không
         /// </summary>
         Task<bool> CheckTimeSlotAvailabilityAsync(int fieldId, DateOnly date, TimeOnly startTime, TimeOnly endTime);
@@ -29,6 +33,12 @@ namespace SportZone_API.Repository.Interfaces
         /// Lấy booking theo customer
         /// </summary>
         Task<IEnumerable<BookingResponseDTO>> GetBookingsByUserAsync(int userId);
+
+        /// <summary>
+        /// Validate slots có available không và thuộc cùng facility/date không
+        /// </summary>
+        Task<(bool IsValid, string ErrorMessage)> ValidateSelectedSlotsAsync(List<int> selectedSlotIds, int? fieldId = null, int? facilityId = null);
+
     }
 
 }

@@ -5,7 +5,15 @@ namespace SportZone_API.Repositories.Interfaces
 {
     public interface IOrderRepository
     {
-        Task<Order?> GetOrderByIdAsync(int orderId);
+        /// <summary>
+        /// Tạo Order từ Booking
+        /// </summary>
+        Task<Order> CreateOrderFromBookingAsync(OrderCreateDTO orderDto);
+        /// <summary>
+        /// Lấy Order theo BookingId
+        /// </summary>
+        Task<OrderDTO?> GetOrderByBookingIdAsync(int bookingId);
+        Task<OrderDTO?> GetOrderByIdAsync(int orderId);
         Task<bool> AddOrderServiceAsync(OrderService order_Service);
         Task<bool> RemoveOrderServiceAsync(int orderId, int serviceId);
         Task<List<OrderService>> GetOrderServicesByOrderIdAsync(int orderId);
