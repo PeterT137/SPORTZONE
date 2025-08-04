@@ -2949,7 +2949,7 @@ const FacilityDetail: React.FC = () => {
                                 Thời gian áp dụng
                               </th>
                               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Mô tả
+                                Tên mã giảm giá
                               </th>
                               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Số lượng
@@ -4205,14 +4205,14 @@ const FacilityDetail: React.FC = () => {
                           </div>
                           <div className="space-y-2">
                             <label className="block text-sm font-semibold text-gray-700">
-                              Mô tả
+                              Tên mã giảm giá
                             </label>
-                            <textarea
+                            <input
+                              type="text"
                               name="description"
                               value={newDiscountFormData.description}
                               onChange={handleNewDiscountChange}
-                              rows={3}
-                              placeholder="Nhập mô tả chi tiết về mã giảm giá..."
+                              placeholder="Nhập tên mã giảm giá..."
                               className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
                               disabled={isSubmitting}
                             />
