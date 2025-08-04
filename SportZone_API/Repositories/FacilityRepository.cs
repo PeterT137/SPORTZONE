@@ -79,6 +79,10 @@ namespace SportZone_API.Repositories
         {
             return await _context.Facilities
                                  .Include(f => f.Images)
+                                 .Include(f => f.Fields)
+                                 .Include(f => f.Orders)
+                                 .Include(f => f.Services)
+                                 .Include(f => f.Staff)
                                  .FirstOrDefaultAsync(f => f.FacId == id);
         }
 
@@ -154,6 +158,21 @@ namespace SportZone_API.Repositories
         public async Task AddImagesAsync(IEnumerable<Image> images)
         {
             await _context.Images.AddRangeAsync(images);
+        }
+
+        public void DetachEntity<T>(T entity) where T : class
+        {
+            _context.Entry(entity).State = EntityState.Detached;
+        }
+
+        public async Task<List<Image>> GetImagesByFacilityIdAsync(int facilityId)
+        {
+            return await _context.Images.Where(img => img.FacId == facilityId).ToListAsync();
+        }
+
+        public async Task RemoveImagesAsync(IEnumerable<Image> images)
+        {
+            _context.Images.RemoveRange(images);
         }
     }
 }

@@ -137,12 +137,13 @@ namespace SportZone_API.Services
                 }
                 existingService.Image = newImageUrl;
             }
-
-            // Điều này xảy ra khi người dùng muốn xóa ảnh mà không thay thế
-            else if (updateServiceDTO.ImageFile == null && !string.IsNullOrEmpty(existingService.Image))
+            else if (updateServiceDTO.RemoveImage && updateServiceDTO.ImageFile == null)
             {
-                // Logic để xóa ảnh cũ chỉ khi không có file mới và có dữ liệu ảnh cũ
-                // Bạn có thể thêm một cờ trong DTO để xác định việc xóa ảnh, nhưng cách đơn giản nhất là kiểm tra ImageFile là null.
+                if (!string.IsNullOrEmpty(existingService.Image))
+                {
+                    ImageUpload.DeleteImage(existingService.Image, _env.WebRootPath);
+                    existingService.Image = null; 
+                }
             }
 
             // Validate dữ liệu

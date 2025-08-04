@@ -264,8 +264,12 @@ const OrdersTable: React.FC = () => {
   ]);
 
   // Lấy danh sách unique values cho dropdown filters
-  const uniqueFacilities = [...new Set(orders.map((order) => order.facilityName))];
-  const uniqueCustomers = [...new Set(orders.map((order) => order.customerName))];
+  const uniqueFacilities = [
+    ...new Set(orders.map((order) => order.facilityName)),
+  ];
+  const uniqueCustomers = [
+    ...new Set(orders.map((order) => order.customerName)),
+  ];
   const paymentStatuses = ["Đã thanh toán", "Chưa thanh toán", "Đã cọc"];
 
   // Apply filters
@@ -276,7 +280,8 @@ const OrdersTable: React.FC = () => {
       !filters.customer || order.customerName.includes(filters.customer);
     const matchesPaymentStatus =
       !filters.paymentStatus || order.statusPayment === filters.paymentStatus;
-    const matchesFieldName = !fieldName || order.facilityName.includes(fieldName);
+    const matchesFieldName =
+      !fieldName || order.facilityName.includes(fieldName);
 
     // Price range filter
     let matchesPrice = true;
@@ -326,7 +331,9 @@ const OrdersTable: React.FC = () => {
   const updatePaymentStatus = (orderId: number, newStatus: string) => {
     setOrders((prev) =>
       prev.map((order) =>
-        order.orderId === orderId ? { ...order, statusPayment: newStatus } : order
+        order.orderId === orderId
+          ? { ...order, statusPayment: newStatus }
+          : order
       )
     );
   };
@@ -357,13 +364,18 @@ const OrdersTable: React.FC = () => {
       bookingId: order.bookingId,
       facilityName: order.facilityName,
       fieldName: order.fieldName,
-      categoryFieldName: order.facilityName.includes("tennis") ? "Sân Tennis" : 
-                        order.facilityName.includes("bóng rổ") ? "Sân Bóng rổ" :
-                        order.facilityName.includes("cầu lông") ? "Sân Cầu lông" : 
-                        "Sân Bóng đá",
+      categoryFieldName: order.facilityName.includes("tennis")
+        ? "Sân Tennis"
+        : order.facilityName.includes("bóng rổ")
+        ? "Sân Bóng rổ"
+        : order.facilityName.includes("cầu lông")
+        ? "Sân Cầu lông"
+        : "Sân Bóng đá",
       customerName: order.customerName,
       customerPhone: order.customerPhone,
-      customerEmail: `${order.customerName.toLowerCase().replace(/\s+/g, '')}@email.com`,
+      customerEmail: `${order.customerName
+        .toLowerCase()
+        .replace(/\s+/g, "")}@email.com`,
       totalPrice: order.totalPrice,
       totalServicePrice: order.totalServicePrice,
       fieldRentalPrice: order.totalPrice - order.totalServicePrice,
@@ -378,8 +390,10 @@ const OrdersTable: React.FC = () => {
       bookingTitle: `Đặt ${order.fieldName}`,
       bookingStatus: "Đã xác nhận",
       services: mockServices,
-      createAt: new Date(order.createAt).toLocaleString('vi-VN'),
-      bookingCreateAt: new Date(new Date(order.createAt).getTime() - 24*60*60*1000).toLocaleString('vi-VN') // 1 day before order
+      createAt: new Date(order.createAt).toLocaleString("vi-VN"),
+      bookingCreateAt: new Date(
+        new Date(order.createAt).getTime() - 24 * 60 * 60 * 1000
+      ).toLocaleString("vi-VN"), // 1 day before order
     };
   };
 
@@ -895,26 +909,44 @@ const OrdersTable: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         <div>
-                          <div className="font-medium">{order.facilityName}</div>
-                          <div className="text-gray-500 text-xs">{order.fieldName}</div>
+                          <div className="font-medium">
+                            {order.facilityName}
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            {order.fieldName}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div>
-                          <div className="font-medium">{order.customerName}</div>
-                          <div className="text-gray-500 text-xs">{order.customerPhone}</div>
+                          <div className="font-medium">
+                            {order.customerName}
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            {order.customerPhone}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div>
-                          <div className="font-medium">{new Date(order.bookingDate).toLocaleDateString('vi-VN')}</div>
-                          <div className="text-gray-500 text-xs">{order.startTime} - {order.endTime}</div>
+                          <div className="font-medium">
+                            {new Date(order.bookingDate).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            {order.startTime} - {order.endTime}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         <div>
-                          <div className="text-blue-600">{order.totalPrice.toLocaleString()}đ</div>
-                          <div className="text-gray-500 text-xs">DV: {order.totalServicePrice.toLocaleString()}đ</div>
+                          <div className="text-blue-600">
+                            {order.totalPrice.toLocaleString()}đ
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            DV: {order.totalServicePrice.toLocaleString()}đ
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -949,7 +981,10 @@ const OrdersTable: React.FC = () => {
                                   <div
                                     key={statusIndex}
                                     onClick={() => {
-                                      updatePaymentStatus(order.orderId, status);
+                                      updatePaymentStatus(
+                                        order.orderId,
+                                        status
+                                      );
                                       toggleDropdown(
                                         `paymentStatus_${order.orderId}`
                                       );
@@ -976,7 +1011,7 @@ const OrdersTable: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button 
+                        <button
                           onClick={() => openOrderDetail(order)}
                           className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                         >
@@ -1207,15 +1242,27 @@ const OrdersTable: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold">Chi tiết đơn đặt sân</h2>
-                  <p className="text-blue-100 text-sm">Đơn hàng #{selectedOrder.orderId}</p>
+                  <p className="text-blue-100 text-sm">
+                    Đơn hàng #{selectedOrder.orderId}
+                  </p>
                 </div>
                 <button
                   onClick={closeModal}
                   title="Đóng modal"
                   className="text-white hover:text-gray-200 transition-colors duration-200"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -1232,39 +1279,71 @@ const OrdersTable: React.FC = () => {
                       {/* Basic Info */}
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          <svg
+                            className="w-5 h-5 mr-2 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
                           </svg>
                           Thông tin đơn hàng
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Mã đơn hàng:</span>
-                            <span className="font-medium">#{orderDetail.orderId}</span>
+                            <span className="font-medium">
+                              #{orderDetail.orderId}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Mã booking:</span>
-                            <span className="font-medium">#{orderDetail.bookingId}</span>
+                            <span className="font-medium">
+                              #{orderDetail.bookingId}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Ngày tạo đơn:</span>
-                            <span className="font-medium">{orderDetail.createAt}</span>
+                            <span className="font-medium">
+                              {orderDetail.createAt}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Ngày tạo booking:</span>
-                            <span className="font-medium">{orderDetail.bookingCreateAt}</span>
+                            <span className="text-gray-600">
+                              Ngày tạo booking:
+                            </span>
+                            <span className="font-medium">
+                              {orderDetail.bookingCreateAt}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Ngày đặt sân:</span>
-                            <span className="font-medium">{new Date(orderDetail.bookingDate).toLocaleDateString('vi-VN')}</span>
+                            <span className="font-medium">
+                              {new Date(
+                                orderDetail.bookingDate
+                              ).toLocaleDateString("vi-VN")}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Thời gian sân:</span>
-                            <span className="font-medium">{orderDetail.startTime} - {orderDetail.endTime}</span>
+                            <span className="text-gray-600">
+                              Thời gian sân:
+                            </span>
+                            <span className="font-medium">
+                              {orderDetail.startTime} - {orderDetail.endTime}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Trạng thái booking:</span>
-                            <span className="font-medium text-green-600">{orderDetail.bookingStatus}</span>
+                            <span className="text-gray-600">
+                              Trạng thái booking:
+                            </span>
+                            <span className="font-medium text-green-600">
+                              {orderDetail.bookingStatus}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1272,23 +1351,41 @@ const OrdersTable: React.FC = () => {
                       {/* Customer Info */}
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          <svg
+                            className="w-5 h-5 mr-2 text-green-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            />
                           </svg>
                           Thông tin khách hàng
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Họ tên:</span>
-                            <span className="font-medium">{orderDetail.customerName}</span>
+                            <span className="font-medium">
+                              {orderDetail.customerName}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Số điện thoại:</span>
-                            <span className="font-medium">{orderDetail.customerPhone}</span>
+                            <span className="text-gray-600">
+                              Số điện thoại:
+                            </span>
+                            <span className="font-medium">
+                              {orderDetail.customerPhone}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Email:</span>
-                            <span className="font-medium">{orderDetail.customerEmail}</span>
+                            <span className="font-medium">
+                              {orderDetail.customerEmail}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1296,32 +1393,60 @@ const OrdersTable: React.FC = () => {
                       {/* Booking Info */}
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v1a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 21h14a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2z" />
+                          <svg
+                            className="w-5 h-5 mr-2 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v1a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 21h14a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2z"
+                            />
                           </svg>
                           Thông tin booking
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Mã booking:</span>
-                            <span className="font-medium text-blue-600">#{orderDetail.bookingId}</span>
+                            <span className="font-medium text-blue-600">
+                              #{orderDetail.bookingId}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Tiêu đề booking:</span>
-                            <span className="font-medium">{orderDetail.bookingTitle}</span>
+                            <span className="text-gray-600">
+                              Tiêu đề booking:
+                            </span>
+                            <span className="font-medium">
+                              {orderDetail.bookingTitle}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Ngày tạo booking:</span>
-                            <span className="font-medium">{orderDetail.bookingCreateAt}</span>
+                            <span className="text-gray-600">
+                              Ngày tạo booking:
+                            </span>
+                            <span className="font-medium">
+                              {orderDetail.bookingCreateAt}
+                            </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Trạng thái booking:</span>
-                            <span className="font-medium text-green-600">{orderDetail.bookingStatus}</span>
+                            <span className="text-gray-600">
+                              Trạng thái booking:
+                            </span>
+                            <span className="font-medium text-green-600">
+                              {orderDetail.bookingStatus}
+                            </span>
                           </div>
                         </div>
                       </div>
-
                     </div>
 
                     {/* Right Column - Facility & Payment Info */}
@@ -1329,23 +1454,39 @@ const OrdersTable: React.FC = () => {
                       {/* Facility Info */}
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          <svg
+                            className="w-5 h-5 mr-2 text-purple-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                            />
                           </svg>
                           Thông tin sân
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Cơ sở:</span>
-                            <span className="font-medium">{orderDetail.facilityName}</span>
+                            <span className="font-medium">
+                              {orderDetail.facilityName}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Tên sân:</span>
-                            <span className="font-medium">{orderDetail.fieldName}</span>
+                            <span className="font-medium">
+                              {orderDetail.fieldName}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Loại sân:</span>
-                            <span className="font-medium">{orderDetail.categoryFieldName}</span>
+                            <span className="font-medium">
+                              {orderDetail.categoryFieldName}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1353,22 +1494,48 @@ const OrdersTable: React.FC = () => {
                       {/* Services */}
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h2m0-13v13m0-13c.789 0 1.456.602 1.52 1.359l.05.641H18m-.08 13.879C17.856 21.398 17.189 22 16.4 22H9m7-13c-.041-.789-.607-1.456-1.359-1.52L14 7.5H9.6m7.4 0c.789 0 1.456.602 1.52 1.359l.05.641H21m-2 13.879C18.856 21.398 18.189 22 17.4 22h-2" />
+                          <svg
+                            className="w-5 h-5 mr-2 text-indigo-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h2m0-13v13m0-13c.789 0 1.456.602 1.52 1.359l.05.641H18m-.08 13.879C17.856 21.398 17.189 22 16.4 22H9m7-13c-.041-.789-.607-1.456-1.359-1.52L14 7.5H9.6m7.4 0c.789 0 1.456.602 1.52 1.359l.05.641H21m-2 13.879C18.856 21.398 18.189 22 17.4 22h-2"
+                            />
                           </svg>
                           Dịch vụ đi kèm
                         </h3>
                         <div className="space-y-2">
                           {orderDetail.services.map((service, index) => (
-                            <div key={index} className="flex items-center justify-between">
+                            <div
+                              key={index}
+                              className="flex items-center justify-between"
+                            >
                               <div className="flex items-center">
-                                <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                <svg
+                                  className="w-4 h-4 text-green-500 mr-2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
                                 </svg>
-                                <span className="text-gray-700">{service.serviceName}</span>
+                                <span className="text-gray-700">
+                                  {service.serviceName}
+                                </span>
                               </div>
                               <div className="text-sm text-gray-600">
-                                {service.quantity}x {service.price.toLocaleString()}đ
+                                {service.quantity}x{" "}
+                                {service.price.toLocaleString()}đ
                               </div>
                             </div>
                           ))}
@@ -1378,47 +1545,75 @@ const OrdersTable: React.FC = () => {
                       {/* Payment Info */}
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          <svg
+                            className="w-5 h-5 mr-2 text-orange-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                            />
                           </svg>
                           Thông tin thanh toán
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Giá thuê sân:</span>
-                            <span className="font-medium">{orderDetail.fieldRentalPrice.toLocaleString()}đ</span>
+                            <span className="font-medium">
+                              {orderDetail.fieldRentalPrice.toLocaleString()}đ
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Tiền dịch vụ:</span>
-                            <span className="font-medium">{orderDetail.totalServicePrice.toLocaleString()}đ</span>
+                            <span className="font-medium">
+                              {orderDetail.totalServicePrice.toLocaleString()}đ
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Giảm giá:</span>
-                            <span className="font-medium text-red-600">-{orderDetail.discountAmount.toLocaleString()}đ</span>
+                            <span className="font-medium text-red-600">
+                              -{orderDetail.discountAmount.toLocaleString()}đ
+                            </span>
                           </div>
                           <div className="border-t pt-2">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Tổng tiền:</span>
-                              <span className="font-bold text-lg text-blue-600">{orderDetail.totalPrice.toLocaleString()}đ</span>
+                              <span className="font-bold text-lg text-blue-600">
+                                {orderDetail.totalPrice.toLocaleString()}đ
+                              </span>
                             </div>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Đã cọc:</span>
-                            <span className="font-medium text-green-600">{orderDetail.deposit.toLocaleString()}đ</span>
+                            <span className="font-medium text-green-600">
+                              {orderDetail.deposit.toLocaleString()}đ
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Trạng thái:</span>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(orderDetail.statusPayment)}`}>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                                orderDetail.statusPayment
+                              )}`}
+                            >
                               {orderDetail.statusPayment}
                             </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Phương thức:</span>
-                            <span className="font-medium">{orderDetail.paymentMethod}</span>
+                            <span className="font-medium">
+                              {orderDetail.paymentMethod}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Nội dung:</span>
-                            <span className="font-medium text-sm">{orderDetail.contentPayment}</span>
+                            <span className="font-medium text-sm">
+                              {orderDetail.contentPayment}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1443,8 +1638,18 @@ const OrdersTable: React.FC = () => {
                 }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                  />
                 </svg>
                 In hóa đơn
               </button>

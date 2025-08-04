@@ -1,70 +1,149 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react"
-import { useLocation } from "react-router-dom"
-import { Calendar, Clock, CreditCard, MapPin, User } from "lucide-react"
-import QRCode from "react-qr-code"
-import Header from "../Header"
+import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Calendar, Clock, CreditCard, MapPin, User } from "lucide-react";
+import QRCode from "react-qr-code";
+import Header from "../Header";
 
-interface Field {
-  id: number
-  name: string
-  location: string
-  price: number
-  rating: number
-  reviews: number
-  image: string
-  type: "football" | "tennis" | "badminton" | "basketball"
-  size: "small" | "medium" | "large"
-  facilities: string[]
-  available: boolean
+// Interfaces for updated booking flow
+interface FieldScheduleSlot {
+  scheduleId: number;
+  fieldId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: "Available" | "Booked" | "Blocked";
+  price: number;
 }
 
 interface BookingDetails {
-  fieldName: string
-  date: string
-  time: string
-  duration: number
-  price: number
-  location: string
+  fieldName: string;
+  date: string;
+  time: string;
+  duration: number | string;
+  price: number;
+  location: string;
 }
 
 interface PaymentFormData {
-  customerName: string
-  email: string
-  phone: string
-  paymentMethod: "credit" | "momo" | "banking"
-  cardNumber: string
-  expiryDate: string
-  cvv: string
-  cardName: string
+  customerName: string;
+  email: string;
+  phone: string;
+  paymentMethod: "credit" | "momo" | "banking";
+  cardNumber: string;
+  expiryDate: string;
+  cvv: string;
+  cardName: string;
 }
 
 const PaymentPage: React.FC = () => {
-  const location = useLocation()
-  const { field, date, time, duration } = (location.state as {
-    field: Field
-    date: string
-    time: string
-    duration: number
-  }) || {}
+  const location = useLocation();
 
-  const bookingDetails: BookingDetails = field
-    ? {
-        fieldName: field.name,
-        date: date || new Date().toISOString().split("T")[0],
-        time: time || "19:00",
-        duration: duration || 60,
-        price: field.price,
-        location: field.location,
+  // Helper functions for new booking format
+  const getTimeRange = (slots: FieldScheduleSlot[]) => {
+    if (slots.length === 0) return "";
+
+    const sortedSlots = slots.sort((a, b) =>
+      a.startTime.localeCompare(b.startTime)
+    );
+
+    // Group consecutive slots
+    const slotGroups: FieldScheduleSlot[][] = [];
+    let currentGroup: FieldScheduleSlot[] = [sortedSlots[0]];
+
+    for (let i = 1; i < sortedSlots.length; i++) {
+      const currentSlot = sortedSlots[i];
+      const previousSlot = currentGroup[currentGroup.length - 1];
+
+      if (currentSlot.startTime === previousSlot.endTime) {
+        currentGroup.push(currentSlot);
+      } else {
+        slotGroups.push(currentGroup);
+        currentGroup = [currentSlot];
       }
-    : {
-        fieldName: "Sân bóng đá mini số 1",
-        date: new Date().toISOString().split("T")[0],
-        time: "19:00",
-        duration: 60,
-        price: 300000,
-        location: "Quận 1, TP.HCM",
-      }
+    }
+    slotGroups.push(currentGroup);
+
+    return slotGroups
+      .map(
+        (group) => `${group[0].startTime} - ${group[group.length - 1].endTime}`
+      )
+      .join("; ");
+  };
+
+  const calculateTotalDuration = (slots: FieldScheduleSlot[]) => {
+    if (slots.length === 0) return "0 phút";
+
+    let totalMinutes = 0;
+    slots.forEach((slot) => {
+      const [startHour, startMinute] = slot.startTime.split(":").map(Number);
+      const [endHour, endMinute] = slot.endTime.split(":").map(Number);
+
+      const startTotalMinutes = startHour * 60 + startMinute;
+      const endTotalMinutes = endHour * 60 + endMinute;
+
+      totalMinutes += endTotalMinutes - startTotalMinutes;
+    });
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (minutes === 0) {
+      return `${hours} giờ`;
+    } else if (hours === 0) {
+      return `${minutes} phút`;
+    } else {
+      return `${hours} giờ ${minutes} phút`;
+    }
+  };
+
+  // Check if we have new booking format or old format
+  const bookingState = location.state as any;
+  const isNewFormat = bookingState?.booking?.slots;
+
+  let bookingDetails: BookingDetails;
+
+  if (isNewFormat) {
+    // New format from BookingPage
+    const { booking } = bookingState;
+    bookingDetails = {
+      fieldName:
+        booking.field?.fieldName || booking.field?.name || "Sân thể thao",
+      date: booking.date,
+      time: getTimeRange(booking.slots),
+      duration: calculateTotalDuration(booking.slots),
+      price:
+        booking.totalPrice ||
+        booking.slots.reduce(
+          (sum: number, slot: FieldScheduleSlot) => sum + slot.price,
+          0
+        ),
+      location:
+        booking.field?.facilityAddress ||
+        booking.field?.location ||
+        "Chưa có địa chỉ",
+    };
+  } else {
+    // Old format (fallback)
+    const { field, date, time, duration } = bookingState || {};
+    bookingDetails = field
+      ? {
+          fieldName: field.name,
+          date: date || new Date().toISOString().split("T")[0],
+          time: time || "19:00",
+          duration: duration || 60,
+          price: field.price,
+          location: field.location,
+        }
+      : {
+          fieldName: "Sân bóng đá mini số 1",
+          date: new Date().toISOString().split("T")[0],
+          time: "19:00",
+          duration: 60,
+          price: 300000,
+          location: "Quận 1, TP.HCM",
+        };
+  }
 
   const [formData, setFormData] = useState<PaymentFormData>({
     customerName: "",
@@ -75,83 +154,116 @@ const PaymentPage: React.FC = () => {
     expiryDate: "",
     cvv: "",
     cardName: "",
-  })
+  });
 
-  const [isProcessing, setIsProcessing] = useState<boolean>(false)
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   useEffect(() => {
-    // Tự động lấy thông tin người dùng từ localStorage (sau khi login)
-    const user = JSON.parse(localStorage.getItem("user") || "{}")
-    if (user) {
+    // Ưu tiên lấy thông tin từ BookingPage trước, sau đó mới từ localStorage
+    if (isNewFormat && bookingState?.booking?.guestInfo) {
+      const guestInfo = bookingState.booking.guestInfo;
       setFormData((prev) => ({
         ...prev,
-        customerName: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-      }))
+        customerName: guestInfo.name || "",
+        phone: guestInfo.phone || "",
+        email: "", // Guest không có email từ booking form
+      }));
+    } else {
+      // Fallback: Tự động lấy thông tin người dùng từ localStorage (sau khi login)
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user && Object.keys(user).length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          customerName:
+            user.Admin?.name ||
+            user.Customers?.[0]?.name ||
+            user.FieldOwner?.name ||
+            user.Staff?.name ||
+            "",
+          email: user.UEmail || "",
+          phone:
+            user.Admin?.phone ||
+            user.Customers?.[0]?.phone ||
+            user.FieldOwner?.phone ||
+            user.Staff?.phone ||
+            "",
+        }));
+      }
     }
-  }, [])
+  }, [isNewFormat, bookingState]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const handlePaymentMethodChange = (method: "credit" | "momo" | "banking") => {
     setFormData((prev) => ({
       ...prev,
       paymentMethod: method,
-    }))
-  }
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsProcessing(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsProcessing(false)
-    alert("Thanh toán thành công!")
-  }
+    e.preventDefault();
+    setIsProcessing(true);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    setIsProcessing(false);
+    alert("Thanh toán thành công!");
+  };
 
   const formatCurrency = (amount: number): string =>
     new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(amount)
+    }).format(amount);
 
-  const totalPrice = bookingDetails.price + 15000
+  const totalPrice = bookingDetails.price + 15000;
 
-  const momoQRData = `momo://pay?phone=0123456789&amount=${totalPrice}&note=Dat san ${bookingDetails.fieldName}`
-  const vnpayQRData = `https://img.vietqr.io/image/VCB-1234567890-print.png?amount=${totalPrice}&addInfo=Dat san ${bookingDetails.fieldName} ${formData.phone}`
+  const momoQRData = `momo://pay?phone=0123456789&amount=${totalPrice}&note=Dat san ${bookingDetails.fieldName}`;
+  const vnpayQRData = `https://img.vietqr.io/image/VCB-1234567890-print.png?amount=${totalPrice}&addInfo=Dat san ${bookingDetails.fieldName} ${formData.phone}`;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="max-w-6xl pt-8 mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Thanh toán đặt sân</h1>
-          <p className="text-gray-600">Hoàn tất thông tin để xác nhận đặt sân</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Thanh toán đặt sân
+          </h1>
+          <p className="text-gray-600">
+            Hoàn tất thông tin để xác nhận đặt sân
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">Chi tiết đặt sân</h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">
+                Chi tiết đặt sân
+              </h2>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <MapPin className="w-5 h-5 text-green-600 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">{bookingDetails.fieldName}</p>
-                    <p className="text-sm text-gray-600">{bookingDetails.location}</p>
+                    <p className="font-medium text-gray-900">
+                      {bookingDetails.fieldName}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {bookingDetails.location}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Calendar className="w-5 h-5 text-blue-600" />
                   <div>
                     <p className="font-medium text-gray-900">
-                      {new Date(bookingDetails.date).toLocaleDateString("vi-VN")}
+                      {new Date(bookingDetails.date).toLocaleDateString(
+                        "vi-VN"
+                      )}
                     </p>
                     <p className="text-sm text-gray-600">Ngày đặt sân</p>
                   </div>
@@ -160,9 +272,14 @@ const PaymentPage: React.FC = () => {
                   <Clock className="w-5 h-5 text-orange-600" />
                   <div>
                     <p className="font-medium text-gray-900">
-                      {bookingDetails.time} - {bookingDetails.duration} phút
+                      {bookingDetails.time}
                     </p>
-                    <p className="text-sm text-gray-600">Thời gian</p>
+                    <p className="text-sm text-gray-600">
+                      Thời lượng:{" "}
+                      {typeof bookingDetails.duration === "string"
+                        ? bookingDetails.duration
+                        : `${bookingDetails.duration} phút`}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -170,7 +287,9 @@ const PaymentPage: React.FC = () => {
               <div className="border-t pt-4 mt-6">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">Giá sân:</span>
-                  <span className="font-medium">{formatCurrency(bookingDetails.price)}</span>
+                  <span className="font-medium">
+                    {formatCurrency(bookingDetails.price)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">Phí dịch vụ:</span>
@@ -178,8 +297,12 @@ const PaymentPage: React.FC = () => {
                 </div>
                 <div className="border-t pt-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-gray-900">Tổng cộng:</span>
-                    <span className="text-lg font-bold text-green-600">{formatCurrency(totalPrice)}</span>
+                    <span className="text-lg font-semibold text-gray-900">
+                      Tổng cộng:
+                    </span>
+                    <span className="text-lg font-bold text-green-600">
+                      {formatCurrency(totalPrice)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -200,8 +323,7 @@ const PaymentPage: React.FC = () => {
                     value={formData.customerName}
                     onChange={handleInputChange}
                     required
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     placeholder="Họ và tên"
                   />
                   <input
@@ -210,8 +332,7 @@ const PaymentPage: React.FC = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     placeholder="Số điện thoại"
                   />
                   <input
@@ -219,10 +340,8 @@ const PaymentPage: React.FC = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    required
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-md col-span-2"
-                    placeholder="Email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md col-span-2"
+                    placeholder="Email (tùy chọn)"
                   />
                 </div>
               </div>
@@ -249,17 +368,21 @@ const PaymentPage: React.FC = () => {
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      { method === "momo" ? (
+                      {method === "momo" ? (
                         <>
                           <div className="w-8 h-8 mx-auto mb-2 bg-pink-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">M</span>
+                            <span className="text-white font-bold text-sm">
+                              M
+                            </span>
                           </div>
                           <p className="font-medium">MoMo</p>
                         </>
                       ) : (
                         <>
                           <div className="w-8 h-8 mx-auto mb-2 bg-green-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">₫</span>
+                            <span className="text-white font-bold text-sm">
+                              ₫
+                            </span>
                           </div>
                           <p className="font-medium">VNPay</p>
                         </>
@@ -315,9 +438,12 @@ const PaymentPage: React.FC = () => {
 
                 {formData.paymentMethod === "momo" && (
                   <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
-                    <h3 className="font-medium text-pink-800 mb-2">Thanh toán bằng MoMo</h3>
+                    <h3 className="font-medium text-pink-800 mb-2">
+                      Thanh toán bằng MoMo
+                    </h3>
                     <p className="text-sm text-pink-700 mb-3">
-                      Quét mã QR dưới đây để thanh toán {formatCurrency(totalPrice)}
+                      Quét mã QR dưới đây để thanh toán{" "}
+                      {formatCurrency(totalPrice)}
                     </p>
                     <div className="flex justify-center">
                       <QRCode value={momoQRData} size={200} />
@@ -327,12 +453,19 @@ const PaymentPage: React.FC = () => {
 
                 {formData.paymentMethod === "banking" && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="font-medium text-green-800 mb-2">Thanh toán qua VNPay</h3>
+                    <h3 className="font-medium text-green-800 mb-2">
+                      Thanh toán qua VNPay
+                    </h3>
                     <p className="text-sm text-green-700 mb-3">
-                      Quét mã QR dưới đây để thanh toán {formatCurrency(totalPrice)}
+                      Quét mã QR dưới đây để thanh toán{" "}
+                      {formatCurrency(totalPrice)}
                     </p>
                     <div className="flex justify-center">
-                      <img src={vnpayQRData} alt="VNPay QR" className="h-52 w-auto" />
+                      <img
+                        src={vnpayQRData}
+                        alt="VNPay QR"
+                        className="h-52 w-auto"
+                      />
                     </div>
                   </div>
                 )}
@@ -363,7 +496,7 @@ const PaymentPage: React.FC = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default PaymentPage
+export default PaymentPage;

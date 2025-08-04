@@ -18,6 +18,8 @@ import HomePage from "./components/Pages/HomePage";
 import PaymentPage from "./components/payment/PaymentPage";
 import ServiceManager from "./components/services/ServiceManager";
 import StaffManager from "./components/staff/StaffManager";
+import UsersManager from "./components/users/UsersManager";
+import RegulationManager from "./components/regulation/RegulationManager";
 const AppContent: React.FC = () => {
   return (
     <Routes>
@@ -39,9 +41,11 @@ const AppContent: React.FC = () => {
       <Route path="/service_manager" element={<ServiceManager />} />
       <Route path="/order_manager" element={<OrdersTable />} />
       <Route path="/field_list" element={<FieldListPage />} />
-      <Route path="/booking" element={<BookingPage />} />
+      <Route path="/booking/:facId" element={<BookingPage />} />
       <Route path="/payment" element={<PaymentPage />} />
       <Route path="/staff_manager" element={<StaffManager />} />
+      <Route path="/users_manager" element={<UsersManager />} />
+      <Route path="/regulation_manager" element={<RegulationManager />} />
     </Routes>
   );
 };
