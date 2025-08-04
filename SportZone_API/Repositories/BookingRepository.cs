@@ -18,10 +18,6 @@ namespace SportZone_API.Repository
             _mapper = mapper;
         }
 
-        private DateTime CombineDateAndTime(DateOnly date, TimeOnly time)
-        {
-            return date.ToDateTime(time);
-        }
         public async Task<Booking> CreateBookingAsync(BookingCreateDTO bookingDto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
