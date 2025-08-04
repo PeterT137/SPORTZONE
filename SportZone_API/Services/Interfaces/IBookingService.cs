@@ -33,5 +33,6 @@ namespace SportZone_API.Services.Interfaces
         /// Kiểm tra slot thời gian có trống không với Date và Time riêng biệt
         /// </summary>
         Task<bool> CheckTimeSlotAvailabilityAsync(int fieldId, DateOnly date, TimeOnly startTime, TimeOnly endTime);
+
     }
 }

@@ -25,7 +25,6 @@ namespace SportZone_API.Services
             _hubContext = hubContext;
         }
 
-        // Helper method to combine DateOnly and TimeOnly into DateTime for business logic
         private DateTime CombineDateAndTime(DateOnly date, TimeOnly time)
         {
             return date.ToDateTime(time);
@@ -35,40 +34,30 @@ namespace SportZone_API.Services
         {
             try
             {
-                // Validate business rules
                 var validation = await ValidateBookingRulesAsync(bookingDto);
                 if (!validation.IsValid)
                     throw new ArgumentException(validation.ErrorMessage);
-
-                // Create booking
                 var booking = await _bookingRepository.CreateBookingAsync(bookingDto);
-
-                // Return detailed booking info
                 var detail = await _bookingRepository.GetBookingByIdAsync(booking.BookingId);
                 if (detail == null)
                     throw new Exception("Không thể lấy thông tin booking vừa tạo");
-
-                // Lấy thông tin cơ sở từ sân đã đặt
                 var field = await _fieldRepository.GetFieldByIdAsync(bookingDto.FieldId.Value);
                 if (field != null)
                 {
                     var facId = field.FacId;
-
-                    // Gửi thông báo đến người quản lý cơ sở
-                    var managerMessage = $"Một booking mới (ID: {detail.BookingId}) đã được tạo cho sân '{field.FieldName}' vào lúc {bookingDto.StartTime.ToString("HH:mm")} ngày {bookingDto.Date.ToString("dd-MM-yyyy")}.";
-                    await _hubContext.Clients.Group($"facility-{facId}").SendAsync("ReceiveNotification", managerMessage);
-
-                    // Cập nhật trạng thái sân cho tất cả người dùng đang xem lịch trong cùng cơ sở
-                    await _hubContext.Clients.Group($"facility-{facId}").SendAsync("BookingCreated", detail);
+                    var firstBookedSlot = detail.BookedSlots.FirstOrDefault();
+                    if (firstBookedSlot != null)
+                    {
+                        var managerMessage = $"Một booking mới (ID: {detail.BookingId}) đã được tạo cho sân '{field.FieldName}' vào lúc {firstBookedSlot.StartTime.ToString("HH:mm")} ngày {firstBookedSlot.Date.ToString("dd-MM-yyyy")}.";
+                        await _hubContext.Clients.Group($"facility-{facId}").SendAsync("ReceiveNotification", managerMessage);
+                        await _hubContext.Clients.Group($"facility-{facId}").SendAsync("BookingCreated", detail);
+                    }
                 }
-
-                // Gửi thông báo cho khách hàng
                 if (detail.UserId.HasValue)
                 {
                     var userMessage = $"Booking của bạn (ID: {detail.BookingId}) đã được xác nhận thành công.";
                     await _hubContext.Clients.User(detail.UserId.Value.ToString()).SendAsync("ReceiveNotification", userMessage);
                 }
-
                 return detail;
             }
             catch (Exception ex)
@@ -114,24 +103,16 @@ namespace SportZone_API.Services
                 }
 
                 var isCancelled = await _bookingRepository.CancelBookingAsync(bookingId);
-
                 if (isCancelled)
                 {
-                    // Lấy thông tin sân và cơ sở để gửi thông báo
                     var field = booking.FieldBookingSchedules?.FirstOrDefault()?.Field;
                     if (field != null)
                     {
                         var facId = field.FacId;
-
-                        // Gửi thông báo đến người quản lý cơ sở
                         var managerMessage = $"Booking (ID: {bookingId}) cho sân '{field.FieldName}' đã được hủy.";
                         await _hubContext.Clients.Group($"facility-{facId}").SendAsync("ReceiveNotification", managerMessage);
-
-                        // Cập nhật trạng thái sân cho tất cả người dùng đang xem lịch
                         await _hubContext.Clients.Group($"facility-{facId}").SendAsync("BookingCancelled", bookingId);
                     }
-
-                    // Gửi thông báo cho khách hàng
                     if (booking.UId.HasValue)
                     {
                         var userMessage = $"Booking (ID: {bookingId}) của bạn đã được hủy thành công.";
@@ -165,20 +146,10 @@ namespace SportZone_API.Services
         {
             try
             {
-                // Basic validation
-                if (bookingDto.StartTime >= bookingDto.EndTime)
-                    return (false, "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc");
 
-                // Check if booking is not in the past
-                var bookingDateTime = CombineDateAndTime(bookingDto.Date, bookingDto.StartTime);
-                if (bookingDateTime <= DateTime.Now)
-                    return (false, "Không thể đặt thời gian trong quá khứ");
+                if (!bookingDto.SelectedSlotIds.Any())
+                    return (false, "Phải chọn ít nhất 1 slot thời gian");
 
-                // Check if it's not too far in the future (e.g., max 3 months)
-                if (bookingDateTime > DateTime.Now.AddMonths(3))
-                    return (false, "Không thể đặt sân quá 3 tháng trước");
-
-                // Validate guest booking requirements
                 if (!bookingDto.UserId.HasValue)
                 {
                     if (string.IsNullOrWhiteSpace(bookingDto.GuestName))
@@ -191,20 +162,13 @@ namespace SportZone_API.Services
                         return (false, "Số điện thoại không hợp lệ");
                 }
 
-                // Check field availability if specified
-                if (bookingDto.FieldId.HasValue)
-                {
-                    var isAvailable = await CheckTimeSlotAvailabilityAsync(
-                        bookingDto.FieldId.Value,
-                        bookingDto.Date,
-                        bookingDto.StartTime,
-                        bookingDto.EndTime);
+                var slotsValidation = await _bookingRepository.ValidateSelectedSlotsAsync(
+                    bookingDto.SelectedSlotIds,
+                    bookingDto.FieldId,
+                    bookingDto.FacilityId);
+                if (!slotsValidation.IsValid)
+                    return (false, slotsValidation.ErrorMessage);
 
-                    if (!isAvailable)
-                        return (false, "Thời gian đã được đặt, vui lòng chọn thời gian khác");
-                }
-
-                // Additional business rules can be added here
                 return (true, string.Empty);
             }
             catch (Exception ex)
@@ -217,8 +181,6 @@ namespace SportZone_API.Services
         {
             if (string.IsNullOrEmpty(phoneNumber))
                 return false;
-
-            // Simple phone validation
             var phonePattern = @"^[\+]?[0-9]?[\(\)\-\s\.]*[0-9]{8,15}$";
             return System.Text.RegularExpressions.Regex.IsMatch(phoneNumber, phonePattern);
         }
@@ -233,7 +195,6 @@ namespace SportZone_API.Services
                 if (startTime >= endTime)
                     throw new ArgumentException("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc");
 
-                // Check if the booking is in the past
                 var bookingDateTime = CombineDateAndTime(date, startTime);
                 if (bookingDateTime <= DateTime.Now)
                     throw new ArgumentException("Không thể kiểm tra thời gian trong quá khứ");

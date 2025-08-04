@@ -3,6 +3,10 @@ using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services.Interfaces;
+using SportZone_API.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SportZone_API.Services
 {
@@ -10,11 +14,16 @@ namespace SportZone_API.Services
     {
         private readonly IRegulationFacilityRepository _repository;
         private readonly IMapper _mapper;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public RegulationFacilityService(IRegulationFacilityRepository repository, IMapper mapper)
+        public RegulationFacilityService(
+            IRegulationFacilityRepository repository,
+            IMapper mapper,
+            IHubContext<NotificationHub> hubContext)
         {
             _repository = repository;
             _mapper = mapper;
+            _hubContext = hubContext;
         }
 
         public async Task<List<RegulationFacility>> GetAllRegulationFacilities()
@@ -38,6 +47,10 @@ namespace SportZone_API.Services
             await _repository.AddAsync(regulationFacility);
             await _repository.SaveChangesAsync();
 
+            var message = $"Quy định mới '{regulationFacility.Title}' đã được thêm cho cơ sở {regulationFacility.FacId}.";
+            await _hubContext.Clients.Group($"facility-{regulationFacility.FacId}").SendAsync("ReceiveNotification", message);
+            await _hubContext.Clients.Group($"facility-{regulationFacility.FacId}").SendAsync("RegulationCreated", regulationFacility);
+
             return new ServiceResponse<RegulationFacility>
             {
                 Success = true,
@@ -56,6 +69,10 @@ namespace SportZone_API.Services
             await _repository.UpdateAsync(regulationFacility);
             await _repository.SaveChangesAsync();
 
+            var message = $"Quy định '{regulationFacility.Title}' đã được cập nhật cho cơ sở {regulationFacility.FacId}.";
+            await _hubContext.Clients.Group($"facility-{regulationFacility.FacId}").SendAsync("ReceiveNotification", message);
+            await _hubContext.Clients.Group($"facility-{regulationFacility.FacId}").SendAsync("RegulationUpdated", regulationFacility);
+
             return new ServiceResponse<RegulationFacility>
             {
                 Success = true,
@@ -70,8 +87,15 @@ namespace SportZone_API.Services
             if (regulationFacility == null)
                 return new ServiceResponse<RegulationFacility> { Success = false, Message = "Không tìm thấy quy định cơ sở." };
 
+            var facId = regulationFacility.FacId;
+            var regulationName = regulationFacility.Title;
+
             await _repository.DeleteAsync(regulationFacility);
             await _repository.SaveChangesAsync();
+
+            var message = $"Quy định '{regulationName}' đã bị xóa khỏi cơ sở {facId}.";
+            await _hubContext.Clients.Group($"facility-{facId}").SendAsync("ReceiveNotification", message);
+            await _hubContext.Clients.Group($"facility-{facId}").SendAsync("RegulationDeleted", id);
 
             return new ServiceResponse<RegulationFacility>
             {

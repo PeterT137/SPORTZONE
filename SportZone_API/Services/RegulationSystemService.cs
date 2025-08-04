@@ -3,6 +3,10 @@ using SportZone_API.DTOs;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services.Interfaces;
+using SportZone_API.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SportZone_API.Services
 {
@@ -10,11 +14,16 @@ namespace SportZone_API.Services
     {
         private readonly IRegulationSystemRepository _repository;
         private readonly IMapper _mapper;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public RegulationSystemService(IRegulationSystemRepository repository, IMapper mapper)
+        public RegulationSystemService(
+            IRegulationSystemRepository repository,
+            IMapper mapper,
+            IHubContext<NotificationHub> hubContext)
         {
             _repository = repository;
             _mapper = mapper;
+            _hubContext = hubContext;
         }
 
         public async Task<List<RegulationSystem>> GetAllRegulationSystems()
@@ -32,6 +41,10 @@ namespace SportZone_API.Services
             var regulationSystem = _mapper.Map<RegulationSystem>(dto);
             await _repository.AddAsync(regulationSystem);
             await _repository.SaveChangesAsync();
+
+            var message = $"Quy định hệ thống mới '{regulationSystem.Title}' đã được tạo.";
+            await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
+            await _hubContext.Clients.All.SendAsync("RegulationSystemCreated", regulationSystem);
 
             return new ServiceResponse<RegulationSystem>
             {
@@ -51,6 +64,10 @@ namespace SportZone_API.Services
             await _repository.UpdateAsync(regulationSystem);
             await _repository.SaveChangesAsync();
 
+            var message = $"Quy định hệ thống '{regulationSystem.Title}' đã được cập nhật.";
+            await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
+            await _hubContext.Clients.All.SendAsync("RegulationSystemUpdated", regulationSystem);
+
             return new ServiceResponse<RegulationSystem>
             {
                 Success = true,
@@ -65,8 +82,13 @@ namespace SportZone_API.Services
             if (regulationSystem == null)
                 return new ServiceResponse<RegulationSystem> { Success = false, Message = "Không tìm thấy quy định hệ thống." };
 
+            var regulationName = regulationSystem.Title;
             await _repository.DeleteAsync(regulationSystem);
             await _repository.SaveChangesAsync();
+
+            var message = $"Quy định hệ thống '{regulationName}' đã được xóa.";
+            await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
+            await _hubContext.Clients.All.SendAsync("RegulationSystemDeleted", id);
 
             return new ServiceResponse<RegulationSystem>
             {

@@ -1,4 +1,5 @@
 using SportZone_API.Models;
+using SportZone_API.DTOs;
 
 namespace SportZone_API.Repositories.Interfaces
 {
@@ -14,7 +15,8 @@ namespace SportZone_API.Repositories.Interfaces
         Task DeleteAsync(Discount discount);
         Task<List<Discount>> SearchAsync(string text);
         Task SaveChangesAsync();
-
-        
+        Task<bool> ValidateDiscountAsync(int discountId, int facId);
+        Task<bool> DecreaseDiscountQuantityAsync(int discountId);
+        Task<DiscountDTO?> GetDiscountByIdAsync(int discountId);
     }
 }

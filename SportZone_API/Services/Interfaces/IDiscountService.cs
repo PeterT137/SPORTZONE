@@ -14,5 +14,7 @@ namespace SportZone_API.Services.Interfaces
         Task<ServiceResponse<Discount>> UpdateDiscount(int id, DiscountDto dto);
         Task<ServiceResponse<Discount>> DeleteDiscount(int id);
         Task<List<Discount>> SearchDiscounts(string text);
+        Task<decimal> CalculateDiscountedPriceAsync(decimal originalPrice, int? discountId, int facId);
+        Task<bool> DecreaseDiscountQuantityAsync(int discountId);
     }
 }

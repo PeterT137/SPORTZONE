@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using SportZone_API.DTOs;
 using SportZone_API.Hubs;
 using SportZone_API.Models;
+using SportZone_API.Repositories;
 using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Services.Interfaces;
 
@@ -134,6 +135,51 @@ namespace SportZone_API.Services
         public async Task<List<Discount>> SearchDiscounts(string text)
         {
             return await _repository.SearchAsync(text);
+        }
+
+        public async Task<decimal> CalculateDiscountedPriceAsync(decimal originalPrice, int? discountId, int facId)
+        {
+            try
+            {
+                if (!discountId.HasValue)
+                    return originalPrice;
+
+                // Validate discount
+                var isValidDiscount = await _repository.ValidateDiscountAsync(discountId.Value, facId);
+                if (!isValidDiscount)
+                {
+                    throw new ArgumentException($"Discount ID {discountId} không hợp lệ hoặc không áp dụng được cho Facility {facId}");
+                }
+
+                // Lấy thông tin discount
+                var discount = await _repository.GetDiscountByIdAsync(discountId.Value);
+                if (discount == null)
+                {
+                    throw new ArgumentException($"Không tìm thấy Discount với ID {discountId}");
+                }
+
+                // Tính giá sau discount
+                var discountAmount = originalPrice * (discount.DiscountPercentage ?? 0) / 100;
+                var discountedPrice = originalPrice - discountAmount;
+
+                return discountedPrice;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tính giá sau discount: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<bool> DecreaseDiscountQuantityAsync(int discountId)
+        {
+            try
+            {
+                return await _repository.DecreaseDiscountQuantityAsync(discountId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi giảm quantity discount: {ex.Message}", ex);
+            }
         }
     }
 }

@@ -14,9 +14,11 @@ namespace SportZone_API.Controllers
     public class ServiceController : ControllerBase
     {
         private readonly IServiceService _serviceService;
-        public ServiceController(IServiceService serviceService)
+        private readonly IOrderServiceService _orderServiceService;
+        public ServiceController(IServiceService serviceService, IOrderServiceService orderServiceService)
         {
             _serviceService = serviceService;
+            _orderServiceService = orderServiceService;
         }
 
         [HttpGet("GetAllService")]
@@ -306,6 +308,95 @@ namespace SportZone_API.Controllers
                 {
                     success = false,
                     message = "Có lỗi xảy ra khi lấy danh sách dịch vụ với phân trang",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Thêm service vào order
+        /// </summary>
+        [HttpPost("order/add")]
+        public async Task<IActionResult> AddServiceToOrder([FromBody] OrderServiceCreateDTO orderServiceDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Dữ liệu không hợp lệ",
+                        errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    });
+                }
+
+                var orderService = await _orderServiceService.AddServiceToOrderAsync(orderServiceDto);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Thêm service vào order thành công",
+                    data = orderService
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi thêm service vào order",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Xóa service khỏi order
+        /// </summary>
+        [HttpDelete("order/{orderServiceId}/remove")]
+        public async Task<IActionResult> RemoveServiceFromOrder(int orderServiceId)
+        {
+            try
+            {
+                var result = await _orderServiceService.RemoveServiceFromOrderAsync(orderServiceId);
+                if (!result)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy OrderService để xóa"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Xóa service khỏi order thành công"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi xóa service khỏi order",
                     error = ex.Message
                 });
             }
