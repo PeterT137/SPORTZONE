@@ -34,5 +34,10 @@ namespace SportZone_API.Services.Interfaces
         /// </summary>
         Task<bool> CheckTimeSlotAvailabilityAsync(int fieldId, DateOnly date, TimeOnly startTime, TimeOnly endTime);
 
+        /// <summary>
+        /// Tính toán tổng tiền cho booking
+        /// </summary>
+        Task<ServiceResponse<decimal>> CalculateTotalAmount(CalculateAmountDTO calculateDto);
+
     }
 }

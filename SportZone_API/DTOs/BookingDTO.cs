@@ -209,6 +209,15 @@ namespace SportZone_API.DTOs
     }
 
     /// <summary>
+    /// DTO để tích hợp booking với payment
+    /// </summary>
+    public class BookingWithPaymentDto
+    {
+        public BookingCreateDTO BookingData { get; set; }
+        public VNPayRequestDto PaymentData { get; set; }
+    }
+
+    /// <summary>
     /// Static class chứa các mapping methods cho Booking
     /// </summary>
     /// 

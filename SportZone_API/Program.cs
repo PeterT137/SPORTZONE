@@ -117,6 +117,8 @@ builder.Services.AddScoped<IRegulationFacilityService, RegulationFacilityService
 builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 
+builder.Services.AddScoped<IVNPayService, VNPayService>();
+
 
 
 builder.Services.AddHttpContextAccessor();

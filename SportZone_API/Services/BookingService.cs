@@ -163,5 +163,73 @@ namespace SportZone_API.Services
                 throw new Exception($"Lỗi khi kiểm tra thời gian trống: {ex.Message}", ex);
             }
         }
+
+        public async Task<ServiceResponse<decimal>> CalculateTotalAmount(CalculateAmountDTO calculateDto)
+        {
+            try
+            {
+                if (calculateDto.SelectedSlotIds == null || !calculateDto.SelectedSlotIds.Any())
+                {
+                    return new ServiceResponse<decimal>
+                    {
+                        Success = false,
+                        Message = "Phải chọn ít nhất 1 slot thời gian",
+                        Data = 0
+                    };
+                }
+
+                decimal totalAmount = 0;
+
+                // Tính tiền từ các slot đã chọn
+                foreach (var slotId in calculateDto.SelectedSlotIds)
+                {
+                    var slot = await _bookingRepository.GetFieldBookingScheduleByIdAsync(slotId);
+                    if (slot != null && slot.Price.HasValue)
+                    {
+                        totalAmount += slot.Price.Value;
+                    }
+                }
+
+                // Tính tiền từ các dịch vụ
+                if (calculateDto.ServiceIds != null && calculateDto.ServiceIds.Any())
+                {
+                    foreach (var serviceId in calculateDto.ServiceIds)
+                    {
+                        var service = await _bookingRepository.GetServiceByIdAsync(serviceId);
+                        if (service != null && service.Price.HasValue)
+                        {
+                            totalAmount += service.Price.Value;
+                        }
+                    }
+                }
+
+                // Áp dụng giảm giá
+                if (calculateDto.DiscountId.HasValue)
+                {
+                    var discount = await _bookingRepository.GetDiscountByIdAsync(calculateDto.DiscountId.Value);
+                    if (discount != null && discount.DiscountPercentage.HasValue)
+                    {
+                        decimal discountAmount = totalAmount * (discount.DiscountPercentage.Value / 100);
+                        totalAmount -= discountAmount;
+                    }
+                }
+
+                return new ServiceResponse<decimal>
+                {
+                    Success = true,
+                    Message = "Tính toán tổng tiền thành công",
+                    Data = totalAmount
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<decimal>
+                {
+                    Success = false,
+                    Message = $"Lỗi khi tính toán tổng tiền: {ex.Message}",
+                    Data = 0
+                };
+            }
+        }
     }
 }
