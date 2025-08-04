@@ -248,11 +248,31 @@ namespace SportZone_API.Services
                 // Cập nhật thông tin cơ bản
                 _mapper.Map(dto, facility);
 
-                // Cập nhật danh sách ảnh trong model
-                facility.Images = imageUrls.Select(url => new Image { ImageUrl = url, FacId = facility.FacId }).ToList();
-
-                await _repository.UpdateAsync(facility);
-                await _repository.SaveChangesAsync();
+                var currentImageUrls = facility.Images.Select(img => img.ImageUrl).ToList();
+                
+                if (!currentImageUrls.SequenceEqual(imageUrls))
+                {
+                    // Remove all current images manually from database to avoid tracking conflicts
+                    var existingImages = await _repository.GetImagesByFacilityIdAsync(facility.FacId);
+                    await _repository.RemoveImagesAsync(existingImages);
+                    await _repository.SaveChangesAsync();
+                    
+                    // Clear the collection
+                    facility.Images.Clear();
+                    
+                    // Add new images
+                    var newImages = imageUrls.Select(url => new Image { ImageUrl = url, FacId = facility.FacId }).ToList();
+                    await _repository.AddImagesAsync(newImages);
+                    
+                    // Update facility without images first
+                    await _repository.UpdateAsync(facility);
+                    await _repository.SaveChangesAsync();
+                }
+                else
+                {
+                    await _repository.UpdateAsync(facility);
+                    await _repository.SaveChangesAsync();
+                }
 
                 var updatedFacility = await _repository.GetByIdAsync(id);
                 return new ServiceResponse<FacilityDto>

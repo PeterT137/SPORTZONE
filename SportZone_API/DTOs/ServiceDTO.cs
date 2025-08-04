@@ -59,6 +59,8 @@ namespace SportZone_API.DTOs
 
         [StringLength(1000, ErrorMessage = "Mô tả không được vượt quá 1000 ký tự")]
         public string? Description { get; set; }
+
+        public bool RemoveImage { get; set; } = false;
     }
 
     // DTO phản hồi chi tiết với thông tin quan hệ

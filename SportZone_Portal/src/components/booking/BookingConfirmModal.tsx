@@ -1,9 +1,34 @@
 import React from "react";
-import type {
-  DemoField,
-  FieldScheduleSlot,
-  DemoService,
-} from "../../data/demoBookingData";
+
+// Local interfaces
+interface DemoField {
+  fieldId: number;
+  fieldName: string;
+  categoryName: string;
+  facilityName?: string;
+  facilityAddress?: string;
+  image: string;
+  openTime: string;
+  closeTime: string;
+  pricing: unknown[];
+}
+
+interface FieldScheduleSlot {
+  scheduleId: number;
+  fieldId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: "Available" | "Booked" | "Blocked";
+  price: number;
+}
+
+interface DemoService {
+  serviceId: number;
+  serviceName: string;
+  description?: string;
+  price: number;
+}
 
 interface BookingConfirmModalProps {
   isOpen: boolean;
@@ -42,12 +67,60 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
 
   const getTimeRange = () => {
     if (booking.slots.length === 0) return "";
+
+    // Sort slots by start time
     const sortedSlots = booking.slots.sort((a, b) =>
       a.startTime.localeCompare(b.startTime)
     );
-    return `${sortedSlots[0].startTime} - ${
-      sortedSlots[sortedSlots.length - 1].endTime
-    }`;
+
+    // Group consecutive slots
+    const slotGroups: FieldScheduleSlot[][] = [];
+    let currentGroup: FieldScheduleSlot[] = [sortedSlots[0]];
+
+    for (let i = 1; i < sortedSlots.length; i++) {
+      const currentSlot = sortedSlots[i];
+      const previousSlot = currentGroup[currentGroup.length - 1];
+
+      // Check if current slot is consecutive to the previous one
+      if (currentSlot.startTime === previousSlot.endTime) {
+        currentGroup.push(currentSlot);
+      } else {
+        slotGroups.push(currentGroup);
+        currentGroup = [currentSlot];
+      }
+    }
+    slotGroups.push(currentGroup);
+
+    // Format each group as time range
+    return slotGroups
+      .map(
+        (group) => `${group[0].startTime} - ${group[group.length - 1].endTime}`
+      )
+      .join("; ");
+  };
+
+  const calculateTotalDuration = () => {
+    if (booking.slots.length === 0) return 0;
+
+    let totalMinutes = 0;
+    booking.slots.forEach((slot) => {
+      const [startHour, startMinute] = slot.startTime.split(":").map(Number);
+      const [endHour, endMinute] = slot.endTime.split(":").map(Number);
+
+      const startTotalMinutes = startHour * 60 + startMinute;
+      const endTotalMinutes = endHour * 60 + endMinute;
+
+      totalMinutes += endTotalMinutes - startTotalMinutes;
+    });
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (minutes === 0) {
+      return `${hours} giờ`;
+    } else {
+      return `${hours} giờ ${minutes} phút`;
+    }
   };
 
   const calculateSubtotal = () => {
@@ -133,7 +206,7 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Tổng thời gian
+                  Khung giờ đặt
                 </label>
                 <p className="text-gray-900">{getTimeRange()}</p>
               </div>
@@ -141,17 +214,13 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
                 <label className="block text-sm font-medium text-gray-600 mb-1">
                   Số slot đã chọn
                 </label>
-                <p className="text-gray-900">
-                  {booking.slots.length} slot (30 phút/slot)
-                </p>
+                <p className="text-gray-900">{booking.slots.length} slot</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">
                   Tổng thời lượng
                 </label>
-                <p className="text-gray-900">
-                  {(booking.slots.length * 0.5).toFixed(1)} giờ
-                </p>
+                <p className="text-gray-900">{calculateTotalDuration()}</p>
               </div>
             </div>
 
@@ -264,15 +333,10 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
                 </div>
               )}
 
-              <div className="flex justify-between">
-                <span>Phí dịch vụ hệ thống</span>
-                <span>15,000đ</span>
-              </div>
-
               <hr className="my-2" />
               <div className="flex justify-between text-lg font-bold text-green-600">
                 <span>Tổng cộng</span>
-                <span>{(booking.totalPrice + 15000).toLocaleString()}đ</span>
+                <span>{booking.totalPrice.toLocaleString()}đ</span>
               </div>
 
               <div className="text-xs text-gray-500 mt-2">
