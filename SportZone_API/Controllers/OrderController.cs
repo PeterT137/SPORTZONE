@@ -19,16 +19,12 @@ namespace SportZone_API.Controllers
             _orderService = orderService;
         }
 
-        //[HttpGet("{orderId}")]
-        //public async Task<IActionResult> GetOrderDetails(int orderId)
-        //{
-        //    var response = await _orderService.GetOrderDetailsAsync(orderId);
-        //    if (!response.Success)
-        //    {
-        //        return NotFound(response); 
-        //    }
-        //    return Ok(response);
-        //}
+        [HttpGet("{orderId}")]
+        public async Task<IActionResult> GetOrderDetails(int orderId)
+        {
+            var response = await _orderService.GetOrderByIdAsync(orderId);
+            return Ok(response);
+        }
 
         //[HttpPost("add-service")]
         //public async Task<IActionResult> AddServiceToOrder([FromBody] AddServiceToOrderDTO addServiceDto)
