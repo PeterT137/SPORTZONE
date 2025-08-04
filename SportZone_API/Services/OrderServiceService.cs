@@ -46,6 +46,22 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<IEnumerable<OrderServiceDTO>> GetOrderServicesByOrderIdAsync(int orderId)
+        {
+            try
+            {
+                if (orderId <= 0)
+                    throw new ArgumentException("Order ID không hợp lệ");
+
+                return await _orderServiceRepository.GetOrderServicesByOrderIdAsync(orderId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách services trong order: {ex.Message}", ex);
+            }
+        }
+
+
         public async Task<bool> RemoveServiceFromOrderAsync(int orderServiceId)
         {
             try

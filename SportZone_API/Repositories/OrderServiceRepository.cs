@@ -75,6 +75,22 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<IEnumerable<OrderServiceDTO>> GetOrderServicesByOrderIdAsync(int orderId)
+        {
+            try
+            {
+                var orderServices = await _context.OrderServices
+                    .Include(os => os.Service)
+                    .Where(os => os.OrderId == orderId)
+                    .ToListAsync();
+                return _mapper.Map<IEnumerable<OrderServiceDTO>>(orderServices);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách OrderService cho OrderId {orderId}: {ex.Message}", ex);
+            }
+        }
+
         public async Task<bool> DeleteOrderServiceAsync(int orderServiceId)
         {
             try
