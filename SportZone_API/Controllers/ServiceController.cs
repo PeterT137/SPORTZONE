@@ -437,5 +437,58 @@ namespace SportZone_API.Controllers
                 });
             }
         }
+
+        [HttpPut("order/{orderServiceId}/update/Service/Quantity")]
+        //[AllowAnonymous]
+        [RoleAuthorize("2,4")]
+        public async Task<IActionResult> UpdateOrderServiceAsync(int orderServiceId, [FromBody] OrderServiceUpdateDTO updateDTO)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Dữ liệu không hợp lệ",
+                        errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                    });
+                }
+
+                var orderService = await _orderServiceService.UpdateOrderServiceAsync(orderServiceId, updateDTO);
+                if (orderService == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy OrderService để cập nhật"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Cập nhật số lượng dịch vụ trong order thành công",
+                    data = orderService
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi cập nhật OrderService",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

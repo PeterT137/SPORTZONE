@@ -18,6 +18,10 @@ namespace SportZone_API.Repositories.Interfaces
         /// </summary>
         Task<IEnumerable<OrderServiceDTO>> GetOrderServicesByOrderIdAsync(int orderId);
         /// <summary>
+        /// Cập nhật OrderService
+        /// </summary>
+        Task<OrderServiceDTO?> UpdateOrderServiceAsync(int orderServiceId, OrderServiceUpdateDTO updateDto);
+        /// <summary>
         /// Xóa OrderService
         /// </summary>
         Task<bool> DeleteOrderServiceAsync(int orderServiceId);

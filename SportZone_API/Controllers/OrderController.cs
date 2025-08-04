@@ -25,55 +25,5 @@ namespace SportZone_API.Controllers
             var response = await _orderService.GetOrderByIdAsync(orderId);
             return Ok(response);
         }
-
-        //[HttpPost("add-service")]
-        //public async Task<IActionResult> AddServiceToOrder([FromBody] AddServiceToOrderDTO addServiceDto)
-        //{
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return BadRequest(ModelState);
-        //    }
-        //    var success = await _orderService.AddServiceToOrderAsync(addServiceDto);
-        //    if (!success)
-        //    {
-        //        return BadRequest(new ServiceResponse<OrderDTO>
-        //        {
-        //            Success = false,
-        //            Message = "Không thể thêm dịch vụ vào đơn hàng. Kiểm tra ID đơn hàng hoặc dịch vụ.",
-        //            Data = null 
-        //        });
-        //    }
-        //    var updatedOrderResponse = await _orderService.GetOrderDetailsAsync(addServiceDto.OrderId);
-        //    if (!updatedOrderResponse.Success)
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError, updatedOrderResponse);
-        //    }
-        //    return Ok(updatedOrderResponse);
-        //}
-
-        //[HttpDelete("remove-service")]
-        //public async Task<IActionResult> RemoveServiceFromOrder([FromQuery] RemoveServiceFromOrderDTO removeServiceDto)
-        //{
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return BadRequest(ModelState);
-        //    }
-        //    var success = await _orderService.RemoveServiceFromOrderAsync(removeServiceDto);
-        //    if (!success)
-        //    {
-        //        return NotFound(new ServiceResponse<OrderDTO> 
-        //        {
-        //            Success = false,
-        //            Message = "Không thể xóa dịch vụ khỏi đơn hàng. Kiểm tra ID đơn hàng hoặc dịch vụ.",
-        //            Data = null 
-        //        });
-        //    }
-        //    var updatedOrderResponse = await _orderService.GetOrderDetailsAsync(removeServiceDto.OrderId);
-        //    if (!updatedOrderResponse.Success)
-        //    {
-        //        return StatusCode(StatusCodes.Status500InternalServerError, updatedOrderResponse);
-        //    }
-        //    return Ok(updatedOrderResponse);
-        //}
     }
 }

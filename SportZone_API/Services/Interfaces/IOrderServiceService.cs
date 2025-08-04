@@ -21,6 +21,11 @@ namespace SportZone_API.Services.Interfaces
         Task<IEnumerable<OrderServiceDTO>> GetOrderServicesByOrderIdAsync(int orderId);
 
         /// <summary>
+        /// Cập nhật số lượng service trong order
+        /// </summary>
+        Task<OrderServiceDTO?> UpdateOrderServiceAsync(int orderServiceId, OrderServiceUpdateDTO updateDto);
+
+        /// <summary>
         /// Xóa service khỏi order
         /// </summary>
         Task<bool> RemoveServiceFromOrderAsync(int orderServiceId);

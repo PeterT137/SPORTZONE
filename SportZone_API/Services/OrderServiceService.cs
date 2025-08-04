@@ -61,6 +61,26 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<OrderServiceDTO?> UpdateOrderServiceAsync(int orderServiceId, OrderServiceUpdateDTO updateDto)
+        {
+            try
+            {
+                if (orderServiceId <= 0)
+                    throw new ArgumentException("OrderService ID không hợp lệ");
+                if (updateDto.Quantity.HasValue && updateDto.Quantity.Value < 0)
+                    throw new ArgumentException("Số lượng dịch vụ không thể nhỏ hơn 0");
+                var existingOrderService =  await _orderServiceRepository.GetOrderServiceByIdAsync(orderServiceId);
+                if (existingOrderService == null)
+                    throw new ArgumentException("OrderService không tồn tại");
+
+                var updateOrderService = await _orderServiceRepository.UpdateOrderServiceAsync(orderServiceId, updateDto);
+                return updateOrderService;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật thông tin OrderService: {ex.Message}", ex);
+            }
+        }
 
         public async Task<bool> RemoveServiceFromOrderAsync(int orderServiceId)
         {
