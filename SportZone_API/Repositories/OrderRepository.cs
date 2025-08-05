@@ -84,6 +84,37 @@ namespace SportZone_API.Repositories
             }
         }
 
+
+        public async Task<OrderDTO?> UpdateOrderContentPaymentAsync(int orderId, int option)
+        {
+            try
+            {
+                var order = await _context.Orders
+                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                if (order == null)
+                {
+                    return null;
+                }
+                if (option == 1)
+                {
+                    order.ContentPayment = "Thanh toán tiền mặt";
+                }
+                else if (option == 2)
+                {
+                    order.ContentPayment = "Thanh toán qua ví điện tử";
+                }
+                _context.Orders.Update(order);
+                await _context.SaveChangesAsync();
+                return _mapper.Map<OrderDTO>(order);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật nội dung thanh toán của Order: {ex.Message}", ex);
+            }
+        }
+
+
+
         public async Task<bool> AddOrderServiceAsync(OrderService order_Service)
         {
             await _context.OrderServices.AddAsync(order_Service);

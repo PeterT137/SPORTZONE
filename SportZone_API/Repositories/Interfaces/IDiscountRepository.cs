@@ -19,4 +19,4 @@ namespace SportZone_API.Repositories.Interfaces
         Task<bool> DecreaseDiscountQuantityAsync(int discountId);
         Task<DiscountDTO?> GetDiscountByIdAsync(int discountId);
     }
-}
+} 
