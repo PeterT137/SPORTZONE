@@ -6,11 +6,11 @@ namespace SportZone_API.Attributes
 {
     public class RoleAuthorizeAttribute : Attribute, IAuthorizationFilter
     {
-        private readonly string _roleId;
+        private readonly string[] _allowedRoles;
 
-        public RoleAuthorizeAttribute(string roleId)
+        public RoleAuthorizeAttribute(string roleIds)
         {
-            _roleId = roleId;
+            _allowedRoles = roleIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
 
         public void OnAuthorization(AuthorizationFilterContext context)
@@ -23,11 +23,18 @@ namespace SportZone_API.Attributes
 
             var userRole = context.HttpContext.User.FindFirst("Role")?.Value;
 
-            if (userRole != _roleId)
+            if (string.IsNullOrEmpty(userRole))
+            {
+                context.Result = new ForbidResult();
+                return;
+            }
+
+            if (!_allowedRoles.Contains(userRole))
             {
                 context.Result = new ForbidResult();
                 return;
             }
         }
     }
+
 }
