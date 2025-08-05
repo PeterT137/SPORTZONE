@@ -22,8 +22,15 @@ namespace SportZone_API.Controllers
         [HttpGet("{orderId}")]
         public async Task<IActionResult> GetOrderDetails(int orderId)
         {
-            var response = await _orderService.GetOrderByIdAsync(orderId);
-            return Ok(response);
+            try
+            {
+                var response = await _orderService.GetOrderByIdAsync(orderId);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error retrieving order: {ex.Message}");
+            }
         }
     }
 }

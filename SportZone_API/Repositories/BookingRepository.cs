@@ -66,8 +66,8 @@ namespace SportZone_API.Repository
                     Date = firstSlot.Date,
                     StartTime = firstSlot.StartTime,
                     EndTime = lastSlot.EndTime,
-                    Status = "Pending",
-                    StatusPayment = "Pending",
+                    Status = "Success",
+                    StatusPayment = "Success",
                     CreateAt = DateTime.Now,
                     GuestName = bookingDto.UserId.HasValue ? null : bookingDto.GuestName,
                     GuestPhone = bookingDto.UserId.HasValue ? null : bookingDto.GuestPhone
