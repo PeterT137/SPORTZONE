@@ -32,5 +32,29 @@ namespace SportZone_API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Error retrieving order: {ex.Message}");
             }
         }
+
+        [HttpPut("Order/{orderId}/Update/ContentPayment")]
+
+        public async Task<IActionResult> UpdateOrderContentPayment(int orderId, int option)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid data",
+                        errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                    });
+                }
+                var response = await _orderService.UpdateOrderContentPaymentAsync(orderId,option);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error updating order content payment: {ex.Message}");
+            }
+        }
     }
 }
