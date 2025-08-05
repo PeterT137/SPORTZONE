@@ -17,5 +17,8 @@ namespace SportZone_API.Repositories.Interfaces
         Task SaveChangesAsync();
         Task<IEnumerable<CategoryField>> GetCategoryFieldsByFacilityIdAsync(int facilityId);
         Task AddImagesAsync(IEnumerable<Image> images);
+        void DetachEntity<T>(T entity) where T : class;
+        Task<List<Image>> GetImagesByFacilityIdAsync(int facilityId);
+        Task RemoveImagesAsync(IEnumerable<Image> images);
     }
 }

@@ -20,8 +20,8 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("/get-all-account")]
-        [RoleAuthorize("3")]
-        [SwaggerOperation(Summary = "Lấy toàn bộ Account : Admin")]
+        [RoleAuthorize("2,3")]
+        [SwaggerOperation(Summary = "Lấy toàn bộ Account : Admin, Shop")]
         public async Task<IActionResult> GetAllAccount()
         {
             try

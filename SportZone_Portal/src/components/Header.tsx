@@ -48,17 +48,23 @@ const Header: React.FC = () => {
           RoleId: parsedUser.roleId || parsedUser.RoleId,
           UEmail: parsedUser.uEmail || parsedUser.UEmail,
           UStatus: parsedUser.uStatus || parsedUser.UStatus || "Active",
-          UCreateDate: parsedUser.uCreateDate || parsedUser.UCreateDate || new Date().toISOString(),
+          UCreateDate:
+            parsedUser.uCreateDate ||
+            parsedUser.UCreateDate ||
+            new Date().toISOString(),
           IsExternalLogin: parsedUser.isExternalLogin ?? false,
           IsVerify: parsedUser.isVerify ?? false,
           Admin: parsedUser.Admin ?? null,
           Customers: parsedUser.Customers ?? [],
           ExternalLogins: parsedUser.ExternalLogins ?? [],
           FieldOwner: parsedUser.FieldOwner ?? null,
-          Notifications: parsedUser.notifications ?? parsedUser.Notifications ?? [],
+          Notifications:
+            parsedUser.notifications ?? parsedUser.Notifications ?? [],
           Role: parsedUser.Role ?? null,
           Staff: parsedUser.Staff ?? null,
-          avatarUrl: parsedUser.avatarUrl || "https://www.vietnamworks.com/hrinsider/wp-content/uploads/2023/12/anh-den-ngau.jpeg",
+          avatarUrl:
+            parsedUser.avatarUrl ||
+            "https://www.vietnamworks.com/hrinsider/wp-content/uploads/2023/12/anh-den-ngau.jpeg",
         };
 
         if (transformedUser.UId && transformedUser.UEmail) {
@@ -103,21 +109,52 @@ const Header: React.FC = () => {
           </a>
         </div>
         <div className="hidden md:flex items-center gap-8 ml-12 flex-grow">
-          <a href="/homepage" className="text-white hover:text-[#1ebd6f]">Trang chủ</a>
+          <a href="/homepage" className="text-white hover:text-[#1ebd6f]">
+            Trang chủ
+          </a>
           <div className="relative group">
             <button className="text-white hover:text-[#1ebd6f]">Đặt sân</button>
             <div className="absolute hidden group-hover:block top-full bg-white text-[#333] rounded shadow-md w-48">
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Tìm sân</a>
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Lịch đặt sân</a>
-              <a className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]" href="#">Hủy đặt sân</a>
+              <a
+                className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]"
+                href="#"
+              >
+                Tìm sân
+              </a>
+              <a
+                className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]"
+                href="#"
+              >
+                Lịch đặt sân
+              </a>
+              <a
+                className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]"
+                href="#"
+              >
+                Hủy đặt sân
+              </a>
             </div>
           </div>
-          <a href="/field_list" className="text-white hover:text-[#1ebd6f]">Danh sách sân</a>
-          {user && (user.RoleId === 2 || user.RoleId === 3 || user.RoleId === 4) && (
-            <a href="/facility_manager" className="text-white hover:text-[#1ebd6f]">Quản lý chủ sân</a>
-          )}
-          <a href="#" className="text-white hover:text-[#1ebd6f]">Báo cáo</a>
-          <a href="#" className="text-white hover:text-[#1ebd6f]">Liên hệ</a>
+          <a href="/field_list" className="text-white hover:text-[#1ebd6f]">
+            Danh sách sân
+          </a>
+          {user &&
+            (user.RoleId === 2 || user.RoleId === 3 || user.RoleId === 4) && (
+              <a
+                href={
+                  user.RoleId === 3 ? "/users_manager" : "/facility_manager"
+                }
+                className="text-white hover:text-[#1ebd6f]"
+              >
+                {user.RoleId === 3 ? "Quản lý admin" : "Quản lý chủ sân"}
+              </a>
+            )}
+          <a href="#" className="text-white hover:text-[#1ebd6f]">
+            Báo cáo
+          </a>
+          <a href="#" className="text-white hover:text-[#1ebd6f]">
+            Liên hệ
+          </a>
         </div>
 
         <div className="flex items-center gap-4 relative">
@@ -169,8 +206,12 @@ const Header: React.FC = () => {
                     <div className="p-2">
                       <p className="text-sm text-gray-600">Thông báo</p>
                       <ul className="mt-2 space-y-1">
-                        <li className="text-sm text-gray-800">Đơn đặt sân #456 đã được xác nhận</li>
-                        <li className="text-sm text-gray-800">Nhắc nhở thanh toán đơn #789</li>
+                        <li className="text-sm text-gray-800">
+                          Đơn đặt sân #456 đã được xác nhận
+                        </li>
+                        <li className="text-sm text-gray-800">
+                          Nhắc nhở thanh toán đơn #789
+                        </li>
                       </ul>
                     </div>
                   </div>

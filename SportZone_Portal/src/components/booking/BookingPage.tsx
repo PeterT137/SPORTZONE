@@ -1,10 +1,70 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Header from "../Header";
 import BookingConfirmModal from "./BookingConfirmModal";
-// import FieldService, { type FieldResponse } from "../../services/fieldService";
+import {
+  MapPin,
+  Clock,
+  User,
+  Phone,
+  Calendar,
+  FileText,
+  DollarSign,
+  CheckCircle,
+  XCircle,
+  Star,
+} from "lucide-react";
 
-// Local interfaces for booking functionality
+// #region API Interfaces and Helper Functions (Moved outside component)
+
+// API Interfaces
+interface ApiFieldResponse {
+  fieldId: number;
+  facId: number;
+  facilityAddress: string;
+  categoryId: number;
+  categoryName: string;
+  fieldName: string;
+  description: string;
+  isBookingEnable: boolean;
+}
+
+interface ApiFacilityWithDetails {
+  facilityId: number;
+  facilityName: string;
+  description: string;
+  facilityAddress: string;
+  facilityPhone: string;
+  openTime: string;
+  closeTime: string;
+  images: string[];
+}
+
+interface ApiFacilityResponse {
+  facId: number;
+  userId: number;
+  name: string;
+  openTime: string;
+  closeTime: string;
+  address: string;
+  description: string;
+  subdescription: string;
+  phone?: string;
+  imageUrls: string[];
+  categoryFields: { categoryFieldId: number; categoryFieldName: string }[];
+}
+
+interface ApiFieldBookingSchedule {
+  scheduleId: number;
+  fieldId: number;
+  startTime: string;
+  endTime: string;
+  notes: string;
+  date: string;
+  status: "Available" | "Booked" | "Blocked";
+  price: number;
+}
+
 interface FieldScheduleSlot {
   scheduleId: number;
   fieldId: number;
@@ -15,18 +75,11 @@ interface FieldScheduleSlot {
   price: number;
 }
 
-interface Service {
-  serviceId: number;
-  serviceName: string;
-  description: string;
+interface ApiFieldPricing {
+  fieldId: number;
+  startTime: string;
+  endTime: string;
   price: number;
-  facilityId: number;
-  status: string;
-  image: string;
-}
-
-interface BookingPageState {
-  field?: FieldResponse;
 }
 
 interface BookingFormData {
@@ -40,376 +93,357 @@ interface BookingFormData {
   selectedServices: number[];
 }
 
-const BookingPage: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const state = location.state as BookingPageState;
-
-  const [fields, setFields] = useState<FieldResponse[]>([]);
-  const [selectedField, setSelectedField] = useState<FieldResponse | null>(
-    null
+// API Functions (Stable - defined outside the component)
+const fetchFields = async (facilityId: number): Promise<ApiFieldResponse[]> => {
+  const response = await fetch(
+    `https://localhost:7057/api/Field/facility/${facilityId}`
   );
-  const [selectedDate, setSelectedDate] = useState<string>("");
-  const [availableSlots, setAvailableSlots] = useState<FieldScheduleSlot[]>([]);
-  const [selectedSlots, setSelectedSlots] = useState<FieldScheduleSlot[]>([]);
-  const [facilityServices, setFacilityServices] = useState<Service[]>([]);
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [phoneError, setPhoneError] = useState<string>("");
-  const [formData, setFormData] = useState<BookingFormData>({
-    fieldId: 0,
-    date: "",
-    startTime: "",
-    endTime: "",
-    guestName: "",
-    guestPhone: "",
-    notes: "",
-    selectedServices: [],
-  });
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  const result = await response.json();
+  if (result.success && result.data) return result.data;
+  throw new Error(result.message || "Failed to fetch fields");
+};
 
-  // Mock data generation functions
-  const generateMockSlots = (
-    fieldId: number,
-    date: string
-  ): FieldScheduleSlot[] => {
-    const slots: FieldScheduleSlot[] = [];
-    let scheduleId = 1;
+const fetchFacilityDetails = async (
+  facilityId: number
+): Promise<ApiFacilityWithDetails> => {
+  const response = await fetch(
+    `https://localhost:7057/api/Facility/with-details`
+  );
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `HTTP error! status: ${response.status}, message: ${errorText}`
+    );
+  }
+  const result: ApiFacilityResponse[] = await response.json();
+  const facility = result.find((fac) => fac.facId === facilityId);
+  if (facility) {
+    return {
+      facilityId: facility.facId,
+      facilityName: facility.name,
+      description: facility.description,
+      facilityAddress: facility.address,
+      facilityPhone: facility.phone || "",
+      openTime: facility.openTime,
+      closeTime: facility.closeTime,
+      images:
+        facility.imageUrls?.map((url) =>
+          url.startsWith("http") ? url : `https://localhost:7057${url}`
+        ) || [],
+    };
+  }
+  throw new Error(`Facility with ID ${facilityId} not found`);
+};
 
-    // Generate slots from 05:00 to 23:30 (30-minute intervals)
-    for (let hour = 5; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const startTime = `${hour.toString().padStart(2, "0")}:${minute
-          .toString()
-          .padStart(2, "0")}`;
-        const endTime =
-          minute === 30
-            ? `${(hour + 1).toString().padStart(2, "0")}:00`
-            : `${hour.toString().padStart(2, "0")}:30`;
+const fetchFieldBookingSchedules = async (
+  date: string
+): Promise<ApiFieldBookingSchedule[]> => {
+  const response = await fetch(
+    "https://localhost:7057/api/FieldBookingSchedule"
+  );
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  const schedules: ApiFieldBookingSchedule[] = await response.json();
+  return schedules.filter((schedule) => schedule.date === date);
+};
 
-        // Random status for demo (mostly Available)
-        const random = Math.random();
-        let status: "Available" | "Booked" | "Blocked";
-        if (random < 0.7) status = "Available";
-        else if (random < 0.9) status = "Booked";
-        else status = "Blocked";
+const fetchFieldPricing = async (): Promise<ApiFieldPricing[]> => {
+  const response = await fetch("https://localhost:7057/api/FieldPricing");
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  return await response.json();
+};
 
-        slots.push({
-          scheduleId: scheduleId++,
-          fieldId,
-          date,
-          startTime,
-          endTime,
-          status,
-          price: 200000, // Default price per slot
-        });
-      }
-    }
+interface UserProfile {
+  name?: string;
+  userName?: string;
+  fullName?: string;
+  phone?: string;
+  phoneNumber?: string;
+  email?: string;
+}
 
-    return slots;
-  };
+// Validation Function (Pure - defined outside the component)
+const validatePhoneNumber = (phone: string): boolean => {
+  const cleanPhone = phone.replace(/[\s\-().]/g, "");
+  const phonePattern = /^0[0-9]{9}$/;
+  return phonePattern.test(cleanPhone);
+};
 
-  const generateMockServices = (facilityId: number): Service[] => {
-    return [
-      {
-        serviceId: 1,
-        serviceName: "Thuê bóng",
-        description: "Bóng đá chất lượng cao",
-        price: 50000,
-        facilityId,
-        status: "Active",
-        image: "/api/placeholder/100/100",
-      },
-      {
-        serviceId: 2,
-        serviceName: "Nước uống",
-        description: "Nước suối, nước ngọt",
-        price: 15000,
-        facilityId,
-        status: "Active",
-        image: "/api/placeholder/100/100",
-      },
-      {
-        serviceId: 3,
-        serviceName: "Đồ bảo hộ",
-        description: "Tất, ống đồng",
-        price: 30000,
-        facilityId,
-        status: "Active",
-        image: "/api/placeholder/100/100",
-      },
-    ];
-  };
+// #endregion
 
-  // Tạo danh sách 7 ngày tới
-  const getNext7Days = () => {
-    const days = [];
-    const today = new Date();
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      days.push({
-        date: date.toISOString().split("T")[0],
-        dayName: date.toLocaleDateString("vi-VN", { weekday: "short" }),
-        dayNumber: date.getDate(),
-        month: date.getMonth() + 1,
-      });
-    }
-    return days;
-  };
+// #region Memoized Child Components
 
-  const next7Days = getNext7Days();
-
-  // Validation functions
-  const validatePhoneNumber = (phone: string): boolean => {
-    // Remove all spaces and special characters
-    const cleanPhone = phone.replace(/[\s\-().]/g, "");
-
-    // Vietnamese phone number pattern: exactly 10 digits starting with 0
-    const phonePattern = /^0[0-9]{9}$/;
-
-    return phonePattern.test(cleanPhone);
-  };
-
-  const handlePhoneChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, guestPhone: value }));
-
-    if (value.trim() === "") {
-      setPhoneError("");
-    } else if (!validatePhoneNumber(value)) {
-      setPhoneError("Số điện thoại phải có đúng 10 số và bắt đầu bằng số 0");
-    } else {
-      setPhoneError("");
-    }
-  };
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Load fields
-        const fieldsData = await FieldService.getAllFields();
-        setFields(fieldsData);
-
-        // Nếu có field từ state, tìm field đó
-        if (state?.field) {
-          const field = fieldsData.find(
-            (f) => f.fieldId === state.field!.fieldId
-          );
-          if (field) {
-            setSelectedField(field);
-            setFormData((prev) => ({ ...prev, fieldId: field.fieldId }));
-
-            // Load services của facility
-            const services = generateMockServices(field.facId);
-            setFacilityServices(services);
+const PricingModal = React.memo(
+  ({
+    show,
+    onClose,
+    fields,
+    pricingData,
+  }: {
+    show: boolean;
+    onClose: () => void;
+    fields: ApiFieldResponse[];
+    pricingData: ApiFieldPricing[];
+  }) => {
+    const groupedPricing = useMemo(() => {
+      const facilityFieldIds = new Set(fields.map((field) => field.fieldId));
+      return pricingData
+        .filter((pricing) => facilityFieldIds.has(pricing.fieldId))
+        .reduce((acc, pricing) => {
+          if (!acc[pricing.fieldId]) {
+            acc[pricing.fieldId] = [];
           }
-        } else if (fieldsData.length > 0) {
-          // Mặc định chọn field đầu tiên
-          setSelectedField(fieldsData[0]);
-          setFormData((prev) => ({ ...prev, fieldId: fieldsData[0].fieldId }));
+          acc[pricing.fieldId].push(pricing);
+          return acc;
+        }, {} as Record<number, ApiFieldPricing[]>);
+    }, [fields, pricingData]);
 
-          const services = generateMockServices(fieldsData[0].facId);
-          setFacilityServices(services);
+    if (!show) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <DollarSign className="w-6 h-6 text-green-600" />
+              Bảng giá chi tiết theo sân
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+              title="Đóng modal"
+              aria-label="Đóng modal bảng giá"
+            >
+              <XCircle className="w-6 h-6" />
+            </button>
+          </div>
+
+          {Object.keys(groupedPricing).length === 0 ? (
+            <div className="text-center py-8">
+              <DollarSign className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-500">
+                Chưa có thông tin giá cho các sân này
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(groupedPricing).map(
+                ([fieldIdStr, pricingList]) => {
+                  const fieldId = parseInt(fieldIdStr);
+                  const field = fields.find((f) => f.fieldId === fieldId);
+
+                  return (
+                    <div
+                      key={fieldId}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-green-800">
+                        <Star className="w-5 h-5 text-green-600" />
+                        {field?.fieldName || `Sân ${fieldId}`}
+                        <span className="text-sm text-gray-500 font-normal">
+                          ({field?.categoryName})
+                        </span>
+                      </h3>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse border border-gray-200 rounded-lg">
+                          <thead>
+                            <tr className="bg-green-50">
+                              <th className="border border-gray-200 px-4 py-3 text-left font-medium text-green-800">
+                                Khung giờ
+                              </th>
+                              <th className="border border-gray-200 px-4 py-3 text-left font-medium text-green-800">
+                                Giá (VNĐ/giờ)
+                              </th>
+                              <th className="border border-gray-200 px-4 py-3 text-left font-medium text-green-800">
+                                Phân loại
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pricingList
+                              .sort((a, b) =>
+                                a.startTime.localeCompare(b.startTime)
+                              )
+                              .map((pricing, index) => {
+                                const startHour = parseInt(
+                                  pricing.startTime.split(":")[0]
+                                );
+                                const isEarlyMorning = startHour < 8;
+                                const isPeakHour = startHour >= 16;
+
+                                return (
+                                  <tr
+                                    key={index}
+                                    className={
+                                      index % 2 === 0
+                                        ? "bg-white"
+                                        : "bg-gray-50"
+                                    }
+                                  >
+                                    <td className="border border-gray-200 px-4 py-3 font-medium">
+                                      {pricing.startTime.slice(0, 5)} -{" "}
+                                      {pricing.endTime.slice(0, 5)}
+                                    </td>
+                                    <td className="border border-gray-200 px-4 py-3">
+                                      <span className="text-green-600 font-semibold text-lg">
+                                        {pricing.price.toLocaleString()}đ
+                                      </span>
+                                    </td>
+                                    <td className="border border-gray-200 px-4 py-3">
+                                      {isEarlyMorning && (
+                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                                          <Clock className="w-3 h-3" />
+                                          Giờ sáng sớm
+                                        </span>
+                                      )}
+                                      {isPeakHour && !isEarlyMorning && (
+                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
+                                          <Star className="w-3 h-3" />
+                                          Giờ cao điểm
+                                        </span>
+                                      )}
+                                      {!isEarlyMorning && !isPeakHour && (
+                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                                          <CheckCircle className="w-3 h-3" />
+                                          Giờ thường
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+          )}
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={onClose}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+const TimeSlotsGrid = React.memo(
+  ({
+    fields,
+    availableSlots,
+    selectedSlots,
+    onSlotClick,
+    selectedDate,
+    onDateChange,
+    totalPrice,
+    facilityDetails,
+  }: {
+    fields: ApiFieldResponse[];
+    availableSlots: FieldScheduleSlot[];
+    selectedSlots: FieldScheduleSlot[];
+    onSlotClick: (slot: FieldScheduleSlot) => void;
+    selectedDate: string;
+    onDateChange: (date: string) => void;
+    totalPrice: number;
+    facilityDetails: ApiFacilityWithDetails | null;
+  }) => {
+    const timeSlots = useMemo(() => {
+      // Lấy giờ mở cửa và đóng cửa từ facility để filter
+      let openHour = 6; // Default
+      let closeHour = 23; // Default
+
+      if (facilityDetails?.openTime && facilityDetails?.closeTime) {
+        openHour = parseInt(facilityDetails.openTime.split(":")[0], 10);
+        closeHour = parseInt(facilityDetails.closeTime.split(":")[0], 10);
+      }
+
+      // Nếu có availableSlots từ API, filter theo giờ hoạt động của facility
+      const uniqueTimes = Array.from(
+        new Set(availableSlots.map((slot) => slot.startTime))
+      ).sort();
+
+      if (uniqueTimes.length > 0) {
+        // Filter chỉ lấy những slot trong khung giờ hoạt động
+        const filteredTimes = uniqueTimes.filter((time) => {
+          const hour = parseInt(time.split(":")[0], 10);
+          return hour >= openHour && hour < closeHour;
+        });
+
+        if (filteredTimes.length > 0) {
+          console.log(
+            `Filtered available slots from ${openHour}:00 to ${
+              closeHour - 1
+            }:00:`,
+            filteredTimes
+          );
+          return filteredTimes.map((time) => ({
+            time,
+            hour: parseInt(time.split(":")[0], 10),
+            minute: parseInt(time.split(":")[1], 10),
+          }));
+        }
+      }
+
+      // Fallback: Tạo timeSlots dựa trên giờ mở cửa/đóng cửa của facility
+      if (facilityDetails?.openTime && facilityDetails?.closeTime) {
+        const generatedSlots = [];
+        // Chỉ tạo slot theo giờ chính (không tạo slot 30 phút)
+        for (let hour = openHour; hour < closeHour; hour++) {
+          const timeString = `${hour.toString().padStart(2, "0")}:00`;
+          generatedSlots.push({
+            time: timeString,
+            hour,
+            minute: 0,
+          });
         }
 
-        // Mặc định chọn ngày hôm nay
-        const today = new Date().toISOString().split("T")[0];
-        setSelectedDate(today);
-        setFormData((prev) => ({ ...prev, date: today }));
-      } catch (err) {
-        console.error("Error loading booking data:", err);
-        setError("Failed to load booking data. Please try again.");
-      } finally {
-        setLoading(false);
+        console.log(
+          `Generated time slots from facility hours ${facilityDetails.openTime} to ${facilityDetails.closeTime}:`,
+          generatedSlots
+        );
+        return generatedSlots;
       }
-    };
 
-    loadData();
-  }, [state]);
-
-  useEffect(() => {
-    if (selectedField && selectedDate) {
-      // Generate mock slots for the selected field and date
-      const slots = generateMockSlots(selectedField.fieldId, selectedDate);
-      setAvailableSlots(slots);
-    }
-  }, [selectedField, selectedDate]);
-
-  const handleFieldChange = (fieldId: number) => {
-    const field = fields.find((f) => f.fieldId === fieldId);
-    if (field) {
-      setSelectedField(field);
-      setFormData((prev) => ({ ...prev, fieldId: field.fieldId }));
-
-      // Load services của facility mới
-      const services = generateMockServices(field.facId);
-      setFacilityServices(services);
-
-      // Reset selected slots
-      setSelectedSlots([]);
-      setFormData((prev) => ({ ...prev, startTime: "", endTime: "" }));
-    }
-  };
-
-  const handleDateChange = (date: string) => {
-    setSelectedDate(date);
-    setFormData((prev) => ({ ...prev, date }));
-    setSelectedSlots([]);
-    setFormData((prev) => ({ ...prev, startTime: "", endTime: "" }));
-  };
-
-  const handleSlotClick = (slot: FieldScheduleSlot) => {
-    // Chỉ cho phép click vào slot Available
-    if (slot.status !== "Available") return;
-
-    const isSelected = selectedSlots.some(
-      (s) => s.scheduleId === slot.scheduleId
-    );
-
-    if (isSelected) {
-      // Bỏ chọn slot
-      const newSlots = selectedSlots.filter(
-        (s) => s.scheduleId !== slot.scheduleId
-      );
-      setSelectedSlots(newSlots);
-    } else {
-      // Thêm slot (chỉ cho phép chọn liên tiếp)
-      const newSlots = [...selectedSlots, slot].sort((a, b) =>
-        a.startTime.localeCompare(b.startTime)
-      );
-      setSelectedSlots(newSlots);
-    }
-  };
-
-  useEffect(() => {
-    // Cập nhật start time và end time dựa trên slots được chọn
-    if (selectedSlots.length > 0) {
-      const sortedSlots = selectedSlots.sort((a, b) =>
-        a.startTime.localeCompare(b.startTime)
-      );
-      setFormData((prev) => ({
-        ...prev,
-        startTime: sortedSlots[0].startTime,
-        endTime: sortedSlots[sortedSlots.length - 1].endTime,
+      // Fallback cuối cùng: hardcoded times nếu không có thông tin gì
+      return [
+        "06:00",
+        "07:00",
+        "08:00",
+        "09:00",
+        "10:00",
+        "11:00",
+        "12:00",
+        "13:00",
+        "14:00",
+        "15:00",
+        "16:00",
+        "17:00",
+        "18:00",
+        "19:00",
+        "20:00",
+        "21:00",
+        "22:00",
+      ].map((time) => ({
+        time,
+        hour: parseInt(time.split(":")[0], 10),
+        minute: parseInt(time.split(":")[1], 10),
       }));
-    } else {
-      setFormData((prev) => ({ ...prev, startTime: "", endTime: "" }));
-    }
-  }, [selectedSlots]);
-
-  const handleServiceToggle = (serviceId: number) => {
-    const isSelected = formData.selectedServices.includes(serviceId);
-    if (isSelected) {
-      setFormData((prev) => ({
-        ...prev,
-        selectedServices: prev.selectedServices.filter(
-          (id) => id !== serviceId
-        ),
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        selectedServices: [...prev.selectedServices, serviceId],
-      }));
-    }
-  };
-
-  const calculateTotalPrice = () => {
-    const slotsPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-    const servicesPrice = formData.selectedServices.reduce((sum, serviceId) => {
-      const service = facilityServices.find((s) => s.serviceId === serviceId);
-      return sum + (service?.price || 0);
-    }, 0);
-    return slotsPrice + servicesPrice;
-  };
-
-  const handleSubmit = () => {
-    if (selectedSlots.length === 0) {
-      alert("Vui lòng chọn ít nhất một khung giờ");
-      return;
-    }
-
-    if (!formData.guestName || !formData.guestPhone) {
-      alert("Vui lòng nhập đầy đủ thông tin liên hệ");
-      return;
-    }
-
-    if (!validatePhoneNumber(formData.guestPhone)) {
-      alert("Số điện thoại phải có đúng 10 số và bắt đầu bằng số 0");
-      return;
-    }
-
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmBooking = () => {
-    // Chuyển đến trang payment với thông tin booking
-    navigate("/payment", {
-      state: {
-        booking: {
-          field: selectedField
-            ? {
-                fieldId: selectedField.fieldId,
-                facilityId: selectedField.facId,
-                facilityName: "SportZone Facility", // placeholder
-                fieldName: selectedField.fieldName,
-                categoryId: selectedField.categoryId,
-                categoryName: selectedField.categoryName,
-                image: "/api/placeholder/400/300", // placeholder
-                openTime: "05:30:00",
-                closeTime: "22:30:00",
-                description: selectedField.description,
-                isBookingEnable: selectedField.isBookingEnable,
-                facilityAddress: selectedField.facilityAddress,
-                pricing: [], // placeholder pricing array
-              }
-            : null,
-          slots: selectedSlots,
-          guestInfo: {
-            name: formData.guestName,
-            phone: formData.guestPhone,
-            notes: formData.notes,
-          },
-          services: formData.selectedServices
-            .map((id) => facilityServices.find((s) => s.serviceId === id))
-            .filter(Boolean),
-          totalPrice: calculateTotalPrice(),
-          date: selectedDate,
-        },
-      },
-    });
-  };
-
-  const handleCloseModal = () => {
-    setShowConfirmModal(false);
-  };
-
-  const renderTimeSlots = () => {
-    // Tạo mảng thời gian từ 5:00 đến 24:00 (30 phút mỗi slot)
-    const timeSlots: { time: string; hour: number; minute: number }[] = [];
-    for (let hour = 5; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        timeSlots.push({
-          time: `${hour.toString().padStart(2, "0")}:${minute
-            .toString()
-            .padStart(2, "0")}`,
-          hour,
-          minute,
-        });
-      }
-    }
-
-    // Lấy tất cả sân để hiển thị - sử dụng tất cả fields vì chưa có thông tin facility group
-    const fieldsToShow = fields;
+    }, [availableSlots, facilityDetails]);
 
     return (
       <div className="bg-white rounded-lg p-4 shadow-md">
-        {/* Header với các legend */}
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Đặt lịch ngày nhanh gọn</h3>
+          <h3 className="text-lg font-semibold">Lịch sân chi tiết</h3>
           <div className="flex space-x-4 text-xs">
             <div className="flex items-center space-x-1">
               <div className="w-3 h-3 bg-green-400 rounded"></div>
@@ -427,135 +461,602 @@ const BookingPage: React.FC = () => {
               <div className="w-3 h-3 bg-gray-400 rounded"></div>
               <span>Bị khóa</span>
             </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-gray-300 rounded opacity-50"></div>
+              <span>Đã qua giờ</span>
+            </div>
           </div>
         </div>
 
-        {/* Date selector */}
         <div className="mb-4 flex items-center">
-          <span className="text-sm font-medium mr-4">Ngày:</span>
+          <span className="text-sm font-medium mr-4 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-green-600" />
+            Ngày:
+          </span>
           <input
             type="date"
-            value={selectedDate}
-            onChange={(e) => handleDateChange(e.target.value)}
+            value={selectedDate || ""}
+            min={new Date().toISOString().split("T")[0]}
+            onChange={(e) => onDateChange(e.target.value)}
             className="border border-gray-300 rounded px-3 py-1 text-sm"
-            title="Chọn ngày"
+            title="Chọn ngày (không thể chọn ngày trong quá khứ)"
             aria-label="Chọn ngày"
           />
         </div>
 
-        {/* Time slots grid */}
-        <div className="overflow-x-auto">
-          <div className="min-w-[1400px]">
-            {/* Time headers */}
-            <div className="grid grid-cols-[120px_repeat(38,minmax(40px,1fr))] gap-px bg-gray-200 mb-px">
-              <div className="bg-green-700 text-white text-xs font-medium p-2 flex items-center">
-                Sân bóng đá
+        {fields.length > 0 ? (
+          <div className="overflow-x-auto">
+            <div className="min-w-[1400px]">
+              <div
+                className="grid gap-px bg-gray-200 mb-px"
+                style={{
+                  gridTemplateColumns: `180px repeat(${timeSlots.length}, minmax(40px, 1fr))`,
+                }}
+              >
+                <div className="bg-green-700 text-white text-xs font-medium p-2 flex items-center">
+                  Tên sân
+                </div>
+                {timeSlots.map((slot, index) => (
+                  <div
+                    key={index}
+                    className="bg-green-700 text-white text-xs font-medium p-1 text-center"
+                  >
+                    {slot.time}
+                  </div>
+                ))}
               </div>
-              {timeSlots.map((slot, index) => (
+
+              {fields.map((field) => (
                 <div
-                  key={index}
-                  className="bg-green-700 text-white text-xs font-medium p-1 text-center"
+                  key={field.fieldId}
+                  className="grid gap-px bg-gray-200 mb-px"
+                  style={{
+                    gridTemplateColumns: `180px repeat(${timeSlots.length}, minmax(40px, 1fr))`,
+                  }}
                 >
-                  {slot.time}
+                  <div className="bg-gray-100 text-xs font-medium p-2 flex items-center break-words">
+                    {field.fieldName}
+                  </div>
+                  {timeSlots.map((timeSlot, slotIndex) => {
+                    const slot = availableSlots.find(
+                      (s) =>
+                        s.fieldId === field.fieldId &&
+                        s.startTime === timeSlot.time
+                    );
+                    const isSelected = selectedSlots.some(
+                      (s) => s.scheduleId === slot?.scheduleId
+                    );
+
+                    // Check if the slot is in the past
+                    let isPastSlot = false;
+                    if (slot) {
+                      const now = new Date();
+                      const slotDate = new Date(slot.date);
+                      const [slotHour, slotMinute] = slot.startTime
+                        .split(":")
+                        .map(Number);
+                      const slotDateTime = new Date(slotDate);
+                      slotDateTime.setHours(slotHour, slotMinute, 0, 0);
+                      isPastSlot = slotDateTime < now;
+                    }
+
+                    let bgColor = "bg-gray-100";
+                    let textColor = "text-gray-500";
+                    let isClickable = false;
+                    let title = `${field.fieldName} - ${timeSlot.time} - Không có lịch`;
+
+                    if (slot) {
+                      title = `${field.fieldName} - ${timeSlot.time} - ${
+                        slot.status
+                      } - ${slot.price.toLocaleString()}đ`;
+
+                      if (isPastSlot) {
+                        bgColor = "bg-gray-300";
+                        textColor = "text-gray-400";
+                        title += " - Đã qua thời gian";
+                      } else if (isSelected) {
+                        bgColor = "bg-green-700";
+                        textColor = "text-white";
+                        isClickable = true;
+                      } else if (slot.status === "Available") {
+                        bgColor = "bg-green-400";
+                        textColor = "text-white";
+                        isClickable = true;
+                      } else if (slot.status === "Booked") {
+                        bgColor = "bg-red-500";
+                        textColor = "text-white";
+                      } else if (slot.status === "Blocked") {
+                        bgColor = "bg-gray-400";
+                        textColor = "text-white";
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={slotIndex}
+                        onClick={() => slot && isClickable && onSlotClick(slot)}
+                        disabled={!isClickable}
+                        className={`
+                          ${bgColor} ${textColor} h-8 text-xs font-medium transition-colors
+                          ${
+                            isClickable
+                              ? "hover:opacity-80 cursor-pointer"
+                              : "cursor-not-allowed"
+                          }
+                          ${isPastSlot ? "opacity-50" : ""}
+                        `}
+                        title={title}
+                        aria-label={`Khung giờ ${timeSlot.time} cho ${field.fieldName}`}
+                      >
+                        {slot && (
+                          <div className="text-xs">
+                            {(slot.price / 1000).toFixed(0)}k
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
             </div>
-
-            {/* Field rows */}
-            {fieldsToShow.map((field, fieldIndex) => (
-              <div
-                key={field.fieldId}
-                className="grid grid-cols-[120px_repeat(38,minmax(40px,1fr))] gap-px bg-gray-200 mb-px"
-              >
-                <div className="bg-gray-100 text-xs font-medium p-2 flex items-center">
-                  Sân {fieldIndex + 1}
-                </div>
-                {timeSlots.map((timeSlot, slotIndex) => {
-                  // Tìm slot tương ứng trong dữ liệu
-                  const slot = availableSlots.find(
-                    (s) =>
-                      s.fieldId === field.fieldId &&
-                      s.startTime === timeSlot.time
-                  );
-
-                  const isSelected = selectedSlots.some(
-                    (s) =>
-                      s.fieldId === field.fieldId &&
-                      s.startTime === timeSlot.time
-                  );
-
-                  // Xác định trạng thái và màu sắc
-                  let bgColor = "bg-gray-100"; // Mặc định - không có lịch
-                  let textColor = "text-gray-500";
-                  let isClickable = false;
-
-                  if (slot) {
-                    if (isSelected) {
-                      bgColor = "bg-green-700"; // Đang chọn - màu đậm hơn
-                      textColor = "text-white";
-                      isClickable = true;
-                    } else if (slot.status === "Available") {
-                      bgColor = "bg-green-400"; // Còn trống
-                      textColor = "text-white";
-                      isClickable = true;
-                    } else if (slot.status === "Booked") {
-                      bgColor = "bg-red-500"; // Đã đặt
-                      textColor = "text-white";
-                      isClickable = false;
-                    } else if (slot.status === "Blocked") {
-                      bgColor = "bg-gray-400"; // Bị khóa
-                      textColor = "text-white";
-                      isClickable = false;
-                    }
-                  }
-
-                  return (
-                    <button
-                      key={slotIndex}
-                      onClick={() =>
-                        slot && isClickable ? handleSlotClick(slot) : undefined
-                      }
-                      disabled={!isClickable}
-                      className={`
-                        ${bgColor} ${textColor} h-8 text-xs font-medium transition-colors
-                        ${
-                          isClickable
-                            ? "hover:opacity-80 cursor-pointer"
-                            : "cursor-not-allowed"
-                        }
-                      `}
-                      title={
-                        slot
-                          ? `${timeSlot.time} - ${slot.status}`
-                          : `${timeSlot.time} - Không có lịch`
-                      }
-                      aria-label={`Khung giờ ${timeSlot.time} cho ${field.fieldName}`}
-                    >
-                      {/* Hiển thị nội dung nếu cần */}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
           </div>
-        </div>
-
-        {/* Total price display */}
+        ) : (
+          <div className="text-center text-gray-500 py-8">
+            <Clock className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p>Không tìm thấy sân nào cho cơ sở này.</p>
+          </div>
+        )}
         {selectedSlots.length > 0 && (
           <div className="mt-4 flex justify-end">
             <div className="bg-green-600 text-white px-4 py-2 rounded font-medium">
-              Tổng tiền: {calculateTotalPrice().toLocaleString()} VND
+              Tổng tiền: {totalPrice.toLocaleString()} VND
             </div>
           </div>
         )}
       </div>
     );
-  };
+  }
+);
+
+// #endregion
+
+const BookingPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { facId } = useParams<{ facId: string }>();
+
+  // State management
+  const [fields, setFields] = useState<ApiFieldResponse[]>([]);
+  const [selectedField, setSelectedField] = useState<ApiFieldResponse | null>(
+    null
+  );
+  const [facilityDetails, setFacilityDetails] =
+    useState<ApiFacilityWithDetails | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
+  const [availableSlots, setAvailableSlots] = useState<FieldScheduleSlot[]>([]);
+  const [selectedSlots, setSelectedSlots] = useState<FieldScheduleSlot[]>([]);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showPricingModal, setShowPricingModal] = useState<boolean>(false);
+  const [fieldPricingData, setFieldPricingData] = useState<ApiFieldPricing[]>(
+    []
+  );
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string>("");
+  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState<boolean>(false);
+  const [formData, setFormData] = useState<BookingFormData>({
+    fieldId: 0,
+    date: "",
+    startTime: "",
+    endTime: "",
+    guestName: "",
+    guestPhone: "",
+    notes: "",
+    selectedServices: [],
+  });
+
+  // Helper function to get user info from localStorage
+  const getUserInfoFromStorage = useCallback((): UserProfile | null => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) return null;
+
+      const user = JSON.parse(userStr);
+      return {
+        fullName:
+          user.Admin?.name ||
+          user.Customers?.[0]?.name ||
+          user.FieldOwner?.name ||
+          user.Staff?.name ||
+          "",
+        phoneNumber:
+          user.Admin?.phone ||
+          user.Customers?.[0]?.phone ||
+          user.FieldOwner?.phone ||
+          user.Staff?.phone ||
+          "",
+        email: user.UEmail || "",
+        name:
+          user.Admin?.name ||
+          user.Customers?.[0]?.name ||
+          user.FieldOwner?.name ||
+          user.Staff?.name ||
+          "",
+        phone:
+          user.Admin?.phone ||
+          user.Customers?.[0]?.phone ||
+          user.FieldOwner?.phone ||
+          user.Staff?.phone ||
+          "",
+      };
+    } catch (error) {
+      console.error("Error parsing user from localStorage:", error);
+      return null;
+    }
+  }, []);
+
+  // Helper function to get user info from token (fallback)
+  const getUserInfoFromToken = useCallback((): UserProfile | null => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return null;
+
+      // Decode JWT token to get user info
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+
+      const userInfo = JSON.parse(jsonPayload);
+      return userInfo;
+    } catch (error) {
+      console.error("Error decoding user token:", error);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      setIsLoadingUserInfo(true);
+      try {
+        // Try to get user info from localStorage first, then fallback to JWT token
+        let userInfo = getUserInfoFromStorage();
+        if (!userInfo) {
+          userInfo = getUserInfoFromToken();
+        }
+
+        if (userInfo) {
+          setFormData((prev) => ({
+            ...prev,
+            guestName: userInfo.name || userInfo.fullName || "",
+            guestPhone: userInfo.phone || userInfo.phoneNumber || "",
+          }));
+        }
+      } catch (error) {
+        console.warn("Could not load user info:", error);
+      } finally {
+        setIsLoadingUserInfo(false);
+      }
+    };
+
+    loadUserInfo();
+  }, [getUserInfoFromStorage, getUserInfoFromToken]);
+
+  // Initial data loading effect
+  useEffect(() => {
+    const facilityIdNum = parseInt(facId || "", 10);
+    if (isNaN(facilityIdNum)) {
+      navigate("/field_list");
+      return;
+    }
+
+    let isMounted = true;
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const fieldsData = await fetchFields(facilityIdNum);
+        if (!isMounted) return;
+
+        setFields(fieldsData);
+
+        if (fieldsData.length > 0) {
+          const firstField = fieldsData[0];
+          setSelectedField(firstField);
+          setFormData((prev) => ({ ...prev, fieldId: firstField.fieldId }));
+
+          // Fetch facility details in parallel
+          fetchFacilityDetails(firstField.facId)
+            .then((details) => isMounted && setFacilityDetails(details))
+            .catch((err) =>
+              console.warn("Could not load facility details:", err)
+            );
+        }
+      } catch (err) {
+        if (isMounted)
+          setError("Failed to load booking data. Please try again.");
+        console.error("Error loading initial data:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [facId, navigate]);
+
+  // Schedules loading effect
+  useEffect(() => {
+    if (!selectedDate) return;
+
+    let isMounted = true;
+    const loadSchedules = async () => {
+      try {
+        const apiSchedules = await fetchFieldBookingSchedules(selectedDate);
+        if (!isMounted) return;
+
+        const slots: FieldScheduleSlot[] = apiSchedules.map((schedule) => ({
+          scheduleId: schedule.scheduleId,
+          fieldId: schedule.fieldId,
+          date: schedule.date,
+          startTime: schedule.startTime.slice(0, 5),
+          endTime: schedule.endTime.slice(0, 5),
+          status: schedule.status,
+          price: schedule.price,
+        }));
+        setAvailableSlots(slots);
+      } catch (error) {
+        console.error("Error loading schedules:", error);
+        if (isMounted) setAvailableSlots([]);
+      }
+    };
+
+    loadSchedules();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDate]);
+
+  // Update form data when selected slots change
+  useEffect(() => {
+    if (selectedSlots.length > 0) {
+      const sortedSlots = [...selectedSlots].sort((a, b) =>
+        a.startTime.localeCompare(b.startTime)
+      );
+      setFormData((prev) => ({
+        ...prev,
+        startTime: sortedSlots[0].startTime,
+        endTime: sortedSlots[sortedSlots.length - 1].endTime,
+        date: sortedSlots[0].date,
+        fieldId: sortedSlots[0].fieldId,
+      }));
+      setSelectedField(
+        fields.find((f) => f.fieldId === sortedSlots[0].fieldId) || null
+      );
+    } else {
+      setFormData((prev) => ({ ...prev, startTime: "", endTime: "" }));
+    }
+  }, [selectedSlots, fields]);
+
+  // Helper function to calculate duration
+  const calculateDuration = useCallback((slots: FieldScheduleSlot[]) => {
+    if (slots.length === 0) return "0 phút";
+
+    let totalMinutes = 0;
+    slots.forEach((slot) => {
+      const [startHour, startMinute] = slot.startTime.split(":").map(Number);
+      const [endHour, endMinute] = slot.endTime.split(":").map(Number);
+
+      const startTotalMinutes = startHour * 60 + startMinute;
+      const endTotalMinutes = endHour * 60 + endMinute;
+
+      totalMinutes += endTotalMinutes - startTotalMinutes;
+    });
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (minutes === 0) {
+      return `${hours} giờ`;
+    } else if (hours === 0) {
+      return `${minutes} phút`;
+    } else {
+      return `${hours} giờ ${minutes} phút`;
+    }
+  }, []);
+
+  // Helper function to format time range
+  const getTimeRange = useCallback((slots: FieldScheduleSlot[]) => {
+    if (slots.length === 0) return "";
+
+    const sortedSlots = slots.sort((a, b) =>
+      a.startTime.localeCompare(b.startTime)
+    );
+
+    // Group consecutive slots
+    const slotGroups: FieldScheduleSlot[][] = [];
+    let currentGroup: FieldScheduleSlot[] = [sortedSlots[0]];
+
+    for (let i = 1; i < sortedSlots.length; i++) {
+      const currentSlot = sortedSlots[i];
+      const previousSlot = currentGroup[currentGroup.length - 1];
+
+      if (currentSlot.startTime === previousSlot.endTime) {
+        currentGroup.push(currentSlot);
+      } else {
+        slotGroups.push(currentGroup);
+        currentGroup = [currentSlot];
+      }
+    }
+    slotGroups.push(currentGroup);
+
+    return slotGroups
+      .map(
+        (group) => `${group[0].startTime}-${group[group.length - 1].endTime}`
+      )
+      .join("; ");
+  }, []);
+
+  // Memoized calculated values
+  const totalPrice = useMemo(() => {
+    return selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
+  }, [selectedSlots]);
+
+  // Memoized Event Handlers
+  const handleDateChange = useCallback((date: string) => {
+    const today = new Date().toISOString().split("T")[0];
+    if (date < today) {
+      alert("Không thể chọn ngày trong quá khứ.");
+      return;
+    }
+    setSelectedDate(date);
+    setSelectedSlots([]); // Clear selected slots when date changes
+  }, []);
+
+  const handleSlotClick = useCallback(
+    (slot: FieldScheduleSlot) => {
+      if (slot.status !== "Available") return;
+
+      // Check if the slot is in the past
+      const now = new Date();
+      const slotDate = new Date(slot.date);
+      const [slotHour, slotMinute] = slot.startTime.split(":").map(Number);
+      const slotDateTime = new Date(slotDate);
+      slotDateTime.setHours(slotHour, slotMinute, 0, 0);
+
+      if (slotDateTime < now) {
+        alert("Không thể đặt lịch cho thời gian đã qua.");
+        return;
+      }
+
+      // Prevent selecting slots from different fields
+      if (
+        selectedSlots.length > 0 &&
+        selectedSlots[0].fieldId !== slot.fieldId
+      ) {
+        alert(
+          "Bạn chỉ có thể đặt lịch cho một sân tại một thời điểm. Vui lòng bỏ chọn các khung giờ ở sân khác trước."
+        );
+        return;
+      }
+
+      setSelectedSlots((prevSlots) => {
+        const isSelected = prevSlots.some(
+          (s) => s.scheduleId === slot.scheduleId
+        );
+        if (isSelected) {
+          return prevSlots.filter((s) => s.scheduleId !== slot.scheduleId);
+        } else {
+          return [...prevSlots, slot];
+        }
+      });
+    },
+    [selectedSlots]
+  );
+
+  const handlePhoneChange = useCallback((value: string) => {
+    setFormData((prev) => ({ ...prev, guestPhone: value }));
+    if (value.trim() === "") {
+      setPhoneError("");
+    } else if (!validatePhoneNumber(value)) {
+      setPhoneError("Số điện thoại phải có đúng 10 số và bắt đầu bằng số 0.");
+    } else {
+      setPhoneError("");
+    }
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (selectedSlots.length === 0) {
+      alert("Vui lòng chọn ít nhất một khung giờ.");
+      return;
+    }
+    if (!formData.guestName || !formData.guestPhone) {
+      alert("Vui lòng nhập đầy đủ thông tin liên hệ.");
+      return;
+    }
+    if (phoneError) {
+      alert(phoneError);
+      return;
+    }
+    setShowConfirmModal(true);
+  }, [
+    selectedSlots.length,
+    formData.guestName,
+    formData.guestPhone,
+    phoneError,
+  ]);
+
+  const handleOpenPricingModal = useCallback(async () => {
+    try {
+      const pricingData = await fetchFieldPricing();
+      setFieldPricingData(pricingData);
+      setShowPricingModal(true);
+    } catch (error) {
+      console.error("Error loading pricing data:", error);
+      alert("Không thể tải thông tin giá. Vui lòng thử lại.");
+    }
+  }, []);
+
+  const handleConfirmBooking = useCallback(() => {
+    navigate("/payment", {
+      state: {
+        booking: {
+          field: selectedField
+            ? {
+                ...selectedField,
+                facilityName:
+                  facilityDetails?.facilityName || "SportZone Facility",
+                image:
+                  facilityDetails?.images?.[0] || "/api/placeholder/400/300",
+                openTime: facilityDetails?.openTime || "05:30:00",
+                closeTime: facilityDetails?.closeTime || "22:30:00",
+                pricing: [],
+              }
+            : null,
+          slots: selectedSlots,
+          guestInfo: {
+            name: formData.guestName,
+            phone: formData.guestPhone,
+            notes: formData.notes,
+          },
+          services: [],
+          totalPrice,
+          date: selectedDate,
+        },
+      },
+    });
+  }, [
+    navigate,
+    selectedField,
+    facilityDetails,
+    selectedSlots,
+    formData,
+    totalPrice,
+    selectedDate,
+  ]);
+
+  const fieldsForGrid = useMemo(() => {
+    if (selectedSlots.length > 0) {
+      // If slots are selected, only show the field for those slots
+      const selectedFieldId = selectedSlots[0].fieldId;
+      return fields.filter((f) => f.fieldId === selectedFieldId);
+    }
+    // Otherwise, show all fields for the facility
+    return fields;
+  }, [fields, selectedSlots]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-
       <div className="max-w-7xl mx-auto px-4 py-6">
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -569,171 +1070,95 @@ const BookingPage: React.FC = () => {
           <>
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Đặt lịch ngày nhanh gọn
+                Đặt lịch sân
               </h1>
               <p className="text-gray-600">
                 Chọn sân, thời gian và hoàn tất đặt sân chỉ trong vài bước
               </p>
             </div>
 
-            <form className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main booking area */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main content area */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Field information */}
                 <div className="bg-white rounded-lg p-6 shadow-md">
-                  <h3 className="text-lg font-semibold mb-4">
-                    {state?.field ? "Thông tin sân đã chọn" : "Chọn sân"}
-                  </h3>
-
-                  {state?.field ? (
-                    <div className="space-y-4">
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-20 h-20 rounded-lg bg-green-200 flex items-center justify-center">
+                  <div className="flex justify-between items-center pb-5">
+                    <h3 className="text-lg font-semibold">Thông tin cơ sở</h3>
+                    <button
+                      onClick={handleOpenPricingModal}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Xem bảng giá
+                    </button>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                        {facilityDetails?.images &&
+                        facilityDetails.images.length > 0 ? (
+                          <img
+                            src={facilityDetails.images[0]}
+                            alt={facilityDetails.facilityName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-green-200 flex items-center justify-center">
                             <span className="text-green-700 font-bold text-lg">
-                              ⚽
+                              🏟️
                             </span>
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-lg text-green-800 mb-2">
-                              {state.field.fieldName}
-                            </h4>
-                            <p className="text-green-700 mb-1">
-                              {state.field.facilityAddress}
-                            </p>
-                            <p className="text-green-600 text-sm mb-1">
-                              05:30 - 22:30 (Giờ mặc định)
-                            </p>
-                            <p className="text-green-600 text-sm">
-                              {state.field.description ||
-                                "Sân 7 người, thoáng, sát khu học viện."}
-                            </p>
-                          </div>
-                        </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-lg text-green-800 mb-2">
+                          {facilityDetails?.facilityName || "Đang tải..."}
+                        </h4>
+                        <p className="text-green-700 mb-1 flex items-center gap-2 text-sm">
+                          <MapPin className="w-4 h-4 text-green-600" />
+                          {facilityDetails?.facilityAddress || "Đang tải..."}
+                        </p>
+                        <p className="text-green-600 text-sm mb-1 flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-green-600" />
+                          {facilityDetails?.openTime?.slice(0, 5) ||
+                            "00:00"} -{" "}
+                          {facilityDetails?.closeTime?.slice(0, 5) || "00:00"}
+                        </p>
+                        <p className="text-green-600 text-sm">
+                          {facilityDetails?.description ||
+                            "Đang tải thông tin..."}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    // Hiển thị dropdown selector như cũ khi không có state
-                    <>
-                      <select
-                        title="Chọn sân"
-                        value={selectedField?.fieldId || ""}
-                        onChange={(e) =>
-                          handleFieldChange(parseInt(e.target.value))
-                        }
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      >
-                        {fields.map((field) => (
-                          <option key={field.fieldId} value={field.fieldId}>
-                            {field.fieldName} ({field.categoryName})
-                          </option>
-                        ))}
-                      </select>
-
-                      {selectedField && (
-                        <div className="mt-4 flex items-center space-x-4">
-                          <div className="w-16 h-16 rounded-lg bg-green-200 flex items-center justify-center">
-                            <span className="text-green-700 font-bold">⚽</span>
-                          </div>
-                          <div>
-                            <h4 className="font-medium">
-                              {selectedField.fieldName}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {selectedField.description}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {selectedField.facilityAddress}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                {/* Date selector */}
-                <div className="bg-white rounded-lg p-6 shadow-md">
-                  <h3 className="text-lg font-semibold mb-4">Chọn ngày</h3>
-                  <div className="grid grid-cols-7 gap-2">
-                    {next7Days.map((day) => (
-                      <button
-                        key={day.date}
-                        type="button"
-                        onClick={() => handleDateChange(day.date)}
-                        className={`
-                      p-3 rounded-lg text-center transition-colors
-                      ${
-                        selectedDate === day.date
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-green-100"
-                      }
-                    `}
-                      >
-                        <div className="text-xs font-medium">{day.dayName}</div>
-                        <div className="text-lg font-bold">{day.dayNumber}</div>
-                        <div className="text-xs">Th{day.month}</div>
-                      </button>
-                    ))}
                   </div>
                 </div>
 
-                {/* Time slots */}
-                {renderTimeSlots()}
-
-                {/* Services */}
-                {facilityServices.length > 0 && (
-                  <div className="bg-white rounded-lg p-6 shadow-md">
-                    <h3 className="text-lg font-semibold mb-4">Dịch vụ thêm</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {facilityServices.map((service) => (
-                        <label
-                          key={service.serviceId}
-                          className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.selectedServices.includes(
-                              service.serviceId
-                            )}
-                            onChange={() =>
-                              handleServiceToggle(service.serviceId)
-                            }
-                            className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium">
-                              {service.serviceName}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {service.description}
-                            </div>
-                            <div className="text-sm font-medium text-green-600">
-                              {service.price.toLocaleString()}đ
-                            </div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <TimeSlotsGrid
+                  fields={fieldsForGrid}
+                  availableSlots={availableSlots}
+                  selectedSlots={selectedSlots}
+                  onSlotClick={handleSlotClick}
+                  selectedDate={selectedDate}
+                  onDateChange={handleDateChange}
+                  totalPrice={totalPrice}
+                  facilityDetails={facilityDetails}
+                />
               </div>
 
-              {/* Booking form sidebar */}
+              {/* Sidebar */}
               <div className="space-y-6">
-                {/* Guest info */}
                 <div className="bg-white rounded-lg p-6 shadow-md">
-                  <h3 className="text-lg font-semibold mb-4">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-green-600" />
                     Thông tin liên hệ
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-500" />
                         Họ tên *
                       </label>
                       <input
                         type="text"
-                        required
                         value={formData.guestName}
                         onChange={(e) =>
                           setFormData((prev) => ({
@@ -741,24 +1166,33 @@ const BookingPage: React.FC = () => {
                             guestName: e.target.value,
                           }))
                         }
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                        placeholder="Nhập họ tên"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        placeholder={
+                          isLoadingUserInfo
+                            ? "Đang tải thông tin..."
+                            : "Nhập họ tên"
+                        }
+                        disabled={isLoadingUserInfo}
                       />
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-gray-500" />
                         Số điện thoại *
                       </label>
                       <input
                         type="tel"
-                        required
                         value={formData.guestPhone}
                         onChange={(e) => handlePhoneChange(e.target.value)}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${
                           phoneError ? "border-red-500" : "border-gray-300"
                         }`}
-                        placeholder="Nhập 10 số điện thoại (VD: 0901234567)"
+                        placeholder={
+                          isLoadingUserInfo
+                            ? "Đang tải thông tin..."
+                            : "Nhập 10 số (VD: 0901234567)"
+                        }
+                        disabled={isLoadingUserInfo}
                       />
                       {phoneError && (
                         <p className="mt-1 text-sm text-red-600">
@@ -766,9 +1200,9 @@ const BookingPage: React.FC = () => {
                         </p>
                       )}
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gray-500" />
                         Ghi chú
                       </label>
                       <textarea
@@ -779,7 +1213,7 @@ const BookingPage: React.FC = () => {
                             notes: e.target.value,
                           }))
                         }
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         rows={3}
                         placeholder="Ghi chú thêm (tùy chọn)"
                       />
@@ -787,54 +1221,48 @@ const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Booking summary */}
                 <div className="bg-white rounded-lg p-6 shadow-md">
-                  <h3 className="text-lg font-semibold mb-4">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-green-600" />
                     Tóm tắt đặt sân
                   </h3>
-
-                  {selectedField && (
+                  {selectedSlots.length > 0 && selectedField ? (
                     <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-600">Sân:</span>
                         <span className="font-medium">
                           {selectedField.fieldName}
                         </span>
                       </div>
-
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-600">Ngày:</span>
                         <span className="font-medium">
-                          {selectedDate &&
-                            new Date(selectedDate).toLocaleDateString("vi-VN")}
+                          {new Date(selectedDate).toLocaleDateString("vi-VN")}
                         </span>
                       </div>
-
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-600">Thời gian:</span>
                         <span className="font-medium">
-                          {formData.startTime && formData.endTime
-                            ? `${formData.startTime} - ${formData.endTime}`
-                            : "Chưa chọn"}
+                          {getTimeRange(selectedSlots)}
                         </span>
                       </div>
-
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-600">Thời lượng:</span>
                         <span className="font-medium">
-                          {selectedSlots.length} giờ
+                          {calculateDuration(selectedSlots)}
                         </span>
                       </div>
-
                       <hr className="my-3" />
-
-                      <div className="flex justify-between text-lg font-bold text-green-600">
+                      <div className="flex justify-between items-center text-lg font-bold text-green-600">
                         <span>Tổng tiền:</span>
-                        <span>{calculateTotalPrice().toLocaleString()}đ</span>
+                        <span>{totalPrice.toLocaleString()}đ</span>
                       </div>
                     </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      Vui lòng chọn khung giờ để xem tóm tắt.
+                    </p>
                   )}
-
                   <button
                     type="button"
                     onClick={handleSubmit}
@@ -842,8 +1270,7 @@ const BookingPage: React.FC = () => {
                       selectedSlots.length === 0 ||
                       !formData.guestName ||
                       !formData.guestPhone ||
-                      phoneError !== "" ||
-                      !validatePhoneNumber(formData.guestPhone)
+                      !!phoneError
                     }
                     className="w-full mt-6 bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
@@ -851,47 +1278,46 @@ const BookingPage: React.FC = () => {
                   </button>
                 </div>
               </div>
-            </form>
-
-            {/* Booking Confirm Modal */}
-            <BookingConfirmModal
-              isOpen={showConfirmModal}
-              onClose={handleCloseModal}
-              onConfirm={handleConfirmBooking}
-              booking={{
-                field: selectedField
-                  ? {
-                      fieldId: selectedField.fieldId,
-                      facilityId: selectedField.facId,
-                      facilityName: "SportZone Facility", // placeholder
-                      fieldName: selectedField.fieldName,
-                      categoryId: selectedField.categoryId,
-                      categoryName: selectedField.categoryName,
-                      image: "/api/placeholder/400/300", // placeholder
-                      openTime: "05:30:00",
-                      closeTime: "22:30:00",
-                      description: selectedField.description,
-                      isBookingEnable: selectedField.isBookingEnable,
-                      facilityAddress: selectedField.facilityAddress,
-                      pricing: [], // placeholder pricing array
-                    }
-                  : null,
-                slots: selectedSlots,
-                guestInfo: {
-                  name: formData.guestName,
-                  phone: formData.guestPhone,
-                  notes: formData.notes,
-                },
-                services: formData.selectedServices
-                  .map((id) => facilityServices.find((s) => s.serviceId === id))
-                  .filter(Boolean) as Service[],
-                totalPrice: calculateTotalPrice(),
-                date: selectedDate,
-              }}
-            />
+            </div>
           </>
         )}
       </div>
+
+      <BookingConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmBooking}
+        booking={{
+          field: selectedField
+            ? {
+                ...selectedField,
+                facilityName:
+                  facilityDetails?.facilityName || "SportZone Facility",
+                image:
+                  facilityDetails?.images?.[0] || "/api/placeholder/400/300",
+                openTime: facilityDetails?.openTime || "05:30:00",
+                closeTime: facilityDetails?.closeTime || "22:30:00",
+                pricing: [],
+              }
+            : null,
+          slots: selectedSlots,
+          guestInfo: {
+            name: formData.guestName,
+            phone: formData.guestPhone,
+            notes: formData.notes,
+          },
+          services: [],
+          totalPrice: totalPrice,
+          date: selectedDate,
+        }}
+      />
+
+      <PricingModal
+        show={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+        fields={fields}
+        pricingData={fieldPricingData}
+      />
     </div>
   );
 };

@@ -39,6 +39,21 @@ namespace SportZone_API.Repository.Interfaces
         /// </summary>
         Task<(bool IsValid, string ErrorMessage)> ValidateSelectedSlotsAsync(List<int> selectedSlotIds, int? fieldId = null, int? facilityId = null);
 
+        /// <summary>
+        /// Lấy FieldBookingSchedule theo ID
+        /// </summary>
+        Task<FieldBookingSchedule?> GetFieldBookingScheduleByIdAsync(int scheduleId);
+
+        /// <summary>
+        /// Lấy Service theo ID
+        /// </summary>
+        Task<Service?> GetServiceByIdAsync(int serviceId);
+
+        /// <summary>
+        /// Lấy Discount theo ID
+        /// </summary>
+        Task<Discount?> GetDiscountByIdAsync(int discountId);
+
     }
 
 }

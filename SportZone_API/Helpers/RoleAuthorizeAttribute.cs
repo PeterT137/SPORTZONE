@@ -23,7 +23,13 @@ namespace SportZone_API.Attributes
 
             var userRole = context.HttpContext.User.FindFirst("Role")?.Value;
 
-            if (userRole == null || !_allowedRoles.Contains(userRole))
+            if (string.IsNullOrEmpty(userRole))
+            {
+                context.Result = new ForbidResult();
+                return;
+            }
+
+            if (!_allowedRoles.Contains(userRole))
             {
                 context.Result = new ForbidResult();
                 return;

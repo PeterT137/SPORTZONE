@@ -352,5 +352,45 @@ namespace SportZone_API.Repository
                 throw new Exception($"Lỗi khi lấy booking theo user: {ex.Message}", ex);
             }
         }
+
+        public async Task<FieldBookingSchedule?> GetFieldBookingScheduleByIdAsync(int scheduleId)
+        {
+            try
+            {
+                return await _context.FieldBookingSchedules
+                    .Include(s => s.Field)
+                    .FirstOrDefaultAsync(s => s.ScheduleId == scheduleId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy FieldBookingSchedule: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<Service?> GetServiceByIdAsync(int serviceId)
+        {
+            try
+            {
+                return await _context.Services
+                    .FirstOrDefaultAsync(s => s.ServiceId == serviceId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy Service: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<Discount?> GetDiscountByIdAsync(int discountId)
+        {
+            try
+            {
+                return await _context.Discounts
+                    .FirstOrDefaultAsync(d => d.DiscountId == discountId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy Discount: {ex.Message}", ex);
+            }
+        }
     }
 }

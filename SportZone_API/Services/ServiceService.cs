@@ -141,9 +141,13 @@ namespace SportZone_API.Services
                 }
                 existingService.Image = newImageUrl;
             }
-            else if (updateServiceDTO.ImageFile == null && !string.IsNullOrEmpty(existingService.Image))
+            else if (updateServiceDTO.RemoveImage && updateServiceDTO.ImageFile == null)
             {
-                // Điều này cần logic rõ ràng hơn trong DTO, ví dụ: updateServiceDTO.ShouldDeleteImage
+                if (!string.IsNullOrEmpty(existingService.Image))
+                {
+                    ImageUpload.DeleteImage(existingService.Image, _env.WebRootPath);
+                    existingService.Image = null; 
+                }
             }
 
             ValidateServiceData(
