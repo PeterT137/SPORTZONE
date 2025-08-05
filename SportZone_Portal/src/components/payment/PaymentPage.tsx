@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Calendar, Clock, CreditCard, MapPin, User } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  CreditCard,
+  MapPin,
+  User,
+  CheckCircle,
+} from "lucide-react";
 import QRCode from "react-qr-code";
 import Header from "../Header";
 
@@ -157,6 +164,8 @@ const PaymentPage: React.FC = () => {
   });
 
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     // Ưu tiên lấy thông tin từ BookingPage trước, sau đó mới từ localStorage
@@ -210,9 +219,231 @@ const PaymentPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsProcessing(false);
-    alert("Thanh toán thành công!");
+
+    try {
+      // Validate form data first
+      if (!formData.customerName.trim()) {
+        throw new Error("Vui lòng nhập họ và tên");
+      }
+
+      if (!formData.phone.trim()) {
+        throw new Error("Vui lòng nhập số điện thoại");
+      }
+
+      // Simulate payment processing
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Create booking after successful payment
+      if (isNewFormat && bookingState?.booking) {
+        const { booking } = bookingState;
+
+        // Get user info for booking
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const token = localStorage.getItem("token");
+
+        // Debug: Log form data to check values
+        console.log("Form data:", formData);
+        console.log("Booking guest info:", booking.guestInfo);
+        console.log("Booking slots:", booking.slots);
+        console.log("User from localStorage:", user);
+
+        // Extract and validate slot IDs
+        const slotIds = booking.slots.map(
+          (slot: FieldScheduleSlot) => slot.scheduleId
+        );
+        console.log("Slot IDs:", slotIds);
+
+        // Ensure we get the guest info from form
+        const finalGuestName =
+          formData.customerName.trim() ||
+          booking.guestInfo?.name ||
+          "Khách hàng";
+        const finalGuestPhone =
+          formData.phone.trim() || booking.guestInfo?.phone || "";
+
+        console.log("Final guest name:", finalGuestName);
+        console.log("Final guest phone:", finalGuestPhone);
+
+        // Prepare booking data according to API schema
+        const bookingData = {
+          userId: user?.UId || null,
+          title: `Đặt sân ${booking.field?.fieldName || "SportZone"}`,
+          selectedSlotIds: slotIds,
+          fieldId: booking.slots[0]?.fieldId || booking.field?.fieldId,
+          facilityId: booking.field?.facId,
+          guestName: finalGuestName,
+          guestPhone: finalGuestPhone,
+          serviceIds:
+            booking.services?.map((service: any) => service.serviceId) || [],
+          discountId: null,
+          notes: booking.guestInfo?.notes || "Đặt sân qua hệ thống online",
+        };
+
+        console.log("Creating booking with data:", bookingData);
+        console.log("JSON payload:", JSON.stringify(bookingData, null, 2));
+
+        // Validate required fields
+        if (!bookingData.guestName || !bookingData.guestPhone) {
+          throw new Error("Vui lòng nhập đầy đủ họ tên và số điện thoại");
+        }
+
+        if (bookingData.selectedSlotIds.length === 0) {
+          throw new Error("Không có slot thời gian nào được chọn");
+        }
+
+        // Test API connectivity first
+        console.log("Testing API connectivity...");
+        try {
+          const testResponse = await fetch(
+            "https://localhost:7057/api/Booking/user/1",
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            }
+          );
+          console.log("API test response status:", testResponse.status);
+        } catch (testError) {
+          console.error("API connectivity test failed:", testError);
+          // Try without HTTPS
+          try {
+            const httpTestResponse = await fetch(
+              "http://localhost:7057/api/Booking/user/1",
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+              }
+            );
+            console.log(
+              "HTTP API test response status:",
+              httpTestResponse.status
+            );
+          } catch (httpError) {
+            console.error("HTTP API test also failed:", httpError);
+          }
+        }
+
+        console.log("Making actual booking request...");
+
+        // Try HTTPS first, then HTTP if it fails
+        let apiUrl = "https://localhost:7057/api/Booking/CreateBooking";
+        let response;
+
+        try {
+          response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify(bookingData),
+          });
+        } catch (httpsError) {
+          console.log("HTTPS failed, trying HTTP:", httpsError);
+          apiUrl = "http://localhost:7057/api/Booking/CreateBooking";
+
+          response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify(bookingData),
+          });
+        }
+
+        console.log("Used API URL:", apiUrl);
+
+        console.log("Response status:", response.status);
+        console.log(
+          "Response headers:",
+          Object.fromEntries(response.headers.entries())
+        );
+
+        // Read response text first
+        const responseText = await response.text();
+        console.log("Raw response text:", responseText);
+
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = JSON.parse(responseText);
+          } catch {
+            errorData = {
+              message: responseText || `HTTP error! status: ${response.status}`,
+            };
+          }
+
+          console.log("Error data:", errorData);
+          throw new Error(
+            errorData.message ||
+              errorData.errors?.[0] ||
+              `HTTP error! status: ${response.status}`
+          );
+        }
+
+        // Parse successful response
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch {
+          throw new Error("Invalid JSON response from server");
+        }
+
+        console.log("Full API Response:", result);
+
+        // Check if guest info was saved correctly
+        if (result.data) {
+          console.log("Booking created with ID:", result.data.bookingId);
+          console.log(
+            "Guest name in response:",
+            result.data.guestName || "NOT FOUND"
+          );
+          console.log(
+            "Guest phone in response:",
+            result.data.guestPhone || "NOT FOUND"
+          );
+          console.log(
+            "User ID in response:",
+            result.data.userId || "NOT FOUND"
+          );
+          console.log("Title in response:", result.data.title || "NOT FOUND");
+
+          // If guest info is missing, let's check what we sent
+          if (!result.data.guestName || !result.data.guestPhone) {
+            console.warn("⚠️ Guest info missing in response!");
+            console.log("What we sent - guestName:", bookingData.guestName);
+            console.log("What we sent - guestPhone:", bookingData.guestPhone);
+          }
+        }
+
+        // Set success state
+        setPaymentSuccess(true);
+        setBookingId(result.data?.bookingId?.toString() || "N/A");
+
+        // Remove auto redirect - let user choose when to go home
+      } else {
+        // Fallback for old format
+        setPaymentSuccess(true);
+        setBookingId("LEGACY");
+
+        // Remove auto redirect - let user choose when to go home
+      }
+    } catch (error) {
+      console.error("Error processing payment or creating booking:", error);
+      alert(
+        `Lỗi: ${
+          error instanceof Error ? error.message : "Không thể xử lý thanh toán"
+        }`
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const formatCurrency = (amount: number): string =>
@@ -495,6 +726,48 @@ const PaymentPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {paymentSuccess && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Thanh toán thành công!
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Đặt sân của bạn đã được xác nhận. Bạn có thể tiếp tục sử dụng hệ
+                thống hoặc về trang chủ.
+              </p>
+              {bookingId && (
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-600">Mã booking:</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    #{bookingId}
+                  </p>
+                </div>
+              )}
+              <div className="space-y-3">
+                <button
+                  onClick={() => (window.location.href = "/")}
+                  className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                >
+                  Về trang chủ
+                </button>
+                <button
+                  onClick={() => setPaymentSuccess(false)}
+                  className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

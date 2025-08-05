@@ -37,6 +37,10 @@ interface Booking {
   status: "confirmed" | "pending" | "cancelled";
   contact: string;
   basePrice: number;
+  userId?: number | null;
+  bookingId?: number | null;
+  guestName?: string | null;
+  guestPhone?: string | null;
 }
 
 interface Service {
@@ -88,6 +92,61 @@ interface Facility {
   openTime: string;
   closeTime: string;
   // Thêm các trường khác nếu cần
+}
+
+interface UserInfo {
+  uId: number;
+  uEmail: string;
+  admin?: {
+    name: string;
+    phone: string;
+  };
+  customers?: Array<{
+    name: string;
+    phone: string;
+    email: string;
+  }>;
+  fieldOwner?: {
+    name: string;
+    phone: string;
+  };
+  staff?: {
+    name: string;
+    phone: string;
+  };
+}
+
+// Interface cho booking detail từ API
+interface BookingDetail {
+  bookingId: number;
+  fieldId: number;
+  fieldName?: string;
+  facilityName?: string;
+  facilityAddress?: string;
+  userId?: number | null;
+  guestName?: string | null;
+  guestPhone?: string | null;
+  title?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  status?: string;
+  statusPayment?: string;
+  createAt?: string;
+  notes?: string;
+  // Thêm các trường mới dựa trên cấu trúc thực tế
+  field?: any;
+  order?: {
+    orderId?: number;
+    guestName?: string;
+    guestPhone?: string;
+    customerName?: string;
+    customerPhone?: string;
+    totalAmount?: number;
+    [key: string]: any;
+  };
+  bookedSlots?: any[];
+  [key: string]: any; // Cho phép các trường khác
 }
 
 const API_URL = "https://localhost:7057";
@@ -241,6 +300,310 @@ const BookingDetailsModal: React.FC<{
     "cash"
   );
   const [showAddService, setShowAddService] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(
+    null
+  );
+  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false);
+
+  const getAuthHeaders = useCallback((): Record<string, string> => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+    return {};
+  }, []);
+
+  const fetchUserInfo = useCallback(
+    async (userId: number) => {
+      setIsLoadingUserInfo(true);
+      try {
+        const endpoint = `${API_URL}/get-all-account`;
+        console.log(`🔍 Trying endpoint: ${endpoint}`);
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+        });
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`✅ Response from ${endpoint}:`, result);
+          if (result.success && result.data) {
+            const user = result.data.find(
+              (account: UserInfo) => account.uId === userId
+            );
+            if (user) {
+              setUserInfo(user);
+              console.log("Found user info from endpoint:", user);
+              return;
+            } else {
+              console.log("⚠️ Không tìm thấy userId trong danh sách account");
+              setUserInfo(null);
+            }
+          } else {
+            console.log(
+              "⚠️ API trả về không đúng định dạng hoặc không có data"
+            );
+            setUserInfo(null);
+          }
+        } else if (response.status === 403 || response.status === 401) {
+          console.log("🚫 Không đủ quyền truy cập endpoint get-all-account");
+          setUserInfo({
+            uId: userId,
+            uEmail: "",
+            admin: undefined,
+            customers: undefined,
+            fieldOwner: undefined,
+            staff: undefined,
+            error:
+              "Bạn không có quyền xem thông tin khách hàng. Vui lòng đăng nhập bằng tài khoản admin!",
+          } as any);
+        } else {
+          console.log(`❌ ${endpoint} returned ${response.status}`);
+          setUserInfo(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+        setUserInfo(null);
+      } finally {
+        setIsLoadingUserInfo(false);
+      }
+    },
+    [getAuthHeaders]
+  );
+
+  // Function để lấy thôg tin booking chi tiết
+  const fetchBookingDetail = useCallback(
+    async (bookingId: number) => {
+      try {
+        console.log("Fetching booking detail for ID:", bookingId);
+
+        const response = await fetch(
+          `${API_URL}/api/Booking/GetBookingById/${bookingId}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeaders(),
+            },
+          }
+        );
+
+        console.log("Booking detail API response status:", response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Booking detail response:", result);
+
+          if (result.success && result.data) {
+            setBookingDetail(result.data);
+            console.log("✅ Set booking detail:", result.data);
+
+            if (result.data.order) {
+              console.log("🔍 Order object analysis:");
+              console.log("- Order keys:", Object.keys(result.data.order));
+              console.log("- Order guestName:", result.data.order.guestName);
+              console.log("- Order guestPhone:", result.data.order.guestPhone);
+              console.log(
+                "- Order customerName:",
+                result.data.order.customerName
+              );
+              console.log(
+                "- Order customerPhone:",
+                result.data.order.customerPhone
+              );
+            }
+
+            if (result.data.userId) {
+              console.log(
+                "📞 Có userId, đang fetch thông tin user cho userId:",
+                result.data.userId
+              );
+              await fetchUserInfo(result.data.userId);
+            } else {
+              console.log(
+                "🎯 Không có userId - đây là booking guest, sử dụng guestName và guestPhone"
+              );
+              console.log("Guest info từ booking detail:", {
+                guestName: result.data.guestName,
+                guestPhone: result.data.guestPhone,
+              });
+              console.log("Guest info từ order:", {
+                guestName: result.data.order?.guestName,
+                guestPhone: result.data.order?.guestPhone,
+              });
+              // Không cần fetch user info cho guest
+              setUserInfo(null);
+            }
+          } else {
+            console.log("API response không có success hoặc data:", result);
+          }
+        } else {
+          console.error(
+            "Booking detail API error:",
+            response.status,
+            await response.text()
+          );
+
+          if (response.status === 404) {
+            console.log(
+              "Booking không tồn tại, có thể là slot trống hoặc dữ liệu không đồng bộ"
+            );
+            setBookingDetail(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching booking detail:", error);
+        setBookingDetail(null);
+      }
+    },
+    [fetchUserInfo, getAuthHeaders]
+  );
+
+  // Effect để load dữ liệu khi modal mở
+  useEffect(() => {
+    if (booking && booking.bookingId) {
+      // Reset state trước khi fetch
+      setUserInfo(null);
+      setBookingDetail(null);
+      setIsLoadingUserInfo(false);
+
+      // Kiểm tra bookingId hợp lệ (phải là số dương)
+      if (booking.bookingId > 0) {
+        console.log(
+          "Fetching booking detail for valid bookingId:",
+          booking.bookingId
+        );
+        fetchBookingDetail(booking.bookingId);
+      } else {
+        console.log(
+          "Invalid bookingId:",
+          booking.bookingId,
+          "- skipping fetch"
+        );
+        // Đây có thể là slot trống hoặc dữ liệu không hợp lệ
+        setBookingDetail(null);
+      }
+    } else {
+      console.log("No booking or bookingId provided:", booking);
+      // Reset state khi không có booking
+      setUserInfo(null);
+      setBookingDetail(null);
+      setIsLoadingUserInfo(false);
+    }
+  }, [booking, fetchBookingDetail]);
+
+  // Function để lấy tên hiển thị
+  const getDisplayName = (): string => {
+    console.log("Getting display name - booking detail:", bookingDetail);
+    console.log("Getting display name - userInfo:", userInfo);
+    console.log("Getting display name - original booking:", booking);
+
+    // Nếu userInfo có lỗi quyền thì trả về thông báo
+    if ((userInfo as any)?.error) {
+      return (userInfo as any).error;
+    }
+    // ƯU TIÊN 1: Thử truy cập guest info từ order object
+    if (bookingDetail?.order) {
+      const order = bookingDetail.order as any;
+      if (order.guestName) return order.guestName;
+      if (order.customerName && order.customerName !== "Không có tên")
+        return order.customerName;
+    }
+    // ƯU TIÊN 2: Guest info trực tiếp từ booking detail level
+    if (bookingDetail?.guestName) return bookingDetail.guestName;
+    // ƯU TIÊN 3: Nếu có userId, dùng thông tin user đã fetch
+    if (bookingDetail?.userId && userInfo) {
+      const name =
+        userInfo.admin?.name ||
+        userInfo.customers?.[0]?.name ||
+        userInfo.fieldOwner?.name ||
+        userInfo.staff?.name;
+      if (name) return name;
+    }
+    // CUỐI CÙNG: Fallback từ booking gốc
+    let fallbackName = booking?.customerName || "Khách hàng";
+    if (fallbackName.startsWith("Đặt sân "))
+      fallbackName = fallbackName.replace("Đặt sân ", "").trim();
+    if (fallbackName === booking?.field || fallbackName.includes("Sân "))
+      fallbackName = "Khách hàng";
+    return fallbackName;
+  };
+
+  // Function để lấy số điện thoại hiển thị
+  const getDisplayPhone = (): string => {
+    console.log("Getting display phone - booking detail:", bookingDetail);
+    console.log("Getting display phone - userInfo:", userInfo);
+
+    // ƯUTTIÊN 1: Thử truy cập guest info từ order object
+    if (bookingDetail?.order) {
+      const order = bookingDetail.order as any;
+      console.log("📋 Order object for phone:", order);
+
+      if (order.guestPhone) {
+        console.log("🎯 Found guest phone in order:", order.guestPhone);
+        return order.guestPhone;
+      }
+
+      if (order.customerPhone) {
+        console.log("🎯 Found customer phone in order:", order.customerPhone);
+        return order.customerPhone;
+      }
+    }
+
+    // ƯUTTIÊN 2: Guest info trực tiếp từ booking detail level
+    if (bookingDetail?.guestPhone) {
+      console.log(
+        "🎯 Guest booking - Using guest phone from booking detail:",
+        bookingDetail.guestPhone
+      );
+      return bookingDetail.guestPhone;
+    }
+
+    // ƯUTTIÊN 3: Nếu có userId, dùng thông tin user đã fetch
+    if (bookingDetail?.userId && userInfo) {
+      const phone =
+        userInfo.admin?.phone ||
+        userInfo.customers?.[0]?.phone ||
+        userInfo.fieldOwner?.phone ||
+        userInfo.staff?.phone;
+
+      if (phone) {
+        console.log("👤 User booking - Using user phone:", phone);
+        return phone;
+      }
+    }
+
+    // CUỐI CÙNG: Fallback từ booking gốc
+    let fallbackPhone = booking?.contact;
+    if (!fallbackPhone || fallbackPhone === "Unknown") {
+      fallbackPhone = "Chưa có thông tin";
+    }
+
+    console.log("⚠️ Final fallback phone:", fallbackPhone);
+    return fallbackPhone;
+  };
+
+  // Function để lấy email hiển thị
+  const getDisplayEmail = (): string => {
+    console.log("Getting display email - userInfo:", userInfo);
+    console.log("Getting display email - bookingDetail:", bookingDetail);
+
+    // ƯUTTIÊN 1: Nếu có userId, hiển thị email từ user info
+    if (bookingDetail?.userId && userInfo) {
+      const email = userInfo.uEmail || userInfo.customers?.[0]?.email;
+      if (email) {
+        console.log("👤 User booking - Using user email:", email);
+        return email;
+      }
+    }
+
+    // ƯUTTIÊN 2: Guest không có email, luôn hiển thị "Khách vãng lai"
+    console.log("🎯 Guest booking or no user info - Using default email");
+    return "Khách vãng lai";
+  };
 
   const totalServicePrice = selectedServices.reduce(
     (sum, service) => sum + service.price * service.quantity,
@@ -313,17 +676,57 @@ const BookingDetailsModal: React.FC<{
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-gray-50 rounded-xl p-4">
-              <h3 className="font-semibold text-gray-700 mb-3">
+              <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 Thông tin khách hàng
+                {isLoadingUserInfo && (
+                  <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                )}
               </h3>
+
               <div className="space-y-2">
                 <p>
                   <span className="font-medium">Tên khách hàng:</span>{" "}
-                  {booking.customerName}
+                  <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
+                    {getDisplayName()}
+                  </span>
                 </p>
                 <p>
                   <span className="font-medium">Số điện thoại:</span>{" "}
-                  {booking.contact}
+                  <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
+                    {getDisplayPhone()}
+                  </span>
+                </p>
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
+                    {getDisplayEmail()}
+                  </span>
+                </p>
+                <p>
+                  <span className="font-medium">Loại khách hàng:</span>{" "}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      // Kiểm tra userId từ bookingDetail thay vì userInfo
+                      bookingDetail?.userId
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {/* Hiển thị loại khách hàng dựa trên userId từ bookingDetail */}
+                    {bookingDetail?.userId
+                      ? userInfo
+                        ? userInfo.admin
+                          ? "Quản trị viên"
+                          : userInfo.fieldOwner
+                          ? "Chủ sân"
+                          : userInfo.staff
+                          ? "Nhân viên"
+                          : userInfo.customers?.[0]
+                          ? "Khách hàng thành viên"
+                          : "Người dùng"
+                        : "Thành viên (đang tải...)"
+                      : "Khách vãng lai"}
+                  </span>
                 </p>
                 <p>
                   <span className="font-medium">Ngày đặt:</span>{" "}
@@ -1662,8 +2065,16 @@ const WeeklySchedule: React.FC = () => {
                   : schedule.status === "Scheduled"
                   ? "pending"
                   : "cancelled",
-              contact: "Unknown", // API không cung cấp contact, gán mặc định
+              contact: "Unknown", // Sẽ được cập nhật từ booking detail
               basePrice: schedule.price || 0,
+              // Chỉ lưu bookingId nếu nó là số dương và có thể hợp lệ
+              bookingId:
+                schedule.bookingId && schedule.bookingId > 0
+                  ? schedule.bookingId
+                  : null,
+              userId: null, // Sẽ được cập nhật từ booking detail
+              guestName: null, // Sẽ được cập nhật từ booking detail
+              guestPhone: null, // Sẽ được cập nhật từ booking detail
             };
           }
         );
