@@ -75,6 +75,51 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<IEnumerable<OrderServiceDTO>> GetOrderServicesByOrderIdAsync(int orderId)
+        {
+            try
+            {
+                var orderServices = await _context.OrderServices
+                    .Include(os => os.Service)
+                    .Where(os => os.OrderId == orderId)
+                    .ToListAsync();
+                return _mapper.Map<IEnumerable<OrderServiceDTO>>(orderServices);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách OrderService cho OrderId {orderId}: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<OrderServiceDTO?> UpdateOrderServiceAsync(int orderServiceId,OrderServiceUpdateDTO updateDto)
+        {
+            try
+            {
+                var orderService = await _context.OrderServices
+                    .Include(os => os.Service)
+                    .FirstOrDefaultAsync(os => os.OrderServiceId == orderServiceId);
+                if (orderService == null)
+                    return null;
+                if (updateDto.Quantity.HasValue)
+                {
+                    orderService.Quantity = updateDto.Quantity.Value;
+                }
+                _context.OrderServices.Update(orderService);
+                await _context.SaveChangesAsync();
+
+                if (orderService.OrderId.HasValue)
+                {
+                    var totalServicePrice = await CalculateTotalServicePriceAsync(orderService.OrderId.Value);
+                    await UpdateOrderTotalServicePriceAsync(orderService.OrderId.Value, totalServicePrice);
+                }
+                return _mapper.Map<OrderServiceDTO>(orderService);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật OrderService: {ex.Message}", ex);
+            }
+        } 
+
         public async Task<bool> DeleteOrderServiceAsync(int orderServiceId)
         {
             try

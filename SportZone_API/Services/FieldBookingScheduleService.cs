@@ -7,6 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using Microsoft.AspNetCore.SignalR;
+using SportZone_API.Hubs;
+using Microsoft.AspNetCore.Http; 
 
 namespace SportZone_API.Services
 {
@@ -17,6 +20,8 @@ namespace SportZone_API.Services
         private readonly IFieldRepository _fieldRepository;
         private readonly IFacilityRepository _facilityRepository;
         private readonly IMapper _mapper;
+        private readonly IHubContext<NotificationHub> _hubContext;
+        private readonly IHttpContextAccessor _httpContextAccessor; // Thêm để lấy thông tin người dùng
         private static readonly TimeSpan FixedSlotDuration = TimeSpan.FromMinutes(30);
 
         public FieldBookingScheduleService(
@@ -24,13 +29,33 @@ namespace SportZone_API.Services
             IFieldPricingService fieldPricingService,
             IFieldRepository fieldRepository,
             IFacilityRepository facilityRepository,
-            IMapper mapper)
+            IMapper mapper,
+            IHubContext<NotificationHub> hubContext,
+            IHttpContextAccessor httpContextAccessor)
         {
             _scheduleRepository = scheduleRepository;
             _fieldPricingService = fieldPricingService;
             _fieldRepository = fieldRepository;
             _facilityRepository = facilityRepository;
             _mapper = mapper;
+            _hubContext = hubContext;
+            _httpContextAccessor = httpContextAccessor; // Khởi tạo HttpContextAccessor
+        }
+
+        // Lấy UserId từ HttpContext
+        private string? GetCurrentUserId()
+        {
+            // Lấy HttpContext
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+            {
+                return null;
+            }
+
+            // Lấy User Id từ Claims của HttpContext
+            // Giả sử UserId được lưu trong claim "sub" (standard) hoặc ClaimTypes.NameIdentifier
+            var userId = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            return userId;
         }
 
         public async Task<IEnumerable<FieldBookingScheduleDto>> GetAllFieldBookingSchedulesAsync()
@@ -119,10 +144,10 @@ namespace SportZone_API.Services
             var pricingConfigsForField = (await _fieldPricingService.GetFieldPricingsByFieldIdAsync(generateDto.FieldId)).ToList();
 
             var existingSchedules = (await _scheduleRepository.GetAllSchedulesAsync())
-                                        .Where(s => s.FieldId == generateDto.FieldId &&
-                                                    s.Date >= generateDto.StartDate &&
-                                                    s.Date <= generateDto.EndDate)
-                                        .ToList();
+                                         .Where(s => s.FieldId == generateDto.FieldId &&
+                                                     s.Date >= generateDto.StartDate &&
+                                                     s.Date <= generateDto.EndDate)
+                                         .ToList();
 
             var duplicateEntriesFound = new List<string>();
             var duplicateDates = new HashSet<DateOnly>();
@@ -192,7 +217,6 @@ namespace SportZone_API.Services
                 currentDate = currentDate.AddDays(1);
             }
 
-
             if (duplicateEntriesFound.Any())
             {
                 var duplicateDatesList = duplicateDates.OrderBy(d => d).ToList();
@@ -260,6 +284,15 @@ namespace SportZone_API.Services
             }
 
             await _scheduleRepository.AddRangeSchedulesAsync(schedulesToAdd);
+
+            // Lấy ID người dùng hiện tại
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId != null)
+            {
+                // Gửi thông báo trực tiếp đến người dùng hiện tại
+                await _hubContext.Clients.User(currentUserId).SendAsync("ReceiveNotification", $"Đã tạo thành công {schedulesToAdd.Count} lịch cho sân '{field.FieldName}' từ {generateDto.StartDate.ToShortDateString()} đến {generateDto.EndDate.ToShortDateString()}.");
+            }
+
             return new ScheduleGenerationResponseDto
             {
                 IsSuccess = true,
@@ -287,8 +320,23 @@ namespace SportZone_API.Services
             {
                 return null;
             }
+
+            var oldStatus = existingSchedule.Status;
+
             _mapper.Map(updateDto, existingSchedule);
             await _scheduleRepository.UpdateScheduleAsync(existingSchedule);
+
+            // Gửi thông báo đến người dùng hiện tại khi thay đổi trạng thái
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId != null && oldStatus != updateDto.Status)
+            {
+                var field = await _fieldRepository.GetFieldByIdAsync(existingSchedule.FieldId.Value);
+                await _hubContext.Clients.User(currentUserId).SendAsync(
+                    "ReceiveNotification",
+                    $"Lịch sân '{field?.FieldName}' vào ngày {existingSchedule.Date:dd/MM/yyyy} từ {existingSchedule.StartTime:HH:mm} đến {existingSchedule.EndTime:HH:mm} đã được cập nhật."
+                );
+            }
+
             return _mapper.Map<FieldBookingScheduleDto>(existingSchedule);
         }
 
@@ -312,9 +360,26 @@ namespace SportZone_API.Services
                     Message = $"Không thể xóa lịch đặt sân này vì nó đã có booking (Booking ID: {scheduleToDelete.BookingId.Value})."
                 };
             }
+
+            var fieldId = scheduleToDelete.FieldId;
+            var date = scheduleToDelete.Date;
+            var startTime = scheduleToDelete.StartTime;
+            var endTime = scheduleToDelete.EndTime;
+
             bool isDeleted = await _scheduleRepository.DeleteScheduleAsync(id);
             if (isDeleted)
             {
+                // Gửi thông báo đến người dùng hiện tại
+                var currentUserId = GetCurrentUserId();
+                if (currentUserId != null && fieldId.HasValue)
+                {
+                    var field = await _fieldRepository.GetFieldByIdAsync(fieldId.Value);
+                    await _hubContext.Clients.User(currentUserId).SendAsync(
+                        "ReceiveNotification",
+                        $"Lịch sân '{field?.FieldName}' vào ngày {date:dd/MM/yyyy} từ {startTime:HH:mm} đến {endTime:HH:mm} đã bị xóa."
+                    );
+                }
+
                 return new ScheduleGenerationResponseDto
                 {
                     IsSuccess = true,
@@ -331,12 +396,9 @@ namespace SportZone_API.Services
             }
         }
 
-
-
         public async Task<ServiceResponse<FieldBookingScheduleByDateDto>> GetSchedulesByFacilityAndDateAsync(int facilityId, DateOnly date)
         {
             var response = new ServiceResponse<FieldBookingScheduleByDateDto>();
-
             try
             {
                 var result = await _scheduleRepository.GetSchedulesByFacilityAndDateAsync(facilityId, date);
@@ -352,11 +414,5 @@ namespace SportZone_API.Services
 
             return response;
         }
-
-
     }
 }
-
-
-
-

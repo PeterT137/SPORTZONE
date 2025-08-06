@@ -8,6 +8,7 @@
         public int BookingId { get; set; }
         public int? UId { get; set; }
         public int FacId { get; set; }
+        public int? DiscountId { get; set; }
         public string? GuestName { get; set; }
         public string? GuestPhone { get; set; }
         public decimal? TotalPrice { get; set; }

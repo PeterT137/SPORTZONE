@@ -1,38 +1,64 @@
-﻿using SportZone_API.DTOs;
+﻿using Microsoft.AspNetCore.SignalR;
+using SportZone_API.DTOs;
+using SportZone_API.Hubs;
 using SportZone_API.Models;
+using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Repository.Interfaces;
 using SportZone_API.Services.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SportZone_API.Services
 {
     public class BookingService : IBookingService
     {
         private readonly IBookingRepository _bookingRepository;
+        private readonly IFieldRepository _fieldRepository;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public BookingService(IBookingRepository bookingRepository)
+        public BookingService(IBookingRepository bookingRepository, IFieldRepository fieldRepository, IHubContext<NotificationHub> hubContext)
         {
             _bookingRepository = bookingRepository;
+            _fieldRepository = fieldRepository;
+            _hubContext = hubContext;
         }
-        // Helper method to combine DateOnly and TimeOnly into DateTime for business logic
+
         private DateTime CombineDateAndTime(DateOnly date, TimeOnly time)
         {
             return date.ToDateTime(time);
         }
+
         public async Task<BookingDetailDTO> CreateBookingAsync(BookingCreateDTO bookingDto)
         {
             try
             {
-                // Validate business rules
                 var validation = await ValidateBookingRulesAsync(bookingDto);
                 if (!validation.IsValid)
                     throw new ArgumentException(validation.ErrorMessage);
-
-                // Create booking
                 var booking = await _bookingRepository.CreateBookingAsync(bookingDto);
-
-                // Return detailed booking info
                 var detail = await _bookingRepository.GetBookingByIdAsync(booking.BookingId);
-                return detail ?? throw new Exception("Không thể lấy thông tin booking vừa tạo");
+                if (detail == null)
+                    throw new Exception("Không thể lấy thông tin booking vừa tạo");
+                var field = await _fieldRepository.GetFieldByIdAsync(bookingDto.FieldId.Value);
+                if (field != null)
+                {
+                    var facId = field.FacId;
+                    var firstBookedSlot = detail.BookedSlots.FirstOrDefault();
+                    if (firstBookedSlot != null)
+                    {
+                        var managerMessage = $"Một booking mới (ID: {detail.BookingId}) đã được tạo cho sân '{field.FieldName}' vào lúc {firstBookedSlot.StartTime.ToString("HH:mm")} ngày {firstBookedSlot.Date.ToString("dd-MM-yyyy")}.";
+                        await _hubContext.Clients.Group($"facility-{facId}").SendAsync("ReceiveNotification", managerMessage);
+                        await _hubContext.Clients.Group($"facility-{facId}").SendAsync("BookingCreated", detail);
+                    }
+                }
+                if (detail.UserId.HasValue)
+                {
+                    var userMessage = $"Booking của bạn (ID: {detail.BookingId}) đã được xác nhận thành công.";
+                    await _hubContext.Clients.User(detail.UserId.Value.ToString()).SendAsync("ReceiveNotification", userMessage);
+                }
+                return detail;
             }
             catch (Exception ex)
             {
@@ -75,7 +101,25 @@ namespace SportZone_API.Services
                         throw new InvalidOperationException("Không thể hủy booking trong vòng 2 giờ trước giờ bắt đầu");
                     }
                 }
-                return await _bookingRepository.CancelBookingAsync(bookingId);
+
+                var isCancelled = await _bookingRepository.CancelBookingAsync(bookingId);
+                if (isCancelled)
+                {
+                    var field = booking.FieldBookingSchedules?.FirstOrDefault()?.Field;
+                    if (field != null)
+                    {
+                        var facId = field.FacId;
+                        var managerMessage = $"Booking (ID: {bookingId}) cho sân '{field.FieldName}' đã được hủy.";
+                        await _hubContext.Clients.Group($"facility-{facId}").SendAsync("ReceiveNotification", managerMessage);
+                        await _hubContext.Clients.Group($"facility-{facId}").SendAsync("BookingCancelled", bookingId);
+                    }
+                    if (booking.UId.HasValue)
+                    {
+                        var userMessage = $"Booking (ID: {bookingId}) của bạn đã được hủy thành công.";
+                        await _hubContext.Clients.User(booking.UId.Value.ToString()).SendAsync("ReceiveNotification", userMessage);
+                    }
+                }
+                return isCancelled;
             }
             catch (Exception ex)
             {
@@ -151,7 +195,6 @@ namespace SportZone_API.Services
                 if (startTime >= endTime)
                     throw new ArgumentException("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc");
 
-                // Check if the booking is in the past
                 var bookingDateTime = CombineDateAndTime(date, startTime);
                 if (bookingDateTime <= DateTime.Now)
                     throw new ArgumentException("Không thể kiểm tra thời gian trong quá khứ");

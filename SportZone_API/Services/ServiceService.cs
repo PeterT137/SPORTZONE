@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.SignalR;
 using SportZone_API.DTOs;
 using SportZone_API.Helpers;
+using SportZone_API.Hubs;
 using SportZone_API.Models;
 using SportZone_API.Repositories.Interfaces;
 using SportZone_API.Repository.Interfaces;
@@ -13,13 +15,15 @@ namespace SportZone_API.Services
     {
         private readonly IServiceRepository _serviceRepository;
         private readonly IMapper _mapper;
-        private readonly IWebHostEnvironment _env; 
+        private readonly IWebHostEnvironment _env;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public ServiceService(IServiceRepository serviceRepository, IMapper mapper, IWebHostEnvironment env)
+        public ServiceService(IServiceRepository serviceRepository, IMapper mapper, IWebHostEnvironment env, IHubContext<NotificationHub> hubContext)
         {
             _serviceRepository = serviceRepository;
             _mapper = mapper;
             _env = env;
+            _hubContext = hubContext;
         }
 
         public async Task<IEnumerable<ServiceDTO>> GetAllServicesAsync()
@@ -46,7 +50,6 @@ namespace SportZone_API.Services
 
         public async Task<IEnumerable<ServiceDTO>> GetServicesByStatusAsync(string status)
         {
-            // Validate status
             if (!IsValidStatus(status))
                 throw new ArgumentException("Status phải là 'Active' hoặc 'Inactive'");
 
@@ -68,14 +71,12 @@ namespace SportZone_API.Services
 
             var service = _mapper.Map<Service>(createServiceDto);
 
-            // Xử lý upload file ảnh
             if (createServiceDto.ImageFile != null)
             {
                 const string subFolderName = "ServiceImages";
                 var (isValid, errorMessage) = ImageUpload.ValidateImage(createServiceDto.ImageFile);
                 if (!isValid)
                 {
-                    // Xóa file đã upload thành công nếu có lỗi
                     throw new ArgumentException(errorMessage);
                 }
                 var imageUrl = await ImageUpload.SaveImageAsync(createServiceDto.ImageFile, _env.WebRootPath, subFolderName);
@@ -89,11 +90,17 @@ namespace SportZone_API.Services
             try
             {
                 var createdService = await _serviceRepository.CreateServiceAsync(service);
-                return _mapper.Map<ServiceResponseDTO>(createdService);
+                var createdServiceDTO = _mapper.Map<ServiceResponseDTO>(createdService);
+
+                // Gửi thông báo đến người quản lý cơ sở và cập nhật UI real-time
+                var message = $"Dịch vụ mới '{createdService.ServiceName}' với giá {createdService.Price:N0} VNĐ đã được thêm vào cơ sở của bạn. Trạng thái: {createdService.Status}.";
+                await _hubContext.Clients.Group($"facility-{createdService.FacId}").SendAsync("ReceiveNotification", message);
+                await _hubContext.Clients.Group($"facility-{createdService.FacId}").SendAsync("ServiceCreated", createdServiceDTO);
+
+                return createdServiceDTO;
             }
             catch (Exception ex)
             {
-                // Nếu có lỗi khi lưu vào DB, hãy xóa file đã upload
                 if (!string.IsNullOrEmpty(service.Image))
                 {
                     ImageUpload.DeleteImage(service.Image, _env.WebRootPath);
@@ -108,13 +115,11 @@ namespace SportZone_API.Services
             if (existingService == null)
                 return null;
 
-            if (updateServiceDTO.FacId.HasValue &&
-                !await _serviceRepository.FacilityExistsAsync(updateServiceDTO.FacId.Value))
+            if (updateServiceDTO.FacId.HasValue && !await _serviceRepository.FacilityExistsAsync(updateServiceDTO.FacId.Value))
             {
                 throw new ArgumentException("Facility không tồn tại");
             }
 
-            // Xử lý cập nhật file ảnh
             if (updateServiceDTO.ImageFile != null)
             {
                 const string subFolderName = "ServiceImages";
@@ -130,7 +135,6 @@ namespace SportZone_API.Services
                     throw new InvalidOperationException("Lỗi khi lưu file ảnh mới.");
                 }
 
-                // Xóa ảnh cũ nếu có và cập nhật URL ảnh mới
                 if (!string.IsNullOrEmpty(existingService.Image))
                 {
                     ImageUpload.DeleteImage(existingService.Image, _env.WebRootPath);
@@ -146,24 +150,46 @@ namespace SportZone_API.Services
                 }
             }
 
-            // Validate dữ liệu
             ValidateServiceData(
                 updateServiceDTO.ServiceName ?? existingService.ServiceName,
                 updateServiceDTO.Price ?? existingService.Price ?? 0,
                 updateServiceDTO.Status ?? existingService.Status
             );
 
-            // Map các trường còn lại, bỏ qua trường ảnh đã xử lý ở trên
             _mapper.Map(updateServiceDTO, existingService);
 
             try
             {
                 var updatedService = await _serviceRepository.UpdateServiceAsync(existingService);
-                return _mapper.Map<ServiceResponseDTO>(updatedService);
+                var updatedServiceDTO = _mapper.Map<ServiceResponseDTO>(updatedService);
+                var updatedFields = new List<string>();
+                if (updateServiceDTO.ServiceName != null && updateServiceDTO.ServiceName != updatedService.ServiceName)
+                {
+                    updatedFields.Add($"Tên dịch vụ đã đổi thành '{updatedService.ServiceName}'");
+                }
+                if (updateServiceDTO.Price.HasValue && updateServiceDTO.Price.Value != existingService.Price)
+                {
+                    updatedFields.Add($"Giá đã đổi từ {existingService.Price:N0} VNĐ thành {updatedService.Price:N0} VNĐ");
+                }
+                if (updateServiceDTO.Status != null && updateServiceDTO.Status != existingService.Status)
+                {
+                    updatedFields.Add($"Trạng thái đã đổi từ '{existingService.Status}' thành '{updatedService.Status}'");
+                }
+                string message;
+                if (updatedFields.Any())
+                {
+                    message = $"Dịch vụ '{updatedService.ServiceName}' đã được cập nhật. Cụ thể: {string.Join(", ", updatedFields)}.";
+                }
+                else
+                {
+                    message = $"Thông tin của dịch vụ '{updatedService.ServiceName}' đã được cập nhật.";
+                }
+                await _hubContext.Clients.Group($"facility-{updatedService.FacId}").SendAsync("ReceiveNotification", message);
+                await _hubContext.Clients.Group($"facility-{updatedService.FacId}").SendAsync("ServiceUpdated", updatedServiceDTO);
+                return updatedServiceDTO;
             }
             catch (Exception ex)
             {
-                // Nếu có lỗi khi lưu vào DB, hãy xóa ảnh mới đã upload (nếu có)
                 if (updateServiceDTO.ImageFile != null)
                 {
                     ImageUpload.DeleteImage(existingService.Image!, _env.WebRootPath);
@@ -189,19 +215,38 @@ namespace SportZone_API.Services
             var service = await _serviceRepository.GetServiceByIdAsync(serviceId);
             if (service == null)
             {
-                return false; 
+                return false;
             }
             if (service.OrderServices.Any())
             {
                 throw new InvalidOperationException("Không thể xóa dịch vụ vì đã có đơn hàng liên quan");
             }
-            return await _serviceRepository.DeleteServiceAsync(serviceId);
+
+            var facId = service.FacId;
+            var serviceName = service.ServiceName;
+
+            if (!string.IsNullOrEmpty(service.Image))
+            {
+                ImageUpload.DeleteImage(service.Image, _env.WebRootPath);
+            }
+
+            var isDeleted = await _serviceRepository.DeleteServiceAsync(serviceId);
+
+            if (isDeleted)
+            {
+                var message = $"Dịch vụ '{serviceName}' (ID: {serviceId}) đã bị xóa khỏi hệ thống.";
+                await _hubContext.Clients.Group($"facility-{facId}").SendAsync("ReceiveNotification", message);
+                await _hubContext.Clients.Group($"facility-{facId}").SendAsync("ServiceDeleted", serviceId);
+            }
+
+            return isDeleted;
         }
 
         public async Task<bool> ServiceExistsByIdAsync(int serviceId)
         {
             return await _serviceRepository.ServiceExistsByIdAsync(serviceId);
         }
+
         public async Task<int> GetTotalServicesCountAsync()
         {
             return await _serviceRepository.GetTotalServicesCountAsync();

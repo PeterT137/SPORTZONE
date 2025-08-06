@@ -18,10 +18,6 @@ namespace SportZone_API.Repository
             _mapper = mapper;
         }
 
-        private DateTime CombineDateAndTime(DateOnly date, TimeOnly time)
-        {
-            return date.ToDateTime(time);
-        }
         public async Task<Booking> CreateBookingAsync(BookingCreateDTO bookingDto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -70,8 +66,8 @@ namespace SportZone_API.Repository
                     Date = firstSlot.Date,
                     StartTime = firstSlot.StartTime,
                     EndTime = lastSlot.EndTime,
-                    Status = "Pending",
-                    StatusPayment = "Pending",
+                    Status = "Success",
+                    StatusPayment = "Success",
                     CreateAt = DateTime.Now,
                     GuestName = bookingDto.UserId.HasValue ? null : bookingDto.GuestName,
                     GuestPhone = bookingDto.UserId.HasValue ? null : bookingDto.GuestPhone

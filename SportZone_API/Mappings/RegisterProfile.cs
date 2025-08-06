@@ -34,11 +34,16 @@ namespace SportZone_API.Mappings
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
                 .ForMember(dest => dest.Dob, opt => opt.MapFrom(src => src.Dob))
-                // Bỏ qua Image để xử lý thủ công
                 .ForMember(dest => dest.Image, opt => opt.Ignore())
                 .ForMember(dest => dest.FacId, opt => opt.MapFrom(src => src.FacId))
                 .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartTime))
                 .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndTime))
+                .ForMember(dest => dest.UId, opt => opt.Ignore());
+           
+            CreateMap<RegisterDto, Admin>()
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone))
+                .ForMember(dest => dest.Dob, opt => opt.MapFrom(src => src.Dob))
                 .ForMember(dest => dest.UId, opt => opt.Ignore());
         }
     }

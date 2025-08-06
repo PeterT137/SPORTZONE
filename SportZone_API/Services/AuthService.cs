@@ -7,6 +7,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using SportZone_API.Repositories.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using SportZone_API.Hubs;
 
 namespace SportZone_API.Services
 {
@@ -15,13 +17,16 @@ namespace SportZone_API.Services
         private readonly IAuthRepository _authRepository;
         private readonly IConfiguration _configuration;
         private readonly PasswordHasher<User> _passwordHasher;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public AuthService(IAuthRepository authRepository, IConfiguration configuration)
+        public AuthService(IAuthRepository authRepository, IConfiguration configuration, IHubContext<NotificationHub> hubContext)
         {
             _authRepository = authRepository;
             _configuration = configuration;
             _passwordHasher = new PasswordHasher<User>();
+            _hubContext = hubContext;
         }
+
         public enum UserRole
         {
             Customer = 1,
@@ -29,23 +34,28 @@ namespace SportZone_API.Services
             Admin = 3,
             Staff = 4
         }
+
         public bool HasRole(User user, UserRole requiredRole)
         {
             if (user?.RoleId == null) return false;
             return user.RoleId == (int)requiredRole;
         }
+
         public bool IsAdmin(User user)
         {
             return HasRole(user, UserRole.Admin);
         }
+
         public bool IsCustomer(User user)
         {
             return HasRole(user, UserRole.Customer);
         }
+
         public bool IsFieldOwner(User user)
         {
             return HasRole(user, UserRole.FieldOwner);
         }
+
         public bool IsStaff(User user)
         {
             return HasRole(user, UserRole.Staff);
@@ -55,7 +65,6 @@ namespace SportZone_API.Services
         {
             try
             {
-                // Input validation
                 if (loginDto == null || string.IsNullOrEmpty(loginDto.UEmail) || string.IsNullOrEmpty(loginDto.UPassword))
                 {
                     throw new ArgumentException("Email và password là bắt buộc");
@@ -63,20 +72,16 @@ namespace SportZone_API.Services
 
                 User? authenticatedUser = null;
 
-                // Check if this is a Google login
                 if (loginDto.UPassword == "GoogleLogin")
                 {
-                    // For Google login, find user by email and IsExternalLogin = true
                     authenticatedUser = await _authRepository.GetUserByEmailAsync(loginDto.UEmail, isExternalLogin: true);
                 }
                 else
                 {
-                    // For normal login, find user by email
                     var user = await _authRepository.GetUserByEmailAsync(loginDto.UEmail, isExternalLogin: false);
 
                     if (user != null)
                     {
-                        // Validate password
                         if (await ValidatePasswordAsync(user, loginDto.UPassword))
                         {
                             authenticatedUser = user;
@@ -89,11 +94,10 @@ namespace SportZone_API.Services
                     throw new UnauthorizedAccessException("Email hoặc password không đúng");
                 }
 
-                // Generate JWT token
                 var token = GenerateJwtToken(authenticatedUser);
-
-                // Get facility information based on user role
                 var facilityInfo = await GetUserFacilityInfoAsync(authenticatedUser);
+
+                await _hubContext.Clients.User(authenticatedUser.UId.ToString()).SendAsync("ReceiveNotification", $"Chào mừng bạn đã trở lại, {authenticatedUser.UEmail}!");
 
                 return (token, authenticatedUser, facilityInfo);
             }
@@ -107,22 +111,21 @@ namespace SportZone_API.Services
         {
             try
             {
-                // Input validation
                 if (googleLoginDto == null || string.IsNullOrEmpty(googleLoginDto.Email))
                 {
                     throw new ArgumentException("Email là bắt buộc cho Google login");
                 }
 
-                // Check if user already exists with Google login
                 var existingUser = await _authRepository.GetUserByEmailAsync(googleLoginDto.Email, isExternalLogin: true);
                 var roleCustomer = await _authRepository.GetCustomerRoleIdByNameAsync();
+
                 if (roleCustomer == null)
                 {
                     throw new Exception("Không tìm thấy vai trò khách hàng");
                 }
+
                 if (existingUser == null)
                 {
-                    // Auto-register new Google user
                     existingUser = new User
                     {
                         UEmail = googleLoginDto.Email,
@@ -135,13 +138,15 @@ namespace SportZone_API.Services
                     };
 
                     existingUser = await _authRepository.CreateUserAsync(existingUser);
+
+                    await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Người dùng mới '{existingUser.UEmail}' đã đăng ký qua Google thành công.");
                 }
 
-                // Handle External_Login record
                 await HandleExternalLoginRecordAsync(existingUser.UId, googleLoginDto);
 
-                // Generate JWT token
                 var token = GenerateJwtToken(existingUser);
+
+                await _hubContext.Clients.User(existingUser.UId.ToString()).SendAsync("ReceiveNotification", $"Chào mừng bạn đã đăng nhập bằng Google, {existingUser.UEmail}!");
 
                 return (token, existingUser);
             }
@@ -155,13 +160,11 @@ namespace SportZone_API.Services
         {
             try
             {
-                // Input validation
                 if (logoutDto == null || logoutDto.UId <= 0)
                 {
                     throw new ArgumentException("User ID là bắt buộc");
                 }
 
-                // Verify user exists
                 var user = await _authRepository.GetUserByIdAsync(logoutDto.UId);
                 if (user == null)
                 {
@@ -170,19 +173,15 @@ namespace SportZone_API.Services
 
                 var logoutTime = DateTime.UtcNow;
 
-                // Invalidate current token if provided
                 if (!string.IsNullOrEmpty(logoutDto.Token))
                 {
                     await InvalidateTokenAsync(logoutDto.Token);
                 }
 
-                // Optional: Update last logout time in database
-                // You can add a LastLogoutTime field to User model if needed
-                // user.LastLogoutTime = logoutTime;
-                // await _authRepository.UpdateUserAsync(user);
-
-                // Optional: Log logout activity
                 await LogLogoutActivityAsync(logoutDto.UId, logoutTime);
+
+                await _hubContext.Clients.User(user.UId.ToString()).SendAsync("ReceiveNotification", $"Bạn đã đăng xuất thành công.");
+                await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Người dùng '{user.UEmail}' đã đăng xuất.");
 
                 return new LogoutResponseDTO
                 {
@@ -198,6 +197,27 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<bool> InvalidateAllUserTokensAsync(int userId)
+        {
+            try
+            {
+                var user = await _authRepository.GetUserByIdAsync(userId);
+
+                if (user != null)
+                {
+                    await _hubContext.Clients.User(user.UId.ToString()).SendAsync("ReceiveNotification", $"Tất cả các phiên đăng nhập của bạn đã bị vô hiệu hóa.");
+                }
+
+                await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Tất cả token của người dùng ID {userId} đã bị vô hiệu hóa.");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error invalidating all tokens for user {userId}: {ex.Message}");
+                return false;
+            }
+        }
 
         public string HashPassword(string plainPassword)
         {
@@ -238,7 +258,6 @@ namespace SportZone_API.Services
                         new Claim(ClaimTypes.NameIdentifier, user.UId.ToString()),
                         new Claim(ClaimTypes.Email, user.UEmail ?? string.Empty),
                         new Claim("Role", user.RoleId?.ToString() ?? "0"),
-
                     }),
                     Expires = DateTime.UtcNow.AddDays(1),
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -253,19 +272,12 @@ namespace SportZone_API.Services
             }
         }
 
-        // Private helper methods
-        /// <summary>
-        /// Lấy thông tin facility dựa trên role của user
-        /// </summary>
-        /// <param name="user">User đã authenticate</param>
-        /// <returns>FacilityInfoLoginDTO hoặc null</returns>
         private async Task<FacilityInfoLoginDTO?> GetUserFacilityInfoAsync(User user)
         {
             try
             {
                 if (IsStaff(user))
                 {
-                    // Staff được assign vào 1 facility cụ thể
                     var staff = await _authRepository.GetStaffByUserIdAsync(user.UId);
                     if (staff?.FacId != null)
                     {
@@ -278,7 +290,6 @@ namespace SportZone_API.Services
                 }
                 else if (IsFieldOwner(user))
                 {
-                    // FieldOwner có thể sở hữu nhiều facilities
                     var fieldOwner = await _authRepository.GetFieldOwnerByUserIdAsync(user.UId);
                     if (fieldOwner?.Facilities != null && fieldOwner.Facilities.Any())
                     {
@@ -297,32 +308,26 @@ namespace SportZone_API.Services
                     }
                 }
 
-                // Customer và Admin không cần facility info
                 return null;
             }
             catch (Exception ex)
             {
-                // Log error nhưng không throw để không ảnh hưởng đến login process
                 Console.WriteLine($"Lỗi khi lấy facility info: {ex.Message}");
                 return null;
             }
         }
 
-        // Private helper methods
         private async Task<bool> ValidatePasswordAsync(User user, string plainPassword)
         {
             try
             {
                 if (IsPasswordHashed(user.UPassword))
                 {
-                    // Password đã được hash, verify với Identity
                     if (VerifyPassword(user, plainPassword, user.UPassword))
                     {
-                        // Kiểm tra có cần rehash không
                         var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.UPassword, plainPassword);
                         if (verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
                         {
-                            // Cập nhật password với hash mới hơn
                             user.UPassword = HashPassword(plainPassword);
                             await _authRepository.UpdateUserAsync(user);
                         }
@@ -331,10 +336,8 @@ namespace SportZone_API.Services
                 }
                 else
                 {
-                    // Password chưa hash (legacy data), so sánh trực tiếp và hash lại
                     if (user.UPassword == plainPassword)
                     {
-                        // Hash password cho lần sau để bảo mật
                         user.UPassword = HashPassword(plainPassword);
                         await _authRepository.UpdateUserAsync(user);
                         return true;
@@ -353,9 +356,8 @@ namespace SportZone_API.Services
             if (string.IsNullOrEmpty(password))
                 return false;
 
-            // Identity password hash có định dạng đặc biệt và dài
             return password.Length >= 50 && !password.Contains(" ") &&
-                   password.All(c => char.IsLetterOrDigit(c) || c == '+' || c == '/' || c == '=');
+                    password.All(c => char.IsLetterOrDigit(c) || c == '+' || c == '/' || c == '=');
         }
 
         private async Task HandleExternalLoginRecordAsync(int userId, GoogleLoginDTO googleLoginDto)
@@ -366,7 +368,6 @@ namespace SportZone_API.Services
 
                 if (existingExternalLogin == null)
                 {
-                    // Tạo record External_Login mới
                     var externalLogin = new ExternalLogin
                     {
                         UId = userId,
@@ -374,12 +375,10 @@ namespace SportZone_API.Services
                         ExternalUserId = googleLoginDto.GoogleUserId,
                         AccessToken = googleLoginDto.AccessToken
                     };
-
                     await _authRepository.CreateExternalLoginAsync(externalLogin);
                 }
                 else
                 {
-                    // Cập nhật record External_Login hiện có
                     existingExternalLogin.AccessToken = googleLoginDto.AccessToken;
                     existingExternalLogin.ExternalUserId = googleLoginDto.GoogleUserId;
                     await _authRepository.UpdateExternalLoginAsync(existingExternalLogin);
@@ -387,108 +386,10 @@ namespace SportZone_API.Services
             }
             catch (Exception ex)
             {
-                // Log error nhưng không throw để không ảnh hưởng đến login process
                 Console.WriteLine($"Lỗi khi xử lý External login: {ex.Message}");
             }
         }
 
-        // Token Management Methods
-        public async Task<bool> InvalidateTokenAsync(string token)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(token))
-                    return false;
-
-                // For JWT tokens, we can implement token blacklisting
-                // This is a simplified implementation - in production, you might want to store blacklisted tokens in Redis or database
-
-                // Extract token info
-                var tokenHandler = new JwtSecurityTokenHandler();
-                if (!tokenHandler.CanReadToken(token))
-                    return false;
-
-                var jwtToken = tokenHandler.ReadJwtToken(token);
-                var userId = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
-
-                if (string.IsNullOrEmpty(userId))
-                    return false;
-
-                // Add to blacklist (in memory for now - consider Redis in production)
-                await AddTokenToBlacklistAsync(token, jwtToken.ValidTo);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error invalidating token: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<bool> ValidateTokenAsync(string token)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(token))
-                    return false;
-
-                // Check if token is blacklisted
-                if (await IsTokenBlacklistedAsync(token))
-                    return false;
-
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? "your-256-bit-secret");
-
-                var validationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
-                };
-
-                var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> InvalidateAllUserTokensAsync(int userId)
-        {
-            try
-            {
-                // In production, you might want to update a user's token version or similar mechanism
-                // For now, we'll add a flag to the user or implement a different strategy
-
-                // This is a placeholder - you could implement this by:
-                // 1. Adding a TokenVersion field to User model
-                // 2. Incrementing it on logout from all devices
-                // 3. Validating token version in ValidateTokenAsync
-
-                Console.WriteLine($"Invalidating all tokens for user {userId}");
-
-                // For demonstration, let's just return true
-                // In real implementation, you would:
-                // - Get user from repository
-                // - Update user's security stamp/token version
-                // - Save changes
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error invalidating all tokens for user {userId}: {ex.Message}");
-                return false;
-            }
-        }
-
-        // Token Blacklist Management (In-Memory - Consider Redis for production)
         private static readonly HashSet<string> _blacklistedTokens = new HashSet<string>();
         private static readonly Dictionary<string, DateTime> _tokenExpirations = new Dictionary<string, DateTime>();
 
@@ -503,7 +404,6 @@ namespace SportZone_API.Services
                 }
             });
 
-            // Clean up expired tokens periodically
             await CleanupExpiredTokensAsync();
         }
 
@@ -539,26 +439,76 @@ namespace SportZone_API.Services
             });
         }
 
-        // Logout Activity Logging
         private async Task LogLogoutActivityAsync(int userId, DateTime logoutTime)
         {
             try
             {
-                // This is a placeholder for logging logout activity
-                // In production, you might want to:
-                // 1. Create a UserActivity or AuditLog table
-                // 2. Store logout activities for security monitoring
-
                 Console.WriteLine($"User {userId} logged out at {logoutTime}");
-
-                // You could implement this by adding to a logging system:
-                // await _authRepository.LogUserActivityAsync(userId, "Logout", logoutTime);
-
                 await Task.CompletedTask;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error logging logout activity: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> InvalidateTokenAsync(string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token))
+                    return false;
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+                if (!tokenHandler.CanReadToken(token))
+                    return false;
+
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+                var userId = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                    return false;
+
+                await AddTokenToBlacklistAsync(token, jwtToken.ValidTo);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error invalidating token: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ValidateTokenAsync(string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(token))
+                    return false;
+
+                if (await IsTokenBlacklistedAsync(token))
+                    return false;
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"] ?? "your-256-bit-secret");
+
+                var validationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
     }

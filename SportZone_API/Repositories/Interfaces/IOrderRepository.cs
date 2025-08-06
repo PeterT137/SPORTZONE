@@ -13,6 +13,8 @@ namespace SportZone_API.Repositories.Interfaces
         /// Lấy Order theo BookingId
         /// </summary>
         Task<OrderDTO?> GetOrderByBookingIdAsync(int bookingId);
+
+        Task<OrderDTO?> UpdateOrderContentPaymentAsync(int orderId, int option);
         Task<OrderDTO?> GetOrderByIdAsync(int orderId);
         Task<bool> AddOrderServiceAsync(OrderService order_Service);
         Task<bool> RemoveOrderServiceAsync(int orderId, int serviceId);

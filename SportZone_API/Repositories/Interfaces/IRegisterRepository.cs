@@ -8,5 +8,6 @@ namespace SportZone_API.Repositories.Interfaces
         Task RegisterUserWithCustomerAsync(User user, Customer customer);
         Task RegisterUserWithFieldOwnerAsync(User user, FieldOwner fieldOwner);
         Task RegisterUserWithStaffAsync(User user, Staff staff);
+        Task RegisterUserWithAdminAsync(User user, Admin admin);
     }
 }
