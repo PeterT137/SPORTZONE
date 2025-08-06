@@ -34,7 +34,6 @@ namespace SportZone_API.DTOs
         public string? Phone { get; set; }
         public DateOnly? Dob { get; set; }
 
-        [StringLength(255, ErrorMessage = "URL hình ảnh không được vượt quá 255 ký tự.")]
         public IFormFile? ImageFile { get; set; }
         public bool RemoveImage { get; set; } = false;
 

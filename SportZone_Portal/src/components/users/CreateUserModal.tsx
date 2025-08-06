@@ -112,11 +112,9 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
     try {
       const token = localStorage.getItem("token");
-
       if (!token) {
         throw new Error("Không tìm thấy token xác thực");
       }
-
       const response = await fetch("https://localhost:7057/create-account", {
         method: "POST",
         headers: {
@@ -137,19 +135,18 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
           endTime: formData.RoleId === 4 ? formData.EndTime : undefined,
         }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
       const result = await response.json();
-
-      if (result.success) {
+      // Nếu status 200 và có message thành công thì vẫn coi là thành công
+      if (response.ok && (result.success === true || (result.message && result.message.toLowerCase().includes("thành công")))) {
+        setError(null);
+        // Hiển thị alert thành công rõ ràng
+        window.alert(result.message || "Tạo tài khoản thành công!");
         onUserCreated();
+      } else if (!response.ok) {
+        setError(result.message || `HTTP error! status: ${response.status}`);
+        throw new Error(result.message || `HTTP error! status: ${response.status}`);
       } else {
+        setError(result.message || "Lỗi khi tạo tài khoản");
         throw new Error(result.message || "Lỗi khi tạo tài khoản");
       }
     } catch (err) {
@@ -290,7 +287,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 <option value={1}>Khách hàng</option>
                 <option value={2}>Chủ sân</option>
                 <option value={3}>Admin</option>
-                <option value={4}>Nhân viên</option>
+                {/* <option value={4}>Nhân viên</option> */}
               </select>
             </div>
 
@@ -312,28 +309,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 <option value="Active">Hoạt động</option>
                 <option value="Inactive">Không hoạt động</option>
               </select>
-            </div>
-
-            {/* Image Field - Available for all roles */}
-            <div>
-              <label
-                htmlFor="Image"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Ảnh đại diện (URL)
-              </label>
-              <input
-                type="url"
-                id="Image"
-                name="Image"
-                value={formData.Image || ""}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="https://example.com/avatar.jpg"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                URL của ảnh đại diện (không bắt buộc)
-              </p>
             </div>
 
             {/* Additional fields for Staff (RoleId = 4) */}

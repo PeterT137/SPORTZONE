@@ -190,7 +190,7 @@ const Header: React.FC = () => {
             <div className="flex items-center gap-4 relative">
               {/* Notification bell */}
               <div className="relative">
-                <button
+                {/* <button
                   onClick={() => setShowNotifications(!showNotifications)}
                   className="text-white hover:text-[#1ebd6f]"
                 >
@@ -215,7 +215,7 @@ const Header: React.FC = () => {
                       </span>
                     )}
                   </span>
-                </button>
+                </button> */}
                 {showNotifications && (
                   <div className="absolute right-0 mt-3 w-80 bg-white text-[#333] rounded-2xl shadow-2xl z-50 border border-gray-200 animate-fadeInUp">
                     <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-green-50 to-green-100 rounded-t-2xl">
