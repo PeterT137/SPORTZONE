@@ -14,13 +14,18 @@ namespace SportZone_API.DTOs
         public int? FacId { get; set; }
         public DateOnly? StartTime { get; set; }
         public DateOnly? EndTime { get; set; }
-        public string Status { get; set; } = string.Empty; 
-        public string RoleName { get; set; } = string.Empty; 
-        public string? FacilityName { get; set; } 
+        public string Status { get; set; } = string.Empty;
+        public string RoleName { get; set; } = string.Empty;
+        public string? FacilityName { get; set; }
     }
 
     public class UpdateStaffDto
     {
+        [EmailAddress(ErrorMessage = "Định dạng email không hợp lệ.")]
+        public string? Email { get; set; }
+
+        public string? Status { get; set; }
+
         [StringLength(100, ErrorMessage = "Tên không được vượt quá 100 ký tự.")]
         public string? Name { get; set; }
 
@@ -31,6 +36,7 @@ namespace SportZone_API.DTOs
 
         [StringLength(255, ErrorMessage = "URL hình ảnh không được vượt quá 255 ký tự.")]
         public IFormFile? ImageFile { get; set; }
+        public bool RemoveImage { get; set; } = false;
 
         [Range(1, int.MaxValue, ErrorMessage = "FacId phải là một số nguyên dương.")]
         public int? FacId { get; set; }

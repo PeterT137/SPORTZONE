@@ -82,63 +82,81 @@ namespace SportZone_API.Services
                 return Fail<string>("Không tìm thấy nhân viên để cập nhật.");
             }
 
+            if (staffToUpdate.UIdNavigation == null)
+            {
+                return Fail<string>("Thông tin người dùng liên kết không tồn tại.");
+            }
+
             var oldFacId = staffToUpdate.FacId;
-            if (dto.ImageFile != null)
-            {
-                const string subFolderName = "StaffImages";
-                var (isValid, errorMessage) = ImageUpload.ValidateImage(dto.ImageFile);
-                if (!isValid)
-                {
-                    return Fail<string>(errorMessage);
-                }
-
-                var newImageUrl = await ImageUpload.SaveImageAsync(dto.ImageFile, _env.WebRootPath, subFolderName);
-                if (newImageUrl == null)
-                {
-                    return Fail<string>("Lỗi khi lưu file ảnh mới.");
-                }
-
-                if (!string.IsNullOrEmpty(staffToUpdate.Image))
-                {
-                    ImageUpload.DeleteImage(staffToUpdate.Image, _env.WebRootPath);
-                }
-                staffToUpdate.Image = newImageUrl;
-            }
-            else if (string.IsNullOrEmpty(dto.Name) && string.IsNullOrEmpty(dto.Phone) && !dto.Dob.HasValue && !dto.FacId.HasValue && !dto.StartTime.HasValue && !dto.EndTime.HasValue)
-            {
-            }
-            if (!string.IsNullOrEmpty(dto.Name)) staffToUpdate.Name = dto.Name;
-            if (!string.IsNullOrEmpty(dto.Phone)) staffToUpdate.Phone = dto.Phone;
-            if (dto.Dob.HasValue) staffToUpdate.Dob = dto.Dob.Value;
-            if (dto.FacId.HasValue)
-            {
-                var facility = await _facilityRepository.GetByIdAsync(dto.FacId.Value);
-                if (facility == null)
-                {
-                    return Fail<string>($"Không tìm thấy cơ sở với FacId '{dto.FacId.Value}'. Vui lòng cung cấp FacId hợp lệ.");
-                }
-                staffToUpdate.FacId = dto.FacId.Value;
-            }
-            else if (staffToUpdate.FacId.HasValue)
-            {
-                staffToUpdate.FacId = null;
-            }
-
-            if (dto.StartTime.HasValue) staffToUpdate.StartTime = dto.StartTime.Value;
-            else if (staffToUpdate.StartTime.HasValue) { staffToUpdate.StartTime = null; }
-
-            if (dto.EndTime.HasValue) staffToUpdate.EndTime = dto.EndTime.Value;
-            else if (staffToUpdate.EndTime.HasValue) { staffToUpdate.EndTime = null; }
-
-            if (staffToUpdate.StartTime.HasValue && staffToUpdate.EndTime.HasValue && staffToUpdate.StartTime.Value > staffToUpdate.EndTime.Value)
-            {
-                return Fail<string>("Thời gian bắt đầu không thể sau thời gian kết thúc.");
-            }
+            string? oldImageUrl = staffToUpdate.Image;
+            string? newImageUrl = null;
 
             try
             {
+                if (dto.ImageFile != null)
+                {
+                    const string subFolderName = "StaffImages";
+                    var (isValid, errorMessage) = ImageUpload.ValidateImage(dto.ImageFile);
+                    if (!isValid)
+                    {
+                        return Fail<string>(errorMessage);
+                    }
+
+                    newImageUrl = await ImageUpload.SaveImageAsync(dto.ImageFile, _env.WebRootPath, subFolderName);
+                    if (newImageUrl == null)
+                    {
+                        throw new InvalidOperationException("Lỗi khi lưu file ảnh mới.");
+                    }
+
+                    if (!string.IsNullOrEmpty(oldImageUrl))
+                    {
+                        ImageUpload.DeleteImage(oldImageUrl, _env.WebRootPath);
+                    }
+                    staffToUpdate.Image = newImageUrl;
+                }
+                else if (dto.RemoveImage && string.IsNullOrEmpty(dto.ImageFile?.FileName))
+                {
+                    if (!string.IsNullOrEmpty(oldImageUrl))
+                    {
+                        ImageUpload.DeleteImage(oldImageUrl, _env.WebRootPath);
+                        staffToUpdate.Image = null;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(dto.Email)) staffToUpdate.UIdNavigation.UEmail = dto.Email;
+                if (!string.IsNullOrEmpty(dto.Status)) staffToUpdate.UIdNavigation.UStatus = dto.Status;
+                if (!string.IsNullOrEmpty(dto.Name)) staffToUpdate.Name = dto.Name;
+                if (!string.IsNullOrEmpty(dto.Phone)) staffToUpdate.Phone = dto.Phone;
+                if (dto.Dob.HasValue) staffToUpdate.Dob = dto.Dob.Value;
+
+                if (dto.FacId.HasValue)
+                {
+                    var facility = await _facilityRepository.GetByIdAsync(dto.FacId.Value);
+                    if (facility == null)
+                    {
+                        return Fail<string>($"Không tìm thấy cơ sở với FacId '{dto.FacId.Value}'. Vui lòng cung cấp FacId hợp lệ.");
+                    }
+                    staffToUpdate.FacId = dto.FacId.Value;
+                }
+                else if (staffToUpdate.FacId.HasValue)
+                {
+                    staffToUpdate.FacId = null;
+                }
+
+                if (dto.StartTime.HasValue) staffToUpdate.StartTime = dto.StartTime.Value;
+                else if (staffToUpdate.StartTime.HasValue) { staffToUpdate.StartTime = null; }
+
+                if (dto.EndTime.HasValue) staffToUpdate.EndTime = dto.EndTime.Value;
+                else if (staffToUpdate.EndTime.HasValue) { staffToUpdate.EndTime = null; }
+
+                if (staffToUpdate.StartTime.HasValue && staffToUpdate.EndTime.HasValue && staffToUpdate.StartTime.Value > staffToUpdate.EndTime.Value)
+                {
+                    return Fail<string>("Thời gian bắt đầu không thể sau thời gian kết thúc.");
+                }
+
                 await _staffRepository.UpdateStaffAsync(staffToUpdate);
                 var updatedStaffDto = _mapper.Map<StaffDto>(staffToUpdate);
+
                 if (oldFacId.HasValue && oldFacId.Value != staffToUpdate.FacId)
                 {
                     var messageOld = $"Nhân viên '{staffToUpdate.Name}' (ID: {uId}) đã được chuyển khỏi cơ sở của bạn.";
@@ -154,16 +172,18 @@ namespace SportZone_API.Services
                 else
                 {
                     var message = $"Nhân viên '{staffToUpdate.Name}' (ID: {uId}) hiện không thuộc cơ sở nào.";
-                    await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", message); 
+                    await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", message);
                 }
+
                 return Success("Cập nhật thông tin nhân viên thành công.");
             }
             catch (Exception ex)
             {
-                if (dto.ImageFile != null && !string.IsNullOrEmpty(staffToUpdate.Image))
+                if (newImageUrl != null)
                 {
-                    ImageUpload.DeleteImage(staffToUpdate.Image, _env.WebRootPath);
+                    ImageUpload.DeleteImage(newImageUrl, _env.WebRootPath);
                 }
+
                 return Fail<string>($"Đã xảy ra lỗi khi cập nhật: {ex.Message}");
             }
         }
