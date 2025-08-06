@@ -78,7 +78,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPost("/create-account")]
-        [RoleAuthorize("3")]
+        [RoleAuthorize("2,3")]
         [SwaggerOperation(Summary = "Tạo tài khoản : Admin")]
         public async Task<IActionResult> CreateAccount([FromBody] CreateAccountDto createAccountDto)
         {

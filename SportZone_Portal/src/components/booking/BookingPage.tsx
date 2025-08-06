@@ -357,88 +357,36 @@ const TimeSlotsGrid = React.memo(
     totalPrice: number;
     facilityDetails: ApiFacilityWithDetails | null;
   }) => {
-    const timeSlots = useMemo(() => {
-      // Lấy giờ mở cửa và đóng cửa từ facility để filter
-      let openHour = 6; // Default
-      let closeHour = 23; // Default
-
+    const timeSlots = React.useMemo(() => {
+      // Lấy giờ mở cửa và đóng cửa từ facility
+      let openHour = 6;
+      let openMinute = 0;
+      let closeHour = 23;
+      let closeMinute = 0;
       if (facilityDetails?.openTime && facilityDetails?.closeTime) {
-        openHour = parseInt(facilityDetails.openTime.split(":")[0], 10);
-        closeHour = parseInt(facilityDetails.closeTime.split(":")[0], 10);
+        const [oh, om] = facilityDetails.openTime.split(":").map(Number);
+        const [ch, cm] = facilityDetails.closeTime.split(":").map(Number);
+        openHour = oh;
+        openMinute = om;
+        closeHour = ch;
+        closeMinute = cm;
       }
-
-      // Nếu có availableSlots từ API, filter theo giờ hoạt động của facility
-      const uniqueTimes = Array.from(
-        new Set(availableSlots.map((slot) => slot.startTime))
-      ).sort();
-
-      if (uniqueTimes.length > 0) {
-        // Filter chỉ lấy những slot trong khung giờ hoạt động
-        const filteredTimes = uniqueTimes.filter((time) => {
-          const hour = parseInt(time.split(":")[0], 10);
-          return hour >= openHour && hour < closeHour;
-        });
-
-        if (filteredTimes.length > 0) {
-          console.log(
-            `Filtered available slots from ${openHour}:00 to ${
-              closeHour - 1
-            }:00:`,
-            filteredTimes
-          );
-          return filteredTimes.map((time) => ({
-            time,
-            hour: parseInt(time.split(":")[0], 10),
-            minute: parseInt(time.split(":")[1], 10),
-          }));
+      const slots = [];
+      let hour = openHour;
+      let minute = openMinute;
+      while (hour < closeHour || (hour === closeHour && minute < closeMinute)) {
+        const time = `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`;
+        slots.push({ time, hour, minute });
+        minute += 30;
+        if (minute >= 60) {
+          hour += 1;
+          minute = 0;
         }
       }
-
-      // Fallback: Tạo timeSlots dựa trên giờ mở cửa/đóng cửa của facility
-      if (facilityDetails?.openTime && facilityDetails?.closeTime) {
-        const generatedSlots = [];
-        // Chỉ tạo slot theo giờ chính (không tạo slot 30 phút)
-        for (let hour = openHour; hour < closeHour; hour++) {
-          const timeString = `${hour.toString().padStart(2, "0")}:00`;
-          generatedSlots.push({
-            time: timeString,
-            hour,
-            minute: 0,
-          });
-        }
-
-        console.log(
-          `Generated time slots from facility hours ${facilityDetails.openTime} to ${facilityDetails.closeTime}:`,
-          generatedSlots
-        );
-        return generatedSlots;
-      }
-
-      // Fallback cuối cùng: hardcoded times nếu không có thông tin gì
-      return [
-        "06:00",
-        "07:00",
-        "08:00",
-        "09:00",
-        "10:00",
-        "11:00",
-        "12:00",
-        "13:00",
-        "14:00",
-        "15:00",
-        "16:00",
-        "17:00",
-        "18:00",
-        "19:00",
-        "20:00",
-        "21:00",
-        "22:00",
-      ].map((time) => ({
-        time,
-        hour: parseInt(time.split(":")[0], 10),
-        minute: parseInt(time.split(":")[1], 10),
-      }));
-    }, [availableSlots, facilityDetails]);
+      return slots;
+    }, [facilityDetails]);
 
     return (
       <div className="bg-white rounded-lg p-4 shadow-md">
@@ -450,7 +398,7 @@ const TimeSlotsGrid = React.memo(
               <span>Còn trống</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-green-700 rounded"></div>
+              <div className="w-3 h-3 bg-purple-700 rounded"></div>
               <span>Đang chọn</span>
             </div>
             <div className="flex items-center space-x-1">
@@ -555,7 +503,7 @@ const TimeSlotsGrid = React.memo(
                         textColor = "text-gray-400";
                         title += " - Đã qua thời gian";
                       } else if (isSelected) {
-                        bgColor = "bg-green-700";
+                        bgColor = "bg-purple-700";
                         textColor = "text-white";
                         isClickable = true;
                       } else if (slot.status === "Available") {
@@ -1029,7 +977,7 @@ const BookingPage: React.FC = () => {
             notes: formData.notes,
           },
           services: [],
-          totalPrice,
+          totalPrice: (totalPrice * 0.5).toFixed(0),
           date: selectedDate,
         },
       },

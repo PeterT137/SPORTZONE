@@ -1,65 +1,159 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../Sidebar";
-import { FileText, Plus, Edit, Trash2 } from "lucide-react";
+import {
+  FileText,
+  Plus,
+  Edit,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import RegulationFormModal from "./RegulationFormModal";
+import type { RegulationFormData } from "./RegulationFormModal";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
-interface Regulation {
+type Regulation = {
   regulationId: number;
-  regulationName: string;
+  title: string;
   description: string;
-  createdDate: string;
-  isActive: boolean;
-}
+  status: string;
+  createdDate?: string;
+};
 
 const RegulationManager: React.FC = () => {
   const [regulations, setRegulations] = useState<Regulation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data for now
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editRegulationId, setEditRegulationId] = useState<number | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteRegulationId, setDeleteRegulationId] = useState<number | null>(
+    null
+  );
+
+  // Fetch data from API
   useEffect(() => {
-    const mockData: Regulation[] = [
-      {
-        regulationId: 1,
-        regulationName: "Quy định về thời gian đặt sân",
-        description: "Khách hàng phải đặt sân trước ít nhất 2 giờ",
-        createdDate: "2024-01-15",
-        isActive: true,
-      },
-      {
-        regulationId: 2,
-        regulationName: "Quy định về hủy đặt sân",
-        description: "Phải hủy trước 1 giờ để được hoàn tiền",
-        createdDate: "2024-01-20",
-        isActive: true,
-      },
-      {
-        regulationId: 3,
-        regulationName: "Quy định về thanh toán",
-        description: "Thanh toán qua các phương thức được hỗ trợ",
-        createdDate: "2024-02-01",
-        isActive: false,
-      },
-    ];
-
-    setTimeout(() => {
-      setRegulations(mockData);
-      setLoading(false);
-    }, 1000);
+    setLoading(true);
+    fetch("https://localhost:7057/api/RegulationSystem")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Lỗi khi lấy danh sách quy định");
+        const data = await res.json();
+        setRegulations(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
+  // Open add modal
   const handleAddRegulation = () => {
-    // TODO: Implement add regulation modal
-    console.log("Add regulation");
+    setEditRegulationId(null);
+    setModalOpen(true);
   };
 
+  // Open edit modal
   const handleEditRegulation = (id: number) => {
-    // TODO: Implement edit regulation
-    console.log("Edit regulation", id);
+    setEditRegulationId(id);
+    setModalOpen(true);
   };
 
+  // Open delete modal
   const handleDeleteRegulation = (id: number) => {
-    // TODO: Implement delete regulation
-    console.log("Delete regulation", id);
+    setDeleteRegulationId(id);
+    setDeleteModalOpen(true);
+  };
+
+  // Thêm hoặc cập nhật regulation qua API
+  const handleSubmitRegulation = async (data: RegulationFormData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (editRegulationId === null) {
+        // Add
+        const res = await fetch("https://localhost:7057/api/RegulationSystem", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: data.regulationName,
+            description: data.description,
+            status: data.isActive ? "active" : "inactive",
+          }),
+        });
+        if (!res.ok) throw new Error("Lỗi khi thêm quy định");
+      } else {
+        // Edit
+        const res = await fetch(
+          `https://localhost:7057/api/RegulationSystem/${editRegulationId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: data.regulationName,
+              description: data.description,
+              status: data.isActive ? "active" : "inactive",
+            }),
+          }
+        );
+        if (!res.ok) throw new Error("Lỗi khi cập nhật quy định");
+      }
+      // Refresh list
+      const res = await fetch("https://localhost:7057/api/RegulationSystem");
+      const newData = await res.json();
+      setRegulations(Array.isArray(newData) ? newData : []);
+      setModalOpen(false);
+      setEditRegulationId(null);
+    } catch (err: any) {
+      setError(err.message || "Lỗi không xác định");
+    }
+    setLoading(false);
+  };
+
+  // Xác nhận xóa regulation qua API
+  const handleConfirmDelete = async () => {
+    if (deleteRegulationId !== null) {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(
+          `https://localhost:7057/api/RegulationSystem/${deleteRegulationId}`,
+          {
+            method: "DELETE",
+          }
+        );
+        if (!res.ok) throw new Error("Lỗi khi xóa quy định");
+        // Refresh list
+        const res2 = await fetch("https://localhost:7057/api/RegulationSystem");
+        const newData = await res2.json();
+        setRegulations(Array.isArray(newData) ? newData : []);
+      } catch (err: any) {
+        setError(err.message || "Lỗi không xác định");
+      }
+      setLoading(false);
+    }
+    setDeleteModalOpen(false);
+    setDeleteRegulationId(null);
+  };
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const totalPages = Math.ceil(regulations.length / itemsPerPage);
+  const paginatedRegulations = regulations.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    // Scroll lên đầu bảng
+    const tableSection = document.getElementById("regulation-table-section");
+    if (tableSection) {
+      tableSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   if (loading) {
@@ -123,60 +217,62 @@ const RegulationManager: React.FC = () => {
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
+            <div id="regulation-table-section" className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-green-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
+                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
+                      STT
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
                       Tên quy định
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
                       Mô tả
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
                       Ngày tạo
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
                       Trạng thái
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
                       Thao tác
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {regulations.length > 0 ? (
-                    regulations.map((regulation) => (
+                  {paginatedRegulations.length > 0 ? (
+                    paginatedRegulations.map((regulation, idx) => (
                       <tr
                         key={regulation.regulationId}
                         className="hover:bg-gray-50"
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {regulation.regulationId}
+                          {(currentPage - 1) * itemsPerPage + idx + 1}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {regulation.regulationName}
+                          {regulation.title}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
                           {regulation.description}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(regulation.createdDate).toLocaleDateString(
-                            "vi-VN"
-                          )}
+                          {regulation.createdDate
+                            ? new Date(
+                                regulation.createdDate
+                              ).toLocaleDateString("vi-VN")
+                            : ""}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              regulation.isActive
+                              regulation.status === "active"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-red-100 text-red-800"
                             }`}
                           >
-                            {regulation.isActive
+                            {regulation.status === "active"
                               ? "Hoạt động"
                               : "Không hoạt động"}
                           </span>
@@ -218,8 +314,97 @@ const RegulationManager: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700">Hiển thị:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    title="Số item trên mỗi trang"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => goToPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    title="Trang trước"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+
+                  <span className="text-sm text-gray-700">
+                    Trang {currentPage} / {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() =>
+                      goToPage(Math.min(totalPages, currentPage + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="p-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    title="Trang sau"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Modal Thêm/Sửa */}
+        <RegulationFormModal
+          open={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setEditRegulationId(null);
+          }}
+          onSubmit={handleSubmitRegulation}
+          initialData={
+            editRegulationId !== null
+              ? (() => {
+                  const r = regulations.find(
+                    (r) => r.regulationId === editRegulationId
+                  );
+                  return r
+                    ? {
+                        regulationName: r.title,
+                        description: r.description,
+                        isActive: r.status === "active",
+                      }
+                    : null;
+                })()
+              : null
+          }
+        />
+
+        {/* Modal Xác nhận xóa */}
+        <ConfirmDeleteModal
+          open={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setDeleteRegulationId(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          regulationName={
+            deleteRegulationId !== null
+              ? regulations.find((r) => r.regulationId === deleteRegulationId)
+                  ?.title
+              : ""
+          }
+        />
       </div>
     </div>
   );

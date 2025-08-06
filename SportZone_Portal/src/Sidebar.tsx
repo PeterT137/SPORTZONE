@@ -40,7 +40,12 @@ const Sidebar: React.FC = () => {
     }`;
 
   const [showNotifications, setShowNotifications] = useState(false);
-  const unreadNotifications = 3;
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: "Đơn đặt sân mới #456" },
+    { id: 2, text: "Thanh toán hoàn thành #789" },
+    { id: 3, text: "Yêu cầu hủy đặt sân #123" },
+  ]);
+  const unreadNotifications = notifications.length;
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -112,13 +117,13 @@ const Sidebar: React.FC = () => {
         {isAdmin && (
           <>
             <Link to="/users_manager" className={linkClasses("/users_manager")}>
-              <Users size={18} /> Users
+              <Users size={18} /> Quản lý tài khoản
             </Link>
             <Link
               to="/regulation_manager"
               className={linkClasses("/regulation_manager")}
             >
-              <FileText size={18} /> Regulation
+              <FileText size={18} /> Quản lý quy định
             </Link>
           </>
         )}
@@ -148,23 +153,57 @@ const Sidebar: React.FC = () => {
                 )}
               </button>
               {showNotifications && (
-                <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                  <div className="p-2">
-                    <p className="text-sm text-gray-600">
+                <div className="fixed top-24 left-72 right-4 w-[320px] min-w-[260px] max-w-[90vw] bg-white border border-gray-200 rounded-2xl shadow-2xl z-[9999] animate-fadeInUp overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-green-50 to-green-100 rounded-t-2xl">
+                    <span className="font-semibold text-green-700 text-base">
                       Thông báo field owner
-                    </p>
-                    <ul className="mt-2 space-y-1">
-                      <li className="text-sm text-gray-800">
-                        Đơn đặt sân mới #456
-                      </li>
-                      <li className="text-sm text-gray-800">
-                        Thanh toán hoàn thành #789
-                      </li>
-                      <li className="text-sm text-gray-800">
-                        Yêu cầu hủy đặt sân #123
-                      </li>
-                    </ul>
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {unreadNotifications} mới
+                    </span>
                   </div>
+                  <ul className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                    {notifications.length === 0 ? (
+                      <li className="px-5 py-6 text-center text-gray-400 text-sm">
+                        Không có thông báo mới
+                      </li>
+                    ) : (
+                      notifications.map((noti) => (
+                        <li
+                          key={noti.id}
+                          className="px-5 py-3 hover:bg-green-50 transition-colors flex items-center gap-2 group"
+                        >
+                          <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                          <span className="flex-1 text-sm text-gray-800">
+                            {noti.text}
+                          </span>
+                          <button
+                            className="ml-2 text-green-500 hover:text-green-700 p-1 rounded-full transition-colors"
+                            title="Đánh dấu đã đọc"
+                            onClick={() =>
+                              setNotifications(
+                                notifications.filter((n) => n.id !== noti.id)
+                              )
+                            }
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </button>
+                        </li>
+                      ))
+                    )}
+                  </ul>
                 </div>
               )}
             </div>
