@@ -1,4 +1,5 @@
 import { FaMapMarkerAlt } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 interface ApiFacilityResponse {
   facId: number;
@@ -18,6 +19,8 @@ interface FacilityCardProps {
 }
 
 const FacilityCard = ({ facility }: FacilityCardProps) => {
+  const navigate = useNavigate();
+
   // Helper function to format image URL
   const getImageUrl = (imageUrl: string) => {
     if (imageUrl.startsWith("http")) return imageUrl;
@@ -51,6 +54,12 @@ const FacilityCard = ({ facility }: FacilityCardProps) => {
           Mở cửa: {facility.openTime.slice(0, 5)} -{" "}
           {facility.closeTime.slice(0, 5)}
         </p>
+        <button
+          onClick={() => navigate(`/booking/${facility.facId}`)}
+          className={`px-4 py-2 bg-green-100 mt-4 text-green-800 rounded-md text-sm font-bold transition-colors `}
+        >
+          Đặt sân
+        </button>
       </div>
     </div>
   );

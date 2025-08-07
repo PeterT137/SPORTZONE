@@ -306,6 +306,7 @@ const BookingDetailsModal: React.FC<{
   );
   const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false);
 
+  // Function để lấy auth headers
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -314,6 +315,7 @@ const BookingDetailsModal: React.FC<{
     return {};
   }, []);
 
+  // Function để lấy thông tin user từ API
   const fetchUserInfo = useCallback(
     async (userId: number) => {
       setIsLoadingUserInfo(true);
@@ -349,6 +351,7 @@ const BookingDetailsModal: React.FC<{
             setUserInfo(null);
           }
         } else if (response.status === 403 || response.status === 401) {
+          // Không đủ quyền truy cập
           console.log("🚫 Không đủ quyền truy cập endpoint get-all-account");
           setUserInfo({
             uId: userId,
@@ -357,6 +360,7 @@ const BookingDetailsModal: React.FC<{
             customers: undefined,
             fieldOwner: undefined,
             staff: undefined,
+            // Đánh dấu lỗi quyền
             error:
               "Bạn không có quyền xem thông tin khách hàng. Vui lòng đăng nhập bằng tài khoản admin!",
           } as any);
@@ -374,7 +378,7 @@ const BookingDetailsModal: React.FC<{
     [getAuthHeaders]
   );
 
-  // Function để lấy thôg tin booking chi tiết
+  // Function để lấy thông tin booking chi tiết
   const fetchBookingDetail = useCallback(
     async (bookingId: number) => {
       try {
@@ -401,6 +405,14 @@ const BookingDetailsModal: React.FC<{
             setBookingDetail(result.data);
             console.log("✅ Set booking detail:", result.data);
 
+            // DEBUG: Log toàn bộ cấu trúc data để hiểu rõ
+            console.log("🔍 BookingDetail structure analysis:");
+            console.log("- Keys:", Object.keys(result.data));
+            console.log("- userId:", result.data.userId);
+            console.log("- guestName:", result.data.guestName);
+            console.log("- guestPhone:", result.data.guestPhone);
+            console.log("- order object:", result.data.order);
+
             if (result.data.order) {
               console.log("🔍 Order object analysis:");
               console.log("- Order keys:", Object.keys(result.data.order));
@@ -416,6 +428,7 @@ const BookingDetailsModal: React.FC<{
               );
             }
 
+            // CHỈ fetch thông tin user khi thực sự có userId
             if (result.data.userId) {
               console.log(
                 "📞 Có userId, đang fetch thông tin user cho userId:",
@@ -447,6 +460,7 @@ const BookingDetailsModal: React.FC<{
             await response.text()
           );
 
+          // Nếu 404, có nghĩa là booking không tồn tại trong database
           if (response.status === 404) {
             console.log(
               "Booking không tồn tại, có thể là slot trống hoặc dữ liệu không đồng bộ"
@@ -993,7 +1007,7 @@ const CreateSlotModal: React.FC<{
       !formData.startTime ||
       !formData.endTime
     ) {
-      Swal.fire("Lỗi", "Vui lòng điền đầy đủ thông tin!", "error");
+      Swal.fire("Vui lòng điền đầy đủ thông tin!", "error");
       return;
     }
 

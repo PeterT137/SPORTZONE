@@ -193,38 +193,38 @@ namespace SportZone_API.Controllers
                                 Console.WriteLine($"Booking đã được tạo thành công! BookingId: {booking.BookingId}");
                                 
                                 // Redirect với thông tin booking
-                                return Redirect($"https://localhost:3000/payment-success?bookingId={booking.BookingId}&message=Booking created successfully");
+                                return Redirect($"https://localhost:5173/payment-success?bookingId={booking.BookingId}&message=Booking created successfully");
                             }
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"Lỗi khi tạo booking: {ex.Message}");
-                                return Redirect("https://localhost:3000/payment-failed?error=Failed to create booking");
+                                return Redirect("https://localhost:5173/payment-failed?error=Failed to create booking");
                             }
                         }
                         else
                         {
                             Console.WriteLine($"Không tìm thấy booking data cho OrderId: {vnp_TxnRef}");
-                            return Redirect("https://localhost:3000/payment-failed?error=Booking data not found");
+                            return Redirect("https://localhost:5173/payment-failed?error=Booking data not found");
                         }
                     }
                     else
                     {
                         // Thanh toán thất bại
                         Console.WriteLine($"Thanh toán thất bại. Response Code: {vnp_ResponseCode}");
-                        return Redirect("https://localhost:3000/payment-failed");
+                        return Redirect("https://localhost:5173/payment-failed");
                     }
                 }
                 else
                 {
                     // Chữ ký không hợp lệ
                     Console.WriteLine("Chữ ký không hợp lệ!");
-                    return Redirect("https://localhost:3000/payment-failed");
+                    return Redirect("https://localhost:5173/payment-failed");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Lỗi xử lý VNPay return: {ex.Message}");
-                return Redirect("https://localhost:3000/payment-failed");
+                return Redirect("https://localhost:5173/payment-failed");
             }
         }
     }

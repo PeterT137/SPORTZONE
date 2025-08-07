@@ -51,9 +51,11 @@ interface BookingConfirmModalProps {
 const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
   isOpen,
   onClose,
-  onConfirm,
+  onConfirm, // Không dùng nữa, xử lý payment trực tiếp ở đây
   booking,
 }) => {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
   if (!isOpen) return null;
 
   const formatDate = (dateString: string) => {
@@ -129,6 +131,67 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
 
   const calculateServicesTotal = () => {
     return booking.services.reduce((sum, service) => sum + service.price, 0);
+  };
+
+  const depositAmount = Math.round(booking.totalPrice * 0.5);
+
+  const handlePayment = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const token = localStorage.getItem("token");
+      const slotIds = booking.slots.map((slot) => slot.scheduleId);
+      const bookingData = {
+        userId: user?.UId || null,
+        title: `Đặt sân ${booking.field?.fieldName || "SportZone"}`,
+        selectedSlotIds: slotIds,
+        fieldId: booking.slots[0]?.fieldId || booking.field?.fieldId,
+        facilityId: booking.field?.facId,
+        guestName: booking.guestInfo?.name || "Khách hàng",
+        guestPhone: booking.guestInfo?.phone || "",
+        serviceIds: booking.services?.map((s) => s.serviceId) || [],
+        discountId: null,
+        notes: booking.guestInfo?.notes || "Đặt sân qua hệ thống online",
+        depositAmount,
+      };
+      let apiUrl = "https://localhost:7057/api/Payment/calculate-and-pay";
+      let response;
+      try {
+        response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(bookingData),
+        });
+      } catch (httpsError) {
+        apiUrl = "http://localhost:7057/api/Payment/calculate-and-pay";
+        response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(bookingData),
+        });
+      }
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Lỗi API: ${response.status}`);
+      }
+      const result = await response.json();
+      if (result.paymentUrl) {
+        window.location.href = result.paymentUrl;
+      } else {
+        throw new Error(result.message || "Không nhận được paymentUrl từ API");
+      }
+    } catch (err: any) {
+      setError(err.message || "Có lỗi xảy ra khi tạo thanh toán");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -335,8 +398,8 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
 
               <hr className="my-2" />
               <div className="flex justify-between text-lg font-bold text-green-600">
-                <span>Tổng cộng</span>
-                <span>{booking.totalPrice.toLocaleString()}đ</span>
+                <span>Tiền cọc</span>
+                <span>{depositAmount.toLocaleString()}đ</span>
               </div>
 
               <div className="text-xs text-gray-500 mt-2">
@@ -356,11 +419,17 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
             Quay lại
           </button>
           <button
-            onClick={onConfirm}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            onClick={handlePayment}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-60"
+            disabled={loading}
           >
-            Tiếp tục thanh toán cọc
+            {loading ? "Đang chuyển hướng..." : "Thanh toán"}
           </button>
+          {error && (
+            <div className="w-full text-center text-red-600 mt-2 text-sm">
+              {error}
+            </div>
+          )}
         </div>
       </div>
     </div>

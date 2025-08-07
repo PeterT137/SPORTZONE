@@ -37,8 +37,9 @@ type EditStaff = {
   startTime: string;
   endTime: string;
   email: string;
+  password: string;
   status: "Active" | "Inactive";
-  facIds: number[];
+  facilityId: number | null;
 };
 
 const StaffManager: React.FC = () => {
@@ -56,22 +57,25 @@ const StaffManager: React.FC = () => {
     startTime: "",
     endTime: "",
     email: "",
+    password: "",
     status: "Active",
-    facIds: [],
+    facilityId: null,
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [facilities, setFacilities] = useState<{ id: number; name: string }[]>(
     []
   );
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  // Format date string for datetime-local input
-  const formatDateTimeLocal = (dateStr: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    const tzOffset = date.getTimezoneOffset() * 60000;
-    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
-  };
+  const totalRows = filteredStaffs.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+  const paginatedStaffs = filteredStaffs.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
   // Format date for date input
   const formatDate = (dateStr: string) => {
@@ -119,6 +123,15 @@ const StaffManager: React.FC = () => {
             headers: authHeaders,
           }
         );
+        console.log("[DEBUG] API /api/Staff/GetAll status:", response.status);
+        const responseText = await response.text();
+        let apiResponse: any = {};
+        try {
+          apiResponse = JSON.parse(responseText);
+        } catch {
+          apiResponse = { error: responseText };
+        }
+        console.log("[DEBUG] API /api/Staff/GetAll response:", apiResponse);
         if (!response.ok) {
           if (response.status === 401) {
             throw new Error(
@@ -127,7 +140,6 @@ const StaffManager: React.FC = () => {
           }
           throw new Error(`Lỗi tải tất cả nhân viên (HTTP ${response.status})`);
         }
-        const apiResponse = await response.json();
         if (apiResponse.success) allStaffs = apiResponse.data || [];
         else throw new Error(apiResponse.message || "Không thể lấy nhân viên.");
       } else {
@@ -141,8 +153,22 @@ const StaffManager: React.FC = () => {
                 headers: authHeaders,
               }
             );
+            console.log(
+              `[DEBUG] API /api/Staff/by-facility/${facility.id} status:`,
+              response.status
+            );
+            const responseText = await response.text();
+            let apiResponse: any = {};
+            try {
+              apiResponse = JSON.parse(responseText);
+            } catch {
+              apiResponse = { error: responseText };
+            }
+            console.log(
+              `[DEBUG] API /api/Staff/by-facility/${facility.id} response:`,
+              apiResponse
+            );
             if (response.ok) {
-              const apiResponse = await response.json();
               if (apiResponse.success && apiResponse.data) {
                 allStaffs = allStaffs.concat(apiResponse.data);
               }
@@ -161,29 +187,34 @@ const StaffManager: React.FC = () => {
 
       allStaffs.forEach((item: any) => {
         const uId = item.uId;
-        const existingStaff = staffMap.get(uId);
-
         const facId = item.fac?.facId || item.facId;
-        const facName = item.fac?.name || "Unknown";
-
-        const userNav = item.uIdNavigation || {};
-
-        if (existingStaff) {
-          if (!existingStaff.facIds.includes(facId)) {
-            existingStaff.facIds.push(facId);
-            existingStaff.facilityNames.push(facName);
+        // Ưu tiên lấy tên cơ sở từ API, nếu không có thì lấy từ facilities state
+        const facName =
+          item.facilityName ||
+          facilities.find((f) => f.id === facId)?.name ||
+          "Unknown";
+        if (staffMap.has(uId)) {
+          const existing = staffMap.get(uId);
+          if (existing && !existing.facIds.includes(facId)) {
+            existing.facIds.push(facId);
+            existing.facilityNames.push(facName);
           }
         } else {
+          // Normalize image URL
+          let image = item.image || "/default-avatar.jpg";
+          if (image && !image.startsWith("http")) {
+            image = `https://localhost:7057${image}`;
+          }
           staffMap.set(uId, {
             id: uId,
             name: item.name || "",
             phone: item.phone || "",
             dob: item.dob || "",
-            image: userNav.image || "/default-avatar.jpg",
+            image,
             startTime: item.startTime || "",
-            endTime: "", // nếu có thì thêm
-            email: userNav.uEmail || "",
-            status: userNav.uStatus || "Inactive",
+            endTime: item.endTime || "",
+            email: item.email || "",
+            status: item.status || "Inactive",
             facIds: [facId],
             roleName: "Nhân viên",
             facilityNames: [facName],
@@ -198,7 +229,7 @@ const StaffManager: React.FC = () => {
       const errorMessage =
         err.message || "Lỗi khi tải danh sách nhân viên. Vui lòng thử lại.";
       setError(errorMessage);
-      Swal.fire("Lỗi", errorMessage, "error");
+      Swal.fire(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -220,6 +251,7 @@ const StaffManager: React.FC = () => {
           s.facilityNames.some((name) => name.toLowerCase().includes(term))
       )
     );
+    setCurrentPage(1); // Reset về trang đầu khi search
   }, [searchTerm, staffs]);
 
   // Delete staff via API
@@ -247,100 +279,161 @@ const StaffManager: React.FC = () => {
           headers: authHeaders,
         });
         if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
-            );
-          }
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error ||
-              `Lỗi khi xóa nhân viên (HTTP ${response.status}).`
-          );
-        }
-        const apiResponse = await response.json();
-        if (apiResponse.success) {
-          setStaffs((prev) => prev.filter((s) => s.id !== id));
-          setFilteredStaffs((prev) => prev.filter((s) => s.id !== id));
-          Swal.fire("Thành công", "Đã xóa nhân viên.", "success");
-        } else {
-          throw new Error(apiResponse.error || "Lỗi khi xóa nhân viên.");
-        }
-      } catch (err: any) {
-        const errorMessage = err.message || "Lỗi khi xóa nhân viên.";
-        setError(errorMessage);
-        Swal.fire("Lỗi", errorMessage, "error");
-      }
-    }
-  };
-
-  // Toggle staff status via API
-  const toggleStatus = async (id: number) => {
-    const staff = staffs.find((s) => s.id === id);
-    if (!staff) return;
-
-    const newStatus = staff.status === "Active" ? "Inactive" : "Active";
-
-    const result = await Swal.fire({
-      title:
-        newStatus === "Inactive"
-          ? `Bạn có muốn tạm ngưng hoạt động của "${staff.name}"?`
-          : `Bạn có muốn kích hoạt lại "${staff.name}"?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Đồng ý",
-      cancelButtonText: "Hủy",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        const token = localStorage.getItem("token");
-        const authHeaders: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (token) {
-          authHeaders.Authorization = `Bearer ${token}`;
-        }
-
-        const response = await fetch(
-          `https://localhost:7057/api/Staff/${id}/status`,
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={9} className="text-center text-gray-500 py-6">
+                  Đang tải...
+                </td>
+              </tr>
+            ) : paginatedStaffs.length > 0 ? (
+              paginatedStaffs.map((staff) => (
+                <tr key={staff.id} className="hover:bg-gray-50">
+                  <td className="p-3">
+                    <img
+                      src={staff.image}
+                      alt={staff.name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  </td>
+                  <td className="p-3 font-medium">{staff.name}</td>
+                  <td className="p-3">{staff.phone}</td>
+                  <td className="p-3">{staff.email}</td>
+                  <td className="p-3">
+                    {staff.startTime
+                      ? new Date(staff.startTime).toLocaleString("vi-VN")
+                      : ""}
+                  </td>
+                  <td className="p-3">{staff.facilityNames.join(", ")}</td>
+                  <td className="p-3">
+                    <span
+                      className={`px-2 py-1 rounded text-white ${
+                        staff.status === "Active"
+                          ? "bg-green-600"
+                          : staff.status === "Inactive"
+                          ? "bg-red-600"
+                          : "bg-gray-500"
+                      }`}
+                    >
+                      {staff.status === "Active"
+                        ? "Hoạt động"
+                        : staff.status === "Inactive"
+                        ? "Không hoạt động"
+                        : staff.status}
+                    </span>
+                  </td>
+                  <td className="p-3 space-x-2 flex items-center">
+                    <button
+                      onClick={() => handleEdit(staff)}
+                      className="text-green-600 hover:text-green-800"
+                      title="Chỉnh sửa"
+                    >
+                      <FiEdit size={18} />
+                    </button>
+                    {/* <button
+                          onClick={() => toggleStatus(staff.id)}
+                          className={`$${
+                            staff.status === "Active"
+                              ? "text-red-600 hover:text-red-800"
+                              : "text-blue-600 hover:text-blue-800"
+                          }`}
+                          title={
+                            staff.status === "Active"
+                              ? "Chuyển thành Không hoạt động"
+                              : "Kích hoạt lại nhân viên"
+                          }
+                        >
+                          {staff.status === "Active" ? (
+                            <FiSlash size={18} />
+                          ) : (
+                            <FiCheckCircle size={18} />
+                          )}
+                        </button> */}
+                    <button
+                      onClick={() => deleteStaff(staff.id, staff.name)}
+                      className="text-red-600 hover:text-red-800"
+                      title="Xóa nhân viên"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={9} className="text-center text-gray-500 py-6">
+                  Không có nhân viên nào phù hợp.
+                </td>
+              </tr>
+            )}
+          </tbody>;
           {
-            method: "PATCH",
-            headers: authHeaders,
-            body: JSON.stringify({ status: newStatus }),
+            /* Pagination controls */
           }
-        );
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
-            );
-          }
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error ||
-              `Lỗi khi cập nhật trạng thái (HTTP ${response.status}).`
-          );
-        }
-        const apiResponse = await response.json();
-        if (apiResponse.success) {
-          setStaffs((prev) =>
-            prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
-          );
-          Swal.fire(
-            "Thành công",
-            `Nhân viên đã được chuyển thành trạng thái ${
-              newStatus === "Active" ? "Hoạt động" : "Không hoạt động"
-            }.`,
-            "success"
-          );
-        } else {
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4">
+            <div className="flex items-center gap-2">
+              <span>Hiển thị</span>
+              <select
+                className="border rounded px-2 py-1"
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                {[5, 10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <span>nhân viên/trang</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 border rounded disabled:opacity-50"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                Đầu
+              </button>
+              <button
+                className="px-2 py-1 border rounded disabled:opacity-50"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Trước
+              </button>
+              <span>
+                Trang <b>{currentPage}</b> / {totalPages}
+              </span>
+              <button
+                className="px-2 py-1 border rounded disabled:opacity-50"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Sau
+              </button>
+              <button
+                className="px-2 py-1 border rounded disabled:opacity-50"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                Cuối
+              </button>
+            </div>
+            <div className="text-sm text-gray-500">
+              Tổng: <b>{totalRows}</b> nhân viên
+            </div>
+          </div>;
           throw new Error(apiResponse.error || "Lỗi khi cập nhật trạng thái.");
         }
       } catch (err: any) {
         const errorMessage = err.message || "Lỗi khi cập nhật trạng thái.";
         setError(errorMessage);
-        Swal.fire("Lỗi", errorMessage, "error");
+        Swal.fire(errorMessage, "error");
       }
     }
   };
@@ -353,163 +446,193 @@ const StaffManager: React.FC = () => {
       dob: formatDate(staff.dob),
       image: staff.image,
       imageFile: null,
-      startTime: formatDateTimeLocal(staff.startTime),
-      endTime: staff.endTime ? formatDateTimeLocal(staff.endTime) : "",
+      startTime: staff.startTime ? formatDate(staff.startTime) : "",
+      endTime: staff.endTime ? formatDate(staff.endTime) : "",
       email: staff.email,
+      password: "", // Do not prefill password on edit
       status: staff.status,
-      facIds: staff.facIds,
+      facilityId: staff.facIds[0] || null,
     });
     setIsModalOpen(true);
   };
 
   const handleSave = async () => {
     if (!formData.name || !formData.phone || !formData.email) {
-      Swal.fire("Lỗi", "Vui lòng điền đầy đủ tên, email và SĐT", "error");
+      Swal.fire("Vui lòng điền đầy đủ tên, email, SĐT", "", "error");
+      return;
+    }
+    if (!formData.facilityId) {
+      Swal.fire("Vui lòng chọn cơ sở làm việc", "error");
       return;
     }
 
-    // Validate facility selection for staff
-    if (!formData.facIds || formData.facIds.length === 0) {
-      Swal.fire("Lỗi", "Vui lòng chọn cơ sở làm việc", "error");
-      return;
-    }
-
-    const formDataToSend = new FormData();
-    formDataToSend.append("Name", formData.name);
-    formDataToSend.append("Phone", formData.phone);
-    formDataToSend.append("Email", formData.email);
-    if (formData.dob) formDataToSend.append("Dob", formData.dob);
-    if (formData.imageFile)
-      formDataToSend.append("ImageFile", formData.imageFile);
-
-    // Ensure FacId is always provided
-    formDataToSend.append("FacId", formData.facIds[0].toString());
-
-    if (formData.startTime)
-      formDataToSend.append("StartTime", formData.startTime.split("T")[0]);
-    if (formData.endTime)
-      formDataToSend.append("EndTime", formData.endTime.split("T")[0]);
-
-    // Debug logging
-    console.log("FormData being sent:");
-    for (const [key, value] of formDataToSend.entries()) {
-      console.log(`${key}:`, value);
-    }
-
-    try {
-      if (selectedStaff) {
-        const token = localStorage.getItem("token");
-        const authHeaders: Record<string, string> = {};
-        if (token) {
-          authHeaders.Authorization = `Bearer ${token}`;
-        }
-
-        const response = await fetch(
-          `https://localhost:7057/api/Staff/${selectedStaff.id}`,
-          {
-            method: "PUT",
-            headers: authHeaders,
-            body: formDataToSend,
-          }
-        );
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
-            );
-          }
-          // Get error details from response
-          const errorText = await response.text();
-          console.error("API Error Response:", errorText);
-
-          try {
-            const errorData = JSON.parse(errorText);
-            throw new Error(
-              errorData.message ||
-                errorData.error ||
-                `Lỗi khi cập nhật nhân viên (HTTP ${response.status}).`
-            );
-          } catch {
-            throw new Error(
-              `Lỗi khi cập nhật nhân viên (HTTP ${response.status}): ${errorText}`
-            );
-          }
-        }
-        const apiResponse = await response.json();
-        if (apiResponse.success) {
-          setStaffs((prev) =>
-            prev.map((s) =>
-              s.id === selectedStaff.id
-                ? {
-                    ...s,
-                    ...apiResponse.data,
-                    facIds: apiResponse.data.facIds || [apiResponse.data.facId],
-                    facilityNames: facilities
-                      .filter((f) =>
-                        (
-                          apiResponse.data.facIds || [apiResponse.data.facId]
-                        ).includes(f.id)
-                      )
-                      .map((f) => f.name) || [apiResponse.data.facilityName],
-                  }
-                : s
-            )
-          );
-          Swal.fire("Thành công", "Đã cập nhật nhân viên", "success");
-        } else {
-          throw new Error(apiResponse.error || "Lỗi khi cập nhật nhân viên.");
-        }
-      } else {
-        const token = localStorage.getItem("token");
-        const authHeaders: Record<string, string> = {};
-        if (token) {
-          authHeaders.Authorization = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`https://localhost:7057/api/Staff`, {
-          method: "POST",
-          headers: authHeaders,
-          body: formDataToSend,
-        });
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
-            );
-          }
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error ||
-              `Lỗi khi thêm nhân viên (HTTP ${response.status}).`
-          );
-        }
-        const apiResponse = await response.json();
-        if (apiResponse.success) {
-          setStaffs((prev) => [
-            ...prev,
-            {
-              ...apiResponse.data,
-              facIds: apiResponse.data.facIds || [apiResponse.data.facId],
-              facilityNames: facilities
-                .filter((f) =>
-                  (
-                    apiResponse.data.facIds || [apiResponse.data.facId]
-                  ).includes(f.id)
-                )
-                .map((f) => f.name) || [apiResponse.data.facilityName],
-            },
-          ]);
-          Swal.fire("Thành công", "Đã thêm nhân viên mới", "success");
-        } else {
-          throw new Error(apiResponse.error || "Lỗi khi thêm nhân viên.");
+    // Helper để tạo thông báo lỗi chi tiết từ API
+    const buildErrorMsg = (apiResponse: any, defaultMsg: string) => {
+      let errorMsg = apiResponse?.message || apiResponse?.error || defaultMsg;
+      if (apiResponse?.errors) {
+        if (typeof apiResponse.errors === "string")
+          errorMsg += `\n${apiResponse.errors}`;
+        else if (typeof apiResponse.errors === "object") {
+          errorMsg +=
+            "\n" +
+            Object.entries(apiResponse.errors)
+              .map(
+                ([field, msgs]) =>
+                  `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`
+              )
+              .join("\n");
         }
       }
-    } catch (err: any) {
-      const errorMessage = err.message || "Lỗi khi lưu thông tin nhân viên.";
-      setError(errorMessage);
-      Swal.fire("Lỗi", errorMessage, "error");
-    } finally {
-      closeModal();
+      return errorMsg;
+    };
+
+    const isEdit = !!selectedStaff;
+    if (isEdit) {
+      // Update: giữ nguyên logic cũ (FormData)
+      const form = new FormData();
+      form.append("Email", formData.email);
+      form.append("Status", formData.status);
+      form.append("Name", formData.name);
+      form.append("Phone", formData.phone);
+      form.append("Dob", formData.dob || "");
+      form.append("FacId", String(formData.facilityId));
+      form.append("StartTime", formData.startTime || "");
+      form.append("EndTime", formData.endTime || "");
+      if (formData.imageFile) {
+        form.append("ImageFile", formData.imageFile);
+        form.append("RemoveImage", "false");
+      } else {
+        form.append("RemoveImage", formData.image ? "false" : "true");
+      }
+      try {
+        const token = localStorage.getItem("token");
+        const authHeaders: Record<string, string> = {};
+        if (token) {
+          authHeaders["Authorization"] = `Bearer ${token}`;
+        }
+        const url = `https://localhost:7057/api/Staff/${selectedStaff.id}`;
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: authHeaders,
+          body: form,
+        });
+        const responseText = await response.text();
+        let apiResponse: any = {};
+        try {
+          apiResponse = JSON.parse(responseText);
+        } catch {
+          apiResponse = { error: responseText };
+        }
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error(
+              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+            );
+          }
+          const errorMsg = buildErrorMsg(
+            apiResponse,
+            `Lỗi khi cập nhật nhân viên (HTTP ${response.status}).`
+          );
+          Swal.fire("Lỗi khi cập nhật nhân viên", errorMsg, "error");
+          throw new Error(errorMsg);
+        }
+        if (apiResponse.success) {
+          setError(null);
+          Swal.fire({
+            title: "Thành công",
+            text: "Đã cập nhật nhân viên",
+            icon: "success",
+            timer: 1500,
+            showConfirmButton: false,
+          }).then(() => {
+            fetchStaffs();
+            closeModal();
+          });
+        } else {
+          const errorMsg = buildErrorMsg(
+            apiResponse,
+            `Lỗi khi cập nhật nhân viên.`
+          );
+          Swal.fire("Lỗi khi cập nhật nhân viên", errorMsg, "error");
+          throw new Error(errorMsg);
+        }
+      } catch (err: any) {
+        const errorMessage = err.message || `Lỗi khi lưu thông tin nhân viên.`;
+        setError(errorMessage);
+        Swal.fire("Lỗi khi cập nhật nhân viên", errorMessage, "error");
+        closeModal();
+      }
+    } else {
+      // Thêm mới: gửi multipart/form-data lên /api/Register
+      if (!formData.password) {
+        Swal.fire("Vui lòng nhập mật khẩu", "", "error");
+        return;
+      }
+      const form = new FormData();
+      form.append("RoleName", "Staff");
+      form.append("Name", formData.name);
+      form.append("Phone", formData.phone);
+      form.append("Email", formData.email);
+      form.append("Password", formData.password);
+      form.append("ConfirmPassword", formData.password); // FE không có confirm riêng nên dùng lại password
+      if (formData.dob) form.append("Dob", formData.dob);
+      if (formData.imageFile) form.append("ImageFile", formData.imageFile);
+      if (formData.facilityId)
+        form.append("FacId", String(formData.facilityId));
+      if (formData.startTime) form.append("StartTime", formData.startTime);
+      if (formData.endTime) form.append("EndTime", formData.endTime);
+      try {
+        const token = localStorage.getItem("token");
+        const authHeaders: Record<string, string> = {};
+        if (token) {
+          authHeaders["Authorization"] = `Bearer ${token}`;
+        }
+        const url = "https://localhost:7057/api/Register";
+        const response = await fetch(url, {
+          method: "POST",
+          headers: authHeaders,
+          body: form,
+        });
+        const responseText = await response.text();
+        let apiResponse = {};
+        try {
+          apiResponse = JSON.parse(responseText);
+        } catch {
+          apiResponse = { error: responseText };
+        }
+        console.log("[DEBUG] API /api/Register status:", response.status);
+        console.log("[DEBUG] API /api/Register response:", apiResponse);
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error(
+              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+            );
+          }
+          const errorMsg = buildErrorMsg(
+            apiResponse,
+            `Lỗi khi thêm nhân viên (HTTP ${response.status}).`
+          );
+          Swal.fire("Lỗi khi thêm nhân viên", errorMsg, "error");
+          return; // Không đóng modal, chỉ báo lỗi
+        }
+        // Nếu response.ok (status 200), luôn coi là thành công
+        setError(null); // Ẩn thông báo lỗi nếu có
+        Swal.fire({
+          title: "Thành công",
+          text: "Đã thêm nhân viên mới",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          fetchStaffs();
+          closeModal();
+        });
+      } catch (err: any) {
+        const errorMessage = err.message || `Lỗi khi lưu thông tin nhân viên.`;
+        setError(errorMessage);
+        Swal.fire("Lỗi khi thêm nhân viên", errorMessage, "error");
+        closeModal();
+      }
     }
   };
 
@@ -517,7 +640,10 @@ const StaffManager: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "facilityId" ? Number(value) : value,
+    }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -531,10 +657,7 @@ const StaffManager: React.FC = () => {
 
   // Handle multiple facility selection
   const handleFacilityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedOptions = Array.from(e.target.selectedOptions).map((opt) =>
-      Number(opt.value)
-    );
-    setFormData((prev) => ({ ...prev, facIds: selectedOptions }));
+    setFormData((prev) => ({ ...prev, facilityId: Number(e.target.value) }));
   };
 
   const closeModal = () => {
@@ -548,8 +671,9 @@ const StaffManager: React.FC = () => {
       startTime: "",
       endTime: "",
       email: "",
+      password: "",
       status: "Active",
-      facIds: [],
+      facilityId: null,
     });
     setIsModalOpen(false);
   };
@@ -576,8 +700,9 @@ const StaffManager: React.FC = () => {
                   startTime: "",
                   endTime: "",
                   email: "",
+                  password: "",
                   status: "Active",
-                  facIds: [],
+                  facilityId: null,
                 });
                 setIsModalOpen(true);
               }}
@@ -598,23 +723,40 @@ const StaffManager: React.FC = () => {
               </button>
             </div>
           )}
-
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên, email, SĐT, ID cơ sở hoặc tên cơ sở..."
-            className="w-full border px-4 py-2 rounded-md mb-4"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <div className="flex items-center mb-6 bg-white border border-gray-300 rounded-lg shadow-sm focus-within:ring-2 focus-within:ring-blue-400 transition-all duration-200 h-12">
+            <span className="flex items-center justify-center h-full pl-4 pr-2">
+              <svg
+                className="w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                style={{ display: "block" }}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên, email, SĐT, ID cơ sở hoặc tên cơ sở..."
+              className="flex-1 bg-transparent border-none outline-none h-full px-2 text-base"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ minHeight: "2.5rem" }}
+            />
+          </div>
 
           <div className="overflow-x-auto border rounded-md">
             <table className="min-w-full bg-white divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-100 text-gray-700 text-left">
+              <thead className="bg-green-200 text-black-700 text-left">
                 <tr>
                   <th className="p-3">Ảnh</th>
                   <th className="p-3">Tên</th>
                   <th className="p-3">SĐT</th>
-                  <th className="p-3">Ngày sinh</th>
                   <th className="p-3">Email</th>
                   <th className="p-3">Giờ bắt đầu</th>
                   <th className="p-3">Cơ sở</th>
@@ -629,8 +771,8 @@ const StaffManager: React.FC = () => {
                       Đang tải...
                     </td>
                   </tr>
-                ) : filteredStaffs.length > 0 ? (
-                  filteredStaffs.map((staff) => (
+                ) : paginatedStaffs.length > 0 ? (
+                  paginatedStaffs.map((staff) => (
                     <tr key={staff.id} className="hover:bg-gray-50">
                       <td className="p-3">
                         <img
@@ -641,7 +783,6 @@ const StaffManager: React.FC = () => {
                       </td>
                       <td className="p-3 font-medium">{staff.name}</td>
                       <td className="p-3">{staff.phone}</td>
-                      <td className="p-3">{staff.dob}</td>
                       <td className="p-3">{staff.email}</td>
                       <td className="p-3">
                         {staff.startTime
@@ -654,12 +795,16 @@ const StaffManager: React.FC = () => {
                           className={`px-2 py-1 rounded text-white ${
                             staff.status === "Active"
                               ? "bg-green-600"
-                              : "bg-red-600"
+                              : staff.status === "Inactive"
+                              ? "bg-red-600"
+                              : "bg-gray-500"
                           }`}
                         >
                           {staff.status === "Active"
                             ? "Hoạt động"
-                            : "Không hoạt động"}
+                            : staff.status === "Inactive"
+                            ? "Không hoạt động"
+                            : staff.status}
                         </span>
                       </td>
                       <td className="p-3 space-x-2 flex items-center">
@@ -670,7 +815,7 @@ const StaffManager: React.FC = () => {
                         >
                           <FiEdit size={18} />
                         </button>
-                        <button
+                        {/* <button
                           onClick={() => toggleStatus(staff.id)}
                           className={`${
                             staff.status === "Active"
@@ -688,7 +833,7 @@ const StaffManager: React.FC = () => {
                           ) : (
                             <FiCheckCircle size={18} />
                           )}
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => deleteStaff(staff.id, staff.name)}
                           className="text-red-600 hover:text-red-800"
@@ -708,133 +853,272 @@ const StaffManager: React.FC = () => {
                 )}
               </tbody>
             </table>
+            {/* Pagination controls - beautiful modern UI */}
+            <div className="mt-4 rounded-xl border bg-white shadow flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-700 font-medium">Hiển thị</span>
+                <select
+                  className="border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none"
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  {[5, 10, 20, 50, 100].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-gray-700">nhân viên/trang</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  className="px-3 py-1 rounded-lg border border-gray-300 bg-gray-100 hover:bg-blue-100 text-gray-700 font-semibold transition disabled:opacity-50"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  Đầu
+                </button>
+                <button
+                  className="px-3 py-1 rounded-lg border border-gray-300 bg-gray-100 hover:bg-blue-100 text-gray-700 font-semibold transition disabled:opacity-50"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Trước
+                </button>
+                <span className="mx-2 text-gray-700">
+                  Trang <b className="text-blue-700">{currentPage}</b> /{" "}
+                  <b>{totalPages}</b>
+                </span>
+                <button
+                  className="px-3 py-1 rounded-lg border border-gray-300 bg-gray-100 hover:bg-blue-100 text-gray-700 font-semibold transition disabled:opacity-50"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Sau
+                </button>
+                <button
+                  className="px-3 py-1 rounded-lg border border-gray-300 bg-gray-100 hover:bg-blue-100 text-gray-700 font-semibold transition disabled:opacity-50"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  Cuối
+                </button>
+              </div>
+              <div className="text-sm text-gray-600 font-medium">
+                Tổng: <b className="text-blue-700">{totalRows}</b> nhân viên
+              </div>
+            </div>
           </div>
         </main>
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6 relative">
-            <button
-              onClick={closeModal}
-              className="absolute top-4 right-4 text-gray-600 hover:text-black"
-              title="Đóng"
-            >
-              <FiX size={20} />
-            </button>
-            <h3 className="text-xl font-bold mb-4">
-              {selectedStaff ? "Cập nhật nhân viên" : "Thêm nhân viên"}
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                name="name"
-                placeholder="Tên"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="border px-3 py-2 rounded"
-                maxLength={100}
-              />
-              <input
-                type="text"
-                name="phone"
-                placeholder="SĐT"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="border px-3 py-2 rounded"
-                maxLength={20}
-                minLength={10}
-              />
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="border px-3 py-2 rounded"
-              />
-              <input
-                type="date"
-                name="dob"
-                placeholder="Ngày sinh"
-                value={formData.dob}
-                onChange={handleInputChange}
-                className="border px-3 py-2 rounded"
-              />
-              <input
-                type="file"
-                name="imageFile"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="border px-3 py-2 rounded col-span-2"
-                title="Chọn ảnh đại diện"
-              />
-              {formData.image && (
-                <img
-                  src={formData.image}
-                  alt="Preview"
-                  className="col-span-2 w-24 h-24 object-cover rounded"
-                />
-              )}
-              <label className="col-span-1 flex flex-col text-sm text-gray-700">
-                Ngày bắt đầu:
-                <input
-                  type="date"
-                  name="startTime"
-                  value={formData.startTime.split("T")[0] || ""}
-                  onChange={handleInputChange}
-                  className="border px-3 py-2 rounded"
-                />
-              </label>
-              <label className="col-span-1 flex flex-col text-sm text-gray-700">
-                Ngày kết thúc:
-                <input
-                  type="date"
-                  name="endTime"
-                  value={formData.endTime.split("T")[0] || ""}
-                  onChange={handleInputChange}
-                  className="border px-3 py-2 rounded"
-                />
-              </label>
-              <select
-                name="facIds"
-                multiple
-                value={formData.facIds.map(String)}
-                onChange={handleFacilityChange}
-                className="border px-3 py-2 rounded col-span-2"
-                title="Chọn cơ sở làm việc"
-              >
-                {facilities.map((facility) => (
-                  <option key={facility.id} value={facility.id}>
-                    {facility.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="border px-3 py-2 rounded col-span-2"
-                title="Chọn trạng thái hoạt động"
-              >
-                <option value="Active">Hoạt động</option>
-                <option value="Inactive">Không hoạt động</option>
-              </select>
-            </div>
-            <div className="mt-6 flex justify-end gap-4">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Lưu
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 transition-all">
+          <div className="relative w-full max-w-lg mx-2 animate-fadeInUp">
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-blue-100">
+                <h3 className="text-xl font-bold text-blue-800">
+                  {selectedStaff ? "Cập nhật nhân viên" : "Thêm nhân viên"}
+                </h3>
+                <button
+                  onClick={closeModal}
+                  className="text-gray-500 hover:text-blue-700 transition-colors"
+                  title="Đóng"
+                >
+                  <FiX size={22} />
+                </button>
+              </div>
+              {/* Body */}
+              <div className="px-6 py-6 bg-white overflow-y-auto flex-1">
+                <form className="grid grid-cols-2 gap-5 text-sm">
+                  <div className="flex flex-col col-span-2 sm:col-span-1">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      Tên <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="Nhập tên nhân viên"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      maxLength={100}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col col-span-2 sm:col-span-1">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      SĐT <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="phone"
+                      placeholder="Nhập số điện thoại"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      maxLength={20}
+                      minLength={10}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col col-span-2 sm:col-span-1">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Nhập email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      required
+                    />
+                  </div>
+                  {/* Only show password field when adding new staff */}
+                  {!selectedStaff && (
+                    <div className="flex flex-col col-span-2 sm:col-span-1">
+                      <label className="mb-1 font-semibold text-gray-700">
+                        Mật khẩu <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        name="password"
+                        placeholder="Nhập mật khẩu"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                        required
+                      />
+                    </div>
+                  )}
+                  <div className="flex flex-col col-span-2 sm:col-span-1">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      Ngày sinh
+                    </label>
+                    <input
+                      type="date"
+                      name="dob"
+                      placeholder="Ngày sinh"
+                      value={formData.dob}
+                      onChange={handleInputChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col col-span-2 sm:col-span-1">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      Ngày bắt đầu làm việc
+                    </label>
+                    <input
+                      type="date"
+                      name="startTime"
+                      placeholder="Ngày bắt đầu làm việc"
+                      value={formData.startTime}
+                      onChange={handleInputChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col col-span-2 sm:col-span-1">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      Ngày kết thúc làm việc
+                    </label>
+                    <input
+                      type="date"
+                      name="endTime"
+                      placeholder="Ngày kết thúc làm việc"
+                      value={formData.endTime}
+                      onChange={handleInputChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                    />
+                  </div>
+                  {/* Image upload: file input cho cả thêm và sửa */}
+                  <div className="flex flex-col col-span-2">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      Ảnh đại diện
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Chọn file ảnh (không bắt buộc)
+                    </p>
+                    {(formData.imageFile || formData.image) && (
+                      <img
+                        src={
+                          formData.imageFile
+                            ? URL.createObjectURL(formData.imageFile)
+                            : formData.image
+                        }
+                        alt="Preview"
+                        className="mt-3 w-24 h-24 object-cover rounded-lg shadow border border-gray-200"
+                      />
+                    )}
+                  </div>
+                  <div className="flex flex-col col-span-2">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      Cơ sở <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="facilityId"
+                      value={formData.facilityId ?? ""}
+                      onChange={handleFacilityChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      title="Chọn cơ sở làm việc"
+                      required
+                    >
+                      <option value="" disabled>
+                        Chọn cơ sở
+                      </option>
+                      {facilities.map((facility) => (
+                        <option key={facility.id} value={facility.id}>
+                          {facility.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col col-span-2">
+                    <label className="mb-1 font-semibold text-gray-700">
+                      Trạng thái
+                    </label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      title="Chọn trạng thái hoạt động"
+                    >
+                      <option value="Active">Hoạt động</option>
+                      <option value="Inactive">Không hoạt động</option>
+                    </select>
+                  </div>
+                </form>
+              </div>
+              {/* Footer */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-100 transition-colors font-medium shadow-sm"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-sm"
+                >
+                  Lưu
+                </button>
+              </div>
             </div>
           </div>
         </div>

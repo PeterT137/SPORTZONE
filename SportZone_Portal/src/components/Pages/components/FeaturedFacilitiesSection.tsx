@@ -65,11 +65,22 @@ const FeaturedFacilitiesSection = () => {
             <div className="text-lg text-red-600">{error}</div>
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-8">
-            {facilities.map((facility) => (
-              <FacilityCard key={facility.facId} facility={facility} />
-            ))}
-          </div>
+          <>
+            <div className="grid md:grid-cols-3 gap-8">
+              {facilities.map((facility) => (
+                <FacilityCard key={facility.facId} facility={facility} />
+              ))}
+            </div>
+            <div className="mt-8 text-center">
+              <a
+                href="/field_list"
+                style={{ borderRadius: "8px" }}
+                className="text-[#ffff] p-4 bg-[#1ebd6f] hover:text-[#1a3c34] font-semibold"
+              >
+                Xem tất cả sân
+              </a>
+            </div>
+          </>
         )}
       </div>
     </section>

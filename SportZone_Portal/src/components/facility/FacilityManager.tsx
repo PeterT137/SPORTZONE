@@ -1097,11 +1097,11 @@ const FacilityManager: React.FC = () => {
                 <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-200">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gradient-to-r from-gray-50 to-green-50">
+                      <thead className="bg-gradient-to-r from-green-200 to-green-200">
                         <tr>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                             <div className="flex items-center space-x-2">
-                              <span>#</span>
+                              <span className="whitespace-nowrap">STT</span>
                             </div>
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -1119,7 +1119,9 @@ const FacilityManager: React.FC = () => {
                                   d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                                 />
                               </svg>
-                              <span>Tên cơ sở</span>
+                              <span className="whitespace-nowrap">
+                                Tên cơ sở
+                              </span>
                             </div>
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -1137,7 +1139,9 @@ const FacilityManager: React.FC = () => {
                                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                                 />
                               </svg>
-                              <span>Hình ảnh</span>
+                              <span className="whitespace-nowrap">
+                                Hình ảnh
+                              </span>
                             </div>
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -1155,7 +1159,9 @@ const FacilityManager: React.FC = () => {
                                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                                 />
                               </svg>
-                              <span>Giờ hoạt động</span>
+                              <span className="whitespace-nowrap">
+                                Giờ hoạt động
+                              </span>
                             </div>
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -1179,7 +1185,7 @@ const FacilityManager: React.FC = () => {
                                   d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                                 />
                               </svg>
-                              <span>Địa chỉ</span>
+                              <span className="whitespace-nowrap">Địa chỉ</span>
                             </div>
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -1197,7 +1203,7 @@ const FacilityManager: React.FC = () => {
                                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                                 />
                               </svg>
-                              <span>Mô tả</span>
+                              <span className="whitespace-nowrap">Mô tả</span>
                             </div>
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -1215,7 +1221,9 @@ const FacilityManager: React.FC = () => {
                                   d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
                                 />
                               </svg>
-                              <span>Thao tác</span>
+                              <span className="whitespace-nowrap">
+                                Thao tác
+                              </span>
                             </div>
                           </th>
                         </tr>
@@ -1308,9 +1316,9 @@ const FacilityManager: React.FC = () => {
                                     <div className="text-sm font-bold text-gray-900 group-hover:text-green-600 transition-colors">
                                       {fac.name || "-"}
                                     </div>
-                                    <div className="text-xs text-gray-500 mt-1">
+                                    {/* <div className="text-xs text-gray-500 mt-1">
                                       ID: {fac.fac_id}
-                                    </div>
+                                    </div> */}
                                   </div>
                                 </div>
                               </td>

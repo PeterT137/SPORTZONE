@@ -452,7 +452,9 @@ const PaymentPage: React.FC = () => {
       currency: "VND",
     }).format(amount);
 
-  const totalPrice = bookingDetails.price + 15000;
+  const fieldPrice = Number(bookingDetails.price) || 0;
+  const serviceFee = 15000;
+  const totalPrice = fieldPrice + serviceFee;
 
   const momoQRData = `momo://pay?phone=0123456789&amount=${totalPrice}&note=Dat san ${bookingDetails.fieldName}`;
   const vnpayQRData = `https://img.vietqr.io/image/VCB-1234567890-print.png?amount=${totalPrice}&addInfo=Dat san ${bookingDetails.fieldName} ${formData.phone}`;

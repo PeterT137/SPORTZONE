@@ -1,3 +1,6 @@
+import BookingHistoryPage from "./pages/BookingHistory";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFailed from "./pages/PaymentFailed";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 config.autoAddCss = false;
@@ -46,6 +49,9 @@ const AppContent: React.FC = () => {
       <Route path="/staff_manager" element={<StaffManager />} />
       <Route path="/users_manager" element={<UsersManager />} />
       <Route path="/regulation_manager" element={<RegulationManager />} />
+      <Route path="/booking-history" element={<BookingHistoryPage />} />
+      <Route path="/payment-success" element={<PaymentSuccess />} />
+      <Route path="/payment-failed" element={<PaymentFailed />} />
     </Routes>
   );
 };

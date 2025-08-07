@@ -34,9 +34,16 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const [searchValue, setSearchValue] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-  const unreadNotifications = 2; // Mock
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: "Đơn đặt sân #456 đã được xác nhận" },
+    { id: 2, text: "Nhắc nhở thanh toán đơn #789" },
+    // Thêm các thông báo khác nếu muốn
+  ]);
+  const unreadNotifications = notifications.length;
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -112,29 +119,6 @@ const Header: React.FC = () => {
           <a href="/homepage" className="text-white hover:text-[#1ebd6f]">
             Trang chủ
           </a>
-          <div className="relative group">
-            <button className="text-white hover:text-[#1ebd6f]">Đặt sân</button>
-            <div className="absolute hidden group-hover:block top-full bg-white text-[#333] rounded shadow-md w-48">
-              <a
-                className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]"
-                href="#"
-              >
-                Tìm sân
-              </a>
-              <a
-                className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]"
-                href="#"
-              >
-                Lịch đặt sân
-              </a>
-              <a
-                className="block px-4 py-2 hover:bg-[#e6f0ea] hover:text-[#1ebd6f]"
-                href="#"
-              >
-                Hủy đặt sân
-              </a>
-            </div>
-          </div>
           <a href="/field_list" className="text-white hover:text-[#1ebd6f]">
             Danh sách sân
           </a>
@@ -149,20 +133,51 @@ const Header: React.FC = () => {
                 {user.RoleId === 3 ? "Quản lý admin" : "Quản lý chủ sân"}
               </a>
             )}
-          <a href="#" className="text-white hover:text-[#1ebd6f]">
-            Báo cáo
-          </a>
-          <a href="#" className="text-white hover:text-[#1ebd6f]">
-            Liên hệ
-          </a>
         </div>
 
         <div className="flex items-center gap-4 relative">
-          <input
-            type="text"
-            placeholder="Tìm sân bóng..."
-            className="px-4 py-2 rounded-md border text-sm"
-          />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchValue.trim()) {
+                navigate(
+                  `/field_list?search=${encodeURIComponent(searchValue.trim())}`
+                );
+              } else {
+                navigate("/field_list");
+              }
+            }}
+            className="relative w-64"
+            role="search"
+          >
+            <input
+              type="text"
+              placeholder="Tìm sân bóng..."
+              className="w-full px-4 py-2 pr-2 rounded-md border text-sm text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#1ebd6f]"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#1ebd6f] text-white rounded-md p-2 hover:bg-[#159e5a] flex items-center focus:outline-none focus:ring-2 focus:ring-[#1ebd6f]"
+              title="Tìm kiếm"
+              style={{ height: "32px", width: "32px" }}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-4-4m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </button>
+          </form>
 
           {!user ? (
             <button
@@ -175,7 +190,7 @@ const Header: React.FC = () => {
             <div className="flex items-center gap-4 relative">
               {/* Notification bell */}
               <div className="relative">
-                <button
+                {/* <button
                   onClick={() => setShowNotifications(!showNotifications)}
                   className="text-white hover:text-[#1ebd6f]"
                 >
@@ -200,20 +215,59 @@ const Header: React.FC = () => {
                       </span>
                     )}
                   </span>
-                </button>
+                </button> */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white text-[#333] rounded shadow-md z-50">
-                    <div className="p-2">
-                      <p className="text-sm text-gray-600">Thông báo</p>
-                      <ul className="mt-2 space-y-1">
-                        <li className="text-sm text-gray-800">
-                          Đơn đặt sân #456 đã được xác nhận
-                        </li>
-                        <li className="text-sm text-gray-800">
-                          Nhắc nhở thanh toán đơn #789
-                        </li>
-                      </ul>
+                  <div className="absolute right-0 mt-3 w-80 bg-white text-[#333] rounded-2xl shadow-2xl z-50 border border-gray-200 animate-fadeInUp">
+                    <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-green-50 to-green-100 rounded-t-2xl">
+                      <span className="font-semibold text-green-700 text-base">
+                        Thông báo
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {unreadNotifications} mới
+                      </span>
                     </div>
+                    <ul className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                      {notifications.length === 0 ? (
+                        <li className="px-5 py-6 text-center text-gray-400 text-sm">
+                          Không có thông báo mới
+                        </li>
+                      ) : (
+                        notifications.map((noti) => (
+                          <li
+                            key={noti.id}
+                            className="px-5 py-3 hover:bg-green-50 transition-colors flex items-center gap-2 group"
+                          >
+                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                            <span className="flex-1 text-sm text-gray-800">
+                              {noti.text}
+                            </span>
+                            <button
+                              className="ml-2 text-green-500 hover:text-green-700 p-1 rounded-full transition-colors"
+                              title="Đánh dấu đã đọc"
+                              onClick={() =>
+                                setNotifications(
+                                  notifications.filter((n) => n.id !== noti.id)
+                                )
+                              }
+                            >
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
                   </div>
                 )}
               </div>
@@ -235,21 +289,12 @@ const Header: React.FC = () => {
                   <div className="absolute right-0 mt-2 bg-white text-[#333] rounded shadow-md w-48 z-50">
                     <button
                       onClick={() => {
-                        navigate("/profile");
+                        navigate("/booking-history");
                         setShowProfileMenu(false);
                       }}
                       className="block w-full text-left px-4 py-2 hover:bg-[#e6f0ea]"
                     >
-                      Thông tin tài khoản
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate("/weekly_schedule");
-                        setShowProfileMenu(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 hover:bg-[#e6f0ea]"
-                    >
-                      Lịch đặt sân
+                      Lịch sử đặt sân
                     </button>
                     <hr />
                     <button
