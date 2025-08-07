@@ -87,10 +87,7 @@ namespace SportZone_API.Services
 
                 var customer = _mapper.Map<Customer>(dto);
                 await _repository.RegisterUserWithCustomerAsync(user, customer);
-
-                // Gửi thông báo tới Admin khi có khách hàng mới
                 await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Người dùng mới '{dto.Email}' đã đăng ký với vai trò Customer.");
-
                 return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản khách hàng thành công." };
             }
             else if (dto.RoleName == "Field_Owner")
@@ -107,10 +104,7 @@ namespace SportZone_API.Services
 
                 var fieldOwner = _mapper.Map<FieldOwner>(dto);
                 await _repository.RegisterUserWithFieldOwnerAsync(user, fieldOwner);
-
-                // Gửi thông báo tới Admin khi có chủ sân mới
                 await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Chủ sân mới '{dto.Email}' đã đăng ký. Vui lòng xác minh.");
-
                 return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản chủ sân thành công." };
             }
             else if (dto.RoleName == "Admin")
@@ -136,13 +130,19 @@ namespace SportZone_API.Services
                 {
                     return Fail("Ngày sinh không được để trống cho nhân viên.");
                 }
-                if (!dto.StartTime.HasValue)
+                if (dto.StartTime.HasValue)
                 {
-                    return Fail("Thời gian bắt đầu làm việc không được để trống cho nhân viên.");
+                    var currentDate = DateOnly.FromDateTime(DateTime.Now);
+                    var startDate = dto.StartTime.Value;
+                    if (startDate < currentDate)
+                    {
+                        return Fail("Thời gian bắt đầu làm việc không thể ở trong quá khứ.");
+                    }
                 }
-                if (dto.StartTime.HasValue && dto.EndTime.HasValue && dto.StartTime.Value > dto.EndTime.Value)
+
+                if (dto.StartTime.HasValue && dto.EndTime.HasValue && dto.StartTime.Value >= dto.EndTime.Value)
                 {
-                    return Fail("Thời gian bắt đầu không thể sau thời gian kết thúc.");
+                    return Fail("Thời gian kết thúc phải lớn hơn thời gian bắt đầu làm việc.");
                 }
 
                 var facility = await _facilityRepository.GetByIdAsync(dto.FacId.Value);
@@ -176,12 +176,8 @@ namespace SportZone_API.Services
 
                     var staff = _mapper.Map<Staff>(dto);
                     staff.Image = imageUrl;
-
                     await _repository.RegisterUserWithStaffAsync(user, staff);
-
-                    // Gửi thông báo tới Admin khi có nhân viên mới
                     await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Nhân viên mới '{dto.Email}' đã được đăng ký cho cơ sở '{facility.Name}'.");
-
                     return new ServiceResponse<string> { Success = true, Message = "Đăng ký tài khoản nhân viên thành công." };
                 }
                 catch (Exception ex)
@@ -191,7 +187,6 @@ namespace SportZone_API.Services
                         ImageUpload.DeleteImage(imageUrl, _env.WebRootPath);
                     }
 
-                    // Không gửi lỗi qua SignalR, chỉ trả về response
                     return Fail($"Đã xảy ra lỗi khi đăng ký: {ex.Message}");
                 }
             }
