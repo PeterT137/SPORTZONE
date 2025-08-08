@@ -37,13 +37,44 @@ namespace SportZone_API.DTOs
         public string? Notes { get; set; }
     }
 
-    public class FieldBookingScheduleUpdateDto
+    //public class FieldBookingScheduleUpdateDto
+    //{
+    //    public TimeOnly? StartTime { get; set; }
+    //    public TimeOnly? EndTime { get; set; }
+    //    public string? Notes { get; set; }
+    //    public string? Status { get; set; }
+    //    public decimal? Price { get; set; }
+    //}
+    public class FieldBookingScheduleUpdateGenerateDto
     {
-        public TimeOnly? StartTime { get; set; }
-        public TimeOnly? EndTime { get; set; }
+        [Required(ErrorMessage = "Mã sân là bắt buộc.")]
+        public int FieldId { get; set; }
+
+        [Required(ErrorMessage = "Ngày bắt đầu là bắt buộc.")]
+        public DateOnly StartDate { get; set; }
+
+        [Required(ErrorMessage = "Ngày kết thúc là bắt buộc.")]
+        public DateOnly EndDate { get; set; }
+
+        [Required(ErrorMessage = "Thời gian bắt đầu hàng ngày là bắt buộc.")]
+        public TimeOnly DailyStartTime { get; set; }
+
+        [Required(ErrorMessage = "Thời gian kết thúc hàng ngày là bắt buộc.")]
+        public TimeOnly DailyEndTime { get; set; }
+
         public string? Notes { get; set; }
-        public string? Status { get; set; }
-        public decimal? Price { get; set; }
+    }
+
+    public class FieldBookingScheduleDeleteGenerateDto
+    {
+        [Required(ErrorMessage = "Mã sân là bắt buộc.")]
+        public int FieldId { get; set; }
+
+        [Required(ErrorMessage = "Ngày bắt đầu là bắt buộc.")]
+        public DateOnly StartDate { get; set; }
+
+        [Required(ErrorMessage = "Ngày kết thúc là bắt buộc.")]
+        public DateOnly EndDate { get; set; }
     }
 
     public class ScheduleGenerationResponseDto

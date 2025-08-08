@@ -313,87 +313,160 @@ namespace SportZone_API.Services
             return 0m;
         }
 
-        public async Task<FieldBookingScheduleDto?> UpdateFieldBookingScheduleAsync(int id, FieldBookingScheduleUpdateDto updateDto)
+        public async Task<ScheduleGenerationResponseDto> UpdateGeneratedFieldBookingSchedulesAsync(FieldBookingScheduleUpdateGenerateDto updateDto)
         {
-            var existingSchedule = await _scheduleRepository.GetScheduleByIdAsync(id);
-            if (existingSchedule == null)
+            // 1. Validate
+            if (updateDto.StartDate > updateDto.EndDate)
             {
-                return null;
+                return new ScheduleGenerationResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc."
+                };
             }
 
-            var oldStatus = existingSchedule.Status;
+            var existingSchedules = (await _scheduleRepository.GetSchedulesByFieldAndDateRangeAsync(updateDto.FieldId, updateDto.StartDate, updateDto.EndDate)).ToList();
 
-            _mapper.Map(updateDto, existingSchedule);
-            await _scheduleRepository.UpdateScheduleAsync(existingSchedule);
-
-            // Gửi thông báo đến người dùng hiện tại khi thay đổi trạng thái
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId != null && oldStatus != updateDto.Status)
+            if (!existingSchedules.Any())
             {
-                var field = await _fieldRepository.GetFieldByIdAsync(existingSchedule.FieldId.Value);
+                return new ScheduleGenerationResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "Không tìm thấy lịch đặt sân nào để cập nhật trong khoảng thời gian đã chọn."
+                };
+            }
+
+            var schedulesWithBooking = existingSchedules.Where(s => s.BookingId.HasValue).ToList();
+            if (schedulesWithBooking.Any())
+            {
+                var bookingDates = schedulesWithBooking.Select(s => s.Date).Distinct().OrderBy(d => d).ToList();
+                return new ScheduleGenerationResponseDto
+                {
+                    IsSuccess = false,
+                    Message = $"Không thể cập nhật. Đã có booking trên các ngày: {string.Join(", ", bookingDates.Select(d => $"{d:dd/MM/yyyy}"))}."
+                };
+            }
+
+            // Kiểm tra giờ hoạt động của cơ sở và các ràng buộc khác
+            var field = await _fieldRepository.GetFieldByIdAsync(updateDto.FieldId);
+            if (field == null)
+            {
+                return new ScheduleGenerationResponseDto { IsSuccess = false, Message = "Không tìm thấy sân." };
+            }
+            var facility = await _facilityRepository.GetByIdAsync(field.FacId.Value);
+            if (facility == null)
+            {
+                return new ScheduleGenerationResponseDto { IsSuccess = false, Message = "Không tìm thấy cơ sở." };
+            }
+            if (updateDto.DailyStartTime < facility.OpenTime.Value)
+            {
+                return new ScheduleGenerationResponseDto { IsSuccess = false, Message = $"Thời gian bắt đầu trong ngày ({updateDto.DailyStartTime.ToString(@"HH\:mm")}) không được nhỏ hơn thời gian mở cửa của cơ sở ({facility.OpenTime.Value.ToString(@"HH\:mm")})." };
+            }
+            if (updateDto.DailyEndTime > facility.CloseTime.Value)
+            {
+                return new ScheduleGenerationResponseDto { IsSuccess = false, Message = $"Thời gian kết thúc trong ngày ({updateDto.DailyEndTime.ToString(@"HH\:mm")}) không được lớn hơn thời gian đóng cửa của cơ sở ({facility.CloseTime.Value.ToString(@"HH\:mm")})." };
+            }
+            if (updateDto.DailyStartTime >= updateDto.DailyEndTime)
+            {
+                return new ScheduleGenerationResponseDto { IsSuccess = false, Message = "Thời gian bắt đầu trong ngày phải nhỏ hơn thời gian kết thúc trong ngày." };
+            }
+
+            // 2. Xóa các lịch hiện có (không có booking)
+            await _scheduleRepository.DeleteRangeSchedulesAsync(existingSchedules);
+
+            // 3. Tạo lại các lịch mới với thời gian cập nhật
+            var generateDto = new FieldBookingScheduleGenerateDto
+            {
+                FieldId = updateDto.FieldId,
+                StartDate = updateDto.StartDate,
+                EndDate = updateDto.EndDate,
+                DailyStartTime = updateDto.DailyStartTime,
+                DailyEndTime = updateDto.DailyEndTime,
+                Notes = updateDto.Notes
+            };
+
+            var generateResponse = await GenerateFieldBookingSchedulesAsync(generateDto);
+
+            if (!generateResponse.IsSuccess)
+            {
+                // Có lỗi xảy ra trong quá trình tạo lại lịch.
+                return generateResponse;
+            }
+
+            // 4. Gửi thông báo
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId != null && field != null)
+            {
                 await _hubContext.Clients.User(currentUserId).SendAsync(
                     "ReceiveNotification",
-                    $"Lịch sân '{field?.FieldName}' vào ngày {existingSchedule.Date:dd/MM/yyyy} từ {existingSchedule.StartTime:HH:mm} đến {existingSchedule.EndTime:HH:mm} đã được cập nhật."
+                    $"Đã cập nhật thành công lịch cho sân '{field.FieldName}' từ {updateDto.StartDate:dd/MM/yyyy} đến {updateDto.EndDate:dd/MM/yyyy}."
                 );
             }
 
-            return _mapper.Map<FieldBookingScheduleDto>(existingSchedule);
+            return new ScheduleGenerationResponseDto
+            {
+                IsSuccess = true,
+                Message = $"Đã cập nhật thành công lịch đặt sân."
+            };
         }
 
-        public async Task<ScheduleGenerationResponseDto> DeleteFieldBookingScheduleAsync(int id)
+        public async Task<ScheduleGenerationResponseDto> DeleteGeneratedFieldBookingSchedulesAsync(FieldBookingScheduleDeleteGenerateDto deleteDto)
         {
-            var scheduleToDelete = await _scheduleRepository.GetScheduleByIdAsync(id);
-
-            if (scheduleToDelete == null)
+            // 1. Validate
+            if (deleteDto.StartDate > deleteDto.EndDate)
             {
                 return new ScheduleGenerationResponseDto
                 {
                     IsSuccess = false,
-                    Message = "Không tìm thấy lịch đặt sân để xóa."
+                    Message = "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc."
                 };
             }
-            if (scheduleToDelete.BookingId.HasValue)
+
+            var schedulesToDelete = (await _scheduleRepository.GetAllSchedulesAsync())
+                .Where(s => s.FieldId == deleteDto.FieldId &&
+                            s.Date >= deleteDto.StartDate &&
+                            s.Date <= deleteDto.EndDate)
+                .ToList();
+
+            if (!schedulesToDelete.Any())
             {
                 return new ScheduleGenerationResponseDto
                 {
                     IsSuccess = false,
-                    Message = $"Không thể xóa lịch đặt sân này vì nó đã có booking (Booking ID: {scheduleToDelete.BookingId.Value})."
+                    Message = "Không tìm thấy lịch đặt sân nào để xóa trong khoảng thời gian đã chọn."
                 };
             }
 
-            var fieldId = scheduleToDelete.FieldId;
-            var date = scheduleToDelete.Date;
-            var startTime = scheduleToDelete.StartTime;
-            var endTime = scheduleToDelete.EndTime;
-
-            bool isDeleted = await _scheduleRepository.DeleteScheduleAsync(id);
-            if (isDeleted)
+            var schedulesWithBooking = schedulesToDelete.Where(s => s.BookingId.HasValue).ToList();
+            if (schedulesWithBooking.Any())
             {
-                // Gửi thông báo đến người dùng hiện tại
-                var currentUserId = GetCurrentUserId();
-                if (currentUserId != null && fieldId.HasValue)
-                {
-                    var field = await _fieldRepository.GetFieldByIdAsync(fieldId.Value);
-                    await _hubContext.Clients.User(currentUserId).SendAsync(
-                        "ReceiveNotification",
-                        $"Lịch sân '{field?.FieldName}' vào ngày {date:dd/MM/yyyy} từ {startTime:HH:mm} đến {endTime:HH:mm} đã bị xóa."
-                    );
-                }
-
-                return new ScheduleGenerationResponseDto
-                {
-                    IsSuccess = true,
-                    Message = "Lịch đặt sân đã được xóa thành công."
-                };
-            }
-            else
-            {
+                var bookingDates = schedulesWithBooking.Select(s => s.Date).Distinct().OrderBy(d => d).ToList();
                 return new ScheduleGenerationResponseDto
                 {
                     IsSuccess = false,
-                    Message = "Đã xảy ra lỗi khi xóa lịch đặt sân."
+                    Message = $"Không thể xóa. Đã có booking trên các ngày: {string.Join(", ", bookingDates.Select(d => $"{d:dd/MM/yyyy}"))}."
                 };
             }
+
+            // 2. Xóa các lịch
+            await _scheduleRepository.DeleteRangeSchedulesAsync(schedulesToDelete); // Giả sử có method này
+
+            // 3. Gửi thông báo
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId != null)
+            {
+                var field = await _fieldRepository.GetFieldByIdAsync(deleteDto.FieldId);
+                await _hubContext.Clients.User(currentUserId).SendAsync(
+                    "ReceiveNotification",
+                    $"Đã xóa thành công {schedulesToDelete.Count} lịch cho sân '{field?.FieldName}' từ {deleteDto.StartDate:dd/MM/yyyy} đến {deleteDto.EndDate:dd/MM/yyyy}."
+                );
+            }
+
+            return new ScheduleGenerationResponseDto
+            {
+                IsSuccess = true,
+                Message = $"Đã xóa thành công {schedulesToDelete.Count} lịch đặt sân."
+            };
         }
 
         public async Task<ServiceResponse<FieldBookingScheduleByDateDto>> GetSchedulesByFacilityAndDateAsync(int facilityId, DateOnly date)
