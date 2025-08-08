@@ -44,6 +44,8 @@ namespace SportZone_API.DTOs
     {
         public BookingCreateDTO BookingData { get; set; }
         public string OrderId { get; set; }
+        public int BookingId { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime ExpiresAt { get; set; }
     }
 } 

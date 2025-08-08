@@ -83,7 +83,7 @@ namespace SportZone_API.Repository
                     slot.Status = "Booked";
                     if (string.IsNullOrEmpty(slot.Notes))
                     {
-                        slot.Notes = bookingDto.Notes; // Chỉ cập nhật nếu chưa có ghi chú
+                        slot.Notes = bookingDto.Notes; 
                     }
                 }
 
@@ -96,7 +96,6 @@ namespace SportZone_API.Repository
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                // Log chi tiết để debug
                 var detailMessage = $"Lỗi khi tạo booking: {ex.Message}";
                 if (ex.InnerException != null)
                     detailMessage += $" | Inner: {ex.InnerException.Message}";
@@ -116,7 +115,6 @@ namespace SportZone_API.Repository
                 if (!selectedSlotIds.Any())
                     return (false, "Phải chọn ít nhất 1 slot thời gian");
 
-                // Lấy thông tin các slots
                 var slots = await _context.FieldBookingSchedules
                     .Include(s => s.Field)
                         .ThenInclude(f => f.Category)
@@ -128,17 +126,14 @@ namespace SportZone_API.Repository
                 if (slots.Count != selectedSlotIds.Count)
                     return (false, "Một hoặc nhiều slot không tồn tại");
 
-                // Check tất cả slots đều Available
                 var unavailableSlots = slots.Where(s => s.Status != "Available").ToList();
                 if (unavailableSlots.Any())
                     return (false, $"Có {unavailableSlots.Count} slot không khả dụng (Booked)");
 
-                // Check tất cả slots cùng ngày
                 var dates = slots.Select(s => s.Date).Distinct().ToList();
                 if (dates.Count > 1)
                     return (false, "Tất cả các slot phải cùng ngày");
 
-                // Validate FieldId nếu được chỉ định
                 if (fieldId.HasValue)
                 {
                     var wrongFieldSlots = slots.Where(s => s.FieldId != fieldId.Value).ToList();
@@ -325,6 +320,45 @@ namespace SportZone_API.Repository
             }
         }
 
+        public async Task<bool> DeleteBookingAsync(int bookingId)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.Orders)
+                    .FirstOrDefaultAsync(b => b.BookingId == bookingId);
+                if (booking == null)
+                {
+                    return false;
+                }
+
+                // Giải phóng slots
+                var scheduleSlots = await _context.FieldBookingSchedules
+                    .Where(s => s.BookingId == bookingId)
+                    .ToListAsync();
+                foreach (var slot in scheduleSlots)
+                {
+                    slot.BookingId = null;
+                    slot.Status = "Available";
+                    slot.Notes = null;
+                }
+
+                // Xóa booking hoàn toàn
+                _context.FieldBookingSchedules.UpdateRange(scheduleSlots);
+                _context.Bookings.Remove(booking);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
+            }
+        }
+
         public async Task<IEnumerable<BookingResponseDTO>> GetBookingsByUserAsync(int userId)
         {
             try
@@ -386,6 +420,20 @@ namespace SportZone_API.Repository
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi lấy Discount: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<bool> UpdateBookingAsync(Booking booking)
+        {
+            try
+            {
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật booking: {ex.Message}", ex);
             }
         }
     }

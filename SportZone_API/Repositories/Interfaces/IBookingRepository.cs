@@ -25,6 +25,11 @@ namespace SportZone_API.Repository.Interfaces
         /// Hủy booking
         /// </summary>
         Task<bool> CancelBookingAsync(int bookingId);
+
+        /// <summary>
+        /// Xóa hoàn toàn booking khỏi database
+        /// </summary>
+        Task<bool> DeleteBookingAsync(int bookingId);
         /// <summary>
         /// Lấy booking đơn giản theo ID
         /// </summary>
@@ -53,6 +58,11 @@ namespace SportZone_API.Repository.Interfaces
         /// Lấy Discount theo ID
         /// </summary>
         Task<Discount?> GetDiscountByIdAsync(int discountId);
+
+        /// <summary>
+        /// Cập nhật booking
+        /// </summary>
+        Task<bool> UpdateBookingAsync(Booking booking);
 
     }
 
