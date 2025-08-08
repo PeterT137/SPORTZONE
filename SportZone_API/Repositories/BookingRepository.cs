@@ -87,7 +87,7 @@ namespace SportZone_API.Repository
                     slot.Status = "Booked";
                     if (string.IsNullOrEmpty(slot.Notes))
                     {
-                        slot.Notes = bookingDto.Notes; // Chỉ cập nhật nếu chưa có ghi chú
+                        slot.Notes = bookingDto.Notes; 
                     }
                 }
 
@@ -100,7 +100,6 @@ namespace SportZone_API.Repository
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                // Log chi tiết để debug
                 var detailMessage = $"Lỗi khi tạo booking: {ex.Message}";
                 if (ex.InnerException != null)
                     detailMessage += $" | Inner: {ex.InnerException.Message}";
@@ -120,7 +119,6 @@ namespace SportZone_API.Repository
                 if (!selectedSlotIds.Any())
                     return (false, "Phải chọn ít nhất 1 slot thời gian");
 
-                // Lấy thông tin các slots
                 var slots = await _context.FieldBookingSchedules
                     .Include(s => s.Field)
                         .ThenInclude(f => f.Category)
@@ -132,17 +130,14 @@ namespace SportZone_API.Repository
                 if (slots.Count != selectedSlotIds.Count)
                     return (false, "Một hoặc nhiều slot không tồn tại");
 
-                // Check tất cả slots đều Available
                 var unavailableSlots = slots.Where(s => s.Status != "Available").ToList();
                 if (unavailableSlots.Any())
                     return (false, $"Có {unavailableSlots.Count} slot không khả dụng (Booked)");
 
-                // Check tất cả slots cùng ngày
                 var dates = slots.Select(s => s.Date).Distinct().ToList();
                 if (dates.Count > 1)
                     return (false, "Tất cả các slot phải cùng ngày");
 
-                // Validate FieldId nếu được chỉ định
                 if (fieldId.HasValue)
                 {
                     var wrongFieldSlots = slots.Where(s => s.FieldId != fieldId.Value).ToList();

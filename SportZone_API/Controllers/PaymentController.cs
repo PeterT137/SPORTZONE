@@ -19,18 +19,21 @@ namespace SportZone_API.Controllers
         private readonly IOrderService _orderService;
         private readonly IOrderFieldIdService _orderFieldIdService;
         private readonly IFieldService _fieldService;
+        private readonly INotificationService _notificationService;
 
         public PaymentController(IVNPayService vnpayService, 
                                IBookingService bookingService,
                                IOrderService orderService,
                                IOrderFieldIdService orderFieldIdService,
-                               IFieldService fieldService)
+                               IFieldService fieldService,
+                               INotificationService notificationService)
         {
             _vnpayService = vnpayService;
             _bookingService = bookingService;
             _orderService = orderService;
             _orderFieldIdService = orderFieldIdService;
             _fieldService = fieldService;
+            _notificationService = notificationService;
         }
 
         // Dictionary để lưu booking data tạm thời (trong thực tế nên dùng Redis hoặc database)
@@ -196,6 +199,31 @@ namespace SportZone_API.Controllers
                                 _pendingBookings.Remove(vnp_TxnRef);
 
                                 Console.WriteLine($"Booking đã được xác nhận thành công! BookingId: {pendingBooking.BookingId}");
+                                
+                                // Tạo notification cho booking thành công
+                                try
+                                {
+                                    var bookingForNotification = new Booking
+                                    {
+                                        BookingId = pendingBooking.BookingId,
+                                        FieldId = bookingEntity.FieldId,
+                                        UId = bookingEntity.UserId,
+                                        GuestName = bookingEntity.GuestName,
+                                        GuestPhone = bookingEntity.GuestPhone,
+                                        Date = bookingEntity.Date,
+                                        StartTime = bookingEntity.StartTime,
+                                        EndTime = bookingEntity.EndTime,
+                                        CreateAt = bookingEntity.CreateAt
+                                    };
+                                    
+                                    await _notificationService.CreateBookingSuccessNotificationAsync(bookingForNotification);
+                                    Console.WriteLine($"Đã tạo notification cho booking {pendingBooking.BookingId}");
+                                }
+                                catch (Exception notificationEx)
+                                {
+                                    Console.WriteLine($"Lỗi khi tạo notification: {notificationEx.Message}");
+                                    // Không throw exception vì booking đã thành công
+                                }
                                 
                                 // Redirect với thông tin booking // Sau có FE thì redirect sang các trang của FE
                                 return Redirect($"https://localhost:3000/payment-success?bookingId={pendingBooking.BookingId}&message=Booking confirmed successfully");

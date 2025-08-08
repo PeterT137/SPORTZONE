@@ -119,6 +119,10 @@ builder.Services.AddScoped<IDiscountService, DiscountService>();
 
 builder.Services.AddScoped<IVNPayService, VNPayService>();
 
+// Đăng ký Notification services
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 // Đăng ký background service để cleanup expired reservations
 builder.Services.AddHostedService<ReservationCleanupService>();
 

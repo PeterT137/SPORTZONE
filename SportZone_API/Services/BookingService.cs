@@ -315,7 +315,7 @@ namespace SportZone_API.Services
                 if (booking == null)
                     return false;
 
-                booking.StatusPayment = "Paid";
+                booking.StatusPayment = "Success";
                 await _bookingRepository.UpdateBookingAsync(booking);
 
                 
