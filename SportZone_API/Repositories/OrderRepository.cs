@@ -130,9 +130,8 @@ namespace SportZone_API.Repositories
 
                 var ordersQuery = _context.Orders
                     .Include(o => o.Fac)
-                    .Where(o => o.Fac.UId == ownerId
-                       && (o.StatusPayment == "Comleted" || o.StatusPayment == "Paid"));
-
+                    .Where(o => o.Fac.UId == ownerId);
+                //(o.StatusPayment == "Comleted" || o.StatusPayment == "Paid")
                 if (startDate.HasValue)
                 {
                     ordersQuery = ordersQuery.Where(o => o.CreateAt >= startDate.Value);
@@ -154,12 +153,13 @@ namespace SportZone_API.Repositories
                 var totalServiceRevenue = orders.Sum(o => o.TotalServicePrice) ?? 0;
                 var totalOrders = orders.Count;
 
-                var facilityRevenues = await ordersQuery
-                    .GroupBy(o => new {
+                var facilityRevenuesData = await ordersQuery
+                    .GroupBy(o => new
+                    {
                         o.FacId,
                         o.Fac.Name
                     })
-                    .Select(g => new FacilityRevenueDTO
+                    .Select(g => new
                     {
                         FacilityId = g.Key.FacId,
                         FacilityName = g.Key.Name,
@@ -167,35 +167,68 @@ namespace SportZone_API.Repositories
                         FieldRevenue = g.Sum(o => o.TotalPrice ?? 0) - g.Sum(o => o.TotalServicePrice ?? 0),
                         ServiceRevenue = g.Sum(o => o.TotalServicePrice) ?? 0,
                         OrderCount = g.Count()
-                    }).ToListAsync();
+                    })
+                    .ToListAsync();
 
-                var monthlyRevenue = await ordersQuery
-                     .GroupBy(o => new
-                     {
-                         Year = o.CreateAt.Value.Year,
-                         Month = o.CreateAt.Value.Month
-                     })
-                     .Select(g => new TimeRevenueDTO
-                     {
-                         Period = $"{g.Key.Year} - {g.Key.Month:D2}",
-                         Revenue = g.Sum(o => o.TotalPrice ?? 0),
-                         FieldRevenue = g.Sum(o => o.TotalPrice ?? 0) - g.Sum(o => o.TotalServicePrice ?? 0),
-                         ServiceRevenue = g.Sum(o => o.TotalServicePrice) ?? 0,
-                         OrderCount = g.Count()
-                     })
-                     .OrderBy(r => r.Period).ToListAsync();
+                var facilityRevenues = facilityRevenuesData.Select(r => new FacilityRevenueDTO
+                {
+                    FacilityId = r.FacilityId,
+                    FacilityName = r.FacilityName,
+                    Revenue = r.Revenue,
+                    FieldRevenue = r.FieldRevenue,
+                    ServiceRevenue = r.ServiceRevenue,
+                    OrderCount = r.OrderCount
+                })
+                .ToList();
 
-                var yearlyRevenue = await ordersQuery
-                    .GroupBy(o => o.CreateAt.Value.Year)
-                    .Select(g => new TimeRevenueDTO
+                var monthlyRevenueData = await ordersQuery
+                    .GroupBy(o => new
                     {
-                        Period = g.Key.ToString(),
-                        Revenue = g.Sum(o => o.TotalPrice ?? 0),
+                        Year = o.CreateAt.Value.Year,
+                        Month = o.CreateAt.Value.Month
+                    })
+                    .Select(g => new
+                    {
+                        Year = g.Key.Year,
+                        Month = g.Key.Month,
+                        Revenue = g.Sum(o => o.TotalPrice) ?? 0,
                         FieldRevenue = g.Sum(o => o.TotalPrice ?? 0) - g.Sum(o => o.TotalServicePrice ?? 0),
                         ServiceRevenue = g.Sum(o => o.TotalServicePrice) ?? 0,
                         OrderCount = g.Count()
                     })
-                    .OrderBy(r => r.Period).ToListAsync();
+                    .OrderBy(r => r.Year).ThenBy(r => r.Month).ToListAsync();
+
+                var monthlyRevenue = monthlyRevenueData.Select(r => new TimeRevenueDTO
+                {
+                    Period = $"{r.Year}-{r.Month:D2}",
+                    Revenue = r.Revenue,
+                    FieldRevenue = r.FieldRevenue,
+                    ServiceRevenue = r.ServiceRevenue,
+                    OrderCount = r.OrderCount
+                })
+                .ToList();
+
+                var yearlyRevenueData = await ordersQuery
+                    .GroupBy(o => o.CreateAt.Value.Year)
+                    .Select(g => new
+                    {
+                        Year = g.Key,
+                        Revenue = g.Sum(o => o.TotalPrice) ?? 0,
+                        FieldRevenue = g.Sum(o => o.TotalPrice ?? 0) - g.Sum(o => o.TotalServicePrice ?? 0),
+                        ServiceRevenue = g.Sum(o => o.TotalServicePrice) ?? 0,
+                        OrderCount = g.Count()
+                    })
+                    .OrderBy(r => r.Year).ToListAsync();
+
+                var yearlyRevenue = yearlyRevenueData.Select(r => new TimeRevenueDTO
+                {
+                    Period = r.Year.ToString(),
+                    Revenue = r.Revenue,
+                    FieldRevenue = r.FieldRevenue,
+                    ServiceRevenue = r.ServiceRevenue,
+                    OrderCount = r.OrderCount
+                })
+                .ToList();
 
                 return new OwnerRevenueDTO
                 {
