@@ -110,8 +110,8 @@ namespace SportZone_API.Services
                 };
             }
 
-            TimeOnly dailyStartTime = TimeOnly.FromTimeSpan(generateDto.DailyStartTime);
-            TimeOnly dailyEndTime = TimeOnly.FromTimeSpan(generateDto.DailyEndTime);
+            TimeOnly dailyStartTime = generateDto.DailyStartTime;
+            TimeOnly dailyEndTime = generateDto.DailyEndTime;
 
             if (dailyStartTime < facility.OpenTime.Value)
             {

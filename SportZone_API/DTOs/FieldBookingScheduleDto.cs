@@ -29,10 +29,10 @@ namespace SportZone_API.DTOs
         public DateOnly EndDate { get; set; }
 
         [Required(ErrorMessage = "Thời gian bắt đầu hàng ngày là bắt buộc (ví dụ: 08:00:00).")]
-        public TimeSpan DailyStartTime { get; set; }
+        public TimeOnly DailyStartTime { get; set; }
 
         [Required(ErrorMessage = "Thời gian kết thúc hàng ngày là bắt buộc (ví dụ: 22:00:00).")]
-        public TimeSpan DailyEndTime { get; set; }
+        public TimeOnly DailyEndTime { get; set; }
 
         public string? Notes { get; set; }
     }
