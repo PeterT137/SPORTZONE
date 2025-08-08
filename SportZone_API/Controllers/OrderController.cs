@@ -93,7 +93,7 @@ namespace SportZone_API.Controllers
             }
         }
 
-        [HttpGet("owner/{ownerId}/monthly-revenue")]
+        [HttpGet("owner/{ownerId}/monthlyRevenue")]
         public async Task<IActionResult> GetOwnerMonthlyRevenue(
             int ownerId,
             [FromQuery] DateTime? startDate = null,
@@ -141,7 +141,7 @@ namespace SportZone_API.Controllers
             }
         }
 
-        [HttpGet("owner/{ownerId}/yearly-revenue")]
+        [HttpGet("owner/{ownerId}/yearlyRevenue")]
         public async Task<IActionResult> GetOwnerYearlyRevenue(
             int ownerId,
             [FromQuery] DateTime? startDate = null,
