@@ -125,6 +125,8 @@ namespace SportZone_API.Services
                 if (!slotsValidation.IsValid)
                     return (false, slotsValidation.ErrorMessage);
 
+
+
                 return (true, string.Empty);
             }
             catch (Exception ex)
@@ -230,6 +232,244 @@ namespace SportZone_API.Services
                     Data = 0
                 };
             }
+        }
+
+        // Dictionary để lưu trữ thông tin pending bookings
+        private static readonly Dictionary<string, PendingBookingInfo> _pendingBookings = new Dictionary<string, PendingBookingInfo>();
+        private static readonly object _pendingLock = new object();
+
+        public async Task<ServiceResponse<BookingDetailDTO>> CreatePendingBookingAsync(BookingCreateDTO bookingDto, string orderId)
+        {
+            try
+            {
+                // Validate business rules
+                var validation = await ValidateBookingRulesAsync(bookingDto);
+                if (!validation.IsValid)
+                {
+                    return new ServiceResponse<BookingDetailDTO>
+                    {
+                        Success = false,
+                        Message = validation.ErrorMessage,
+                        Data = null
+                    };
+                }
+
+                // Tạo booking với status Pending - sử dụng bookingDto gốc
+                var pendingBookingDto = new BookingCreateDTO
+                {
+                    SelectedSlotIds = bookingDto.SelectedSlotIds,
+                    ServiceIds = bookingDto.ServiceIds,
+                    DiscountId = bookingDto.DiscountId,
+                    UserId = bookingDto.UserId,
+                    GuestName = bookingDto.GuestName,
+                    GuestPhone = bookingDto.GuestPhone,
+                    Title = bookingDto.Title,
+                    FieldId = bookingDto.FieldId,
+                    FacilityId = bookingDto.FacilityId
+                };
+
+                // Tạo booking
+                var booking = await _bookingRepository.CreateBookingAsync(pendingBookingDto);
+
+                // Lưu thông tin pending booking
+                var pendingInfo = new PendingBookingInfo
+                {
+                    OrderId = orderId,
+                    BookingId = booking.BookingId,
+                    CreatedAt = DateTime.Now,
+                    ExpiresAt = DateTime.Now.AddMinutes(1) // Hết hạn sau 1 phút
+                };
+
+                lock (_pendingLock)
+                {
+                    _pendingBookings[orderId] = pendingInfo;
+                    Console.WriteLine($"Đã lưu pending booking: OrderId={orderId}, BookingId={booking.BookingId}, ExpiresAt={pendingInfo.ExpiresAt}");
+                }
+
+              
+                var detail = await _bookingRepository.GetBookingByIdAsync(booking.BookingId);
+                return new ServiceResponse<BookingDetailDTO>
+                {
+                    Success = true,
+                    Message = $"Đã tạo booking tạm thời với ID {booking.BookingId}. Hết hạn sau 5 phút.",
+                    Data = detail ?? throw new Exception("Không thể lấy thông tin booking vừa tạo")
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<BookingDetailDTO>
+                {
+                    Success = false,
+                    Message = $"Lỗi khi tạo booking tạm thời: {ex.Message}",
+                    Data = null
+                };
+            }
+        }
+
+        public async Task<bool> ConfirmBookingAsync(int bookingId)
+        {
+            try
+            {
+                
+                var booking = await _bookingRepository.GetBookingEntityByIdAsync(bookingId);
+                if (booking == null)
+                    return false;
+
+                booking.StatusPayment = "Paid";
+                await _bookingRepository.UpdateBookingAsync(booking);
+
+                
+                lock (_pendingLock)
+                {
+                    var orderId = _pendingBookings.FirstOrDefault(x => x.Value.BookingId == bookingId).Key;
+                    if (!string.IsNullOrEmpty(orderId))
+                    {
+                        _pendingBookings.Remove(orderId);
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> CancelPendingBookingAsync(int bookingId)
+        {
+            try
+            {
+                Console.WriteLine($"Bắt đầu xóa booking {bookingId}...");
+                
+                
+                var result = await _bookingRepository.DeleteBookingAsync(bookingId);
+                
+                Console.WriteLine($"Kết quả xóa booking {bookingId}: {result}");
+
+                
+                lock (_pendingLock)
+                {
+                    var orderId = _pendingBookings.FirstOrDefault(x => x.Value.BookingId == bookingId).Key;
+                    if (!string.IsNullOrEmpty(orderId))
+                    {
+                        _pendingBookings.Remove(orderId);
+                        Console.WriteLine($"Đã xóa pending booking với OrderId: {orderId}");
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Lỗi khi xóa booking {bookingId}: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return false;
+            }
+        }
+
+        public async Task CleanupExpiredPendingBookingsAsync()
+        {
+            try
+            {
+                List<PendingBookingInfo> expiredBookings;
+                
+                lock (_pendingLock)
+                {
+                    var now = DateTime.Now;
+                    var expiredOrderIds = _pendingBookings
+                        .Where(kvp => kvp.Value.ExpiresAt <= now)
+                        .Select(kvp => kvp.Key)
+                        .ToList();
+
+                    expiredBookings = expiredOrderIds
+                        .Select(orderId => _pendingBookings[orderId])
+                        .ToList();
+
+                    
+                    foreach (var orderId in expiredOrderIds)
+                    {
+                        _pendingBookings.Remove(orderId);
+                    }
+                }
+
+                Console.WriteLine($"Tìm thấy {expiredBookings.Count} booking hết hạn cần xử lý");
+
+                
+                foreach (var pendingInfo in expiredBookings)
+                {
+                    try
+                    {
+                        Console.WriteLine($"Đang xóa booking {pendingInfo.BookingId} (OrderId: {pendingInfo.OrderId}) - Hết hạn lúc: {pendingInfo.ExpiresAt}");
+                        
+                        var result = await CancelPendingBookingAsync(pendingInfo.BookingId);
+                        
+                        if (result)
+                        {
+                            Console.WriteLine($"✅ Đã xóa thành công booking {pendingInfo.BookingId} do hết hạn thanh toán");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"❌ Không thể xóa booking {pendingInfo.BookingId}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"❌ Lỗi khi hủy booking hết hạn {pendingInfo.BookingId}: {ex.Message}");
+                    }
+                }
+
+                if (expiredBookings.Any())
+                {
+                    Console.WriteLine($"✅ Đã xử lý {expiredBookings.Count} booking hết hạn");
+                }
+                else
+                {
+                    Console.WriteLine($"ℹ️ Không có booking nào hết hạn tại {DateTime.Now}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Lỗi khi cleanup expired pending bookings: {ex.Message}");
+            }
+        }
+
+        public async Task<List<PendingBookingDto>> GetPendingBookingsAsync()
+        {
+            lock (_pendingLock)
+            {
+                var now = DateTime.Now;
+                var activeBookings = _pendingBookings.Values
+                    .Where(p => p.ExpiresAt > now)
+                    .Select(p => new PendingBookingDto
+                    {
+                        OrderId = p.OrderId,
+                        BookingId = p.BookingId,
+                        CreatedAt = p.CreatedAt,
+                        ExpiresAt = p.ExpiresAt,
+                        BookingData = null 
+                    })
+                    .ToList();
+                
+                Console.WriteLine($"Có {activeBookings.Count} pending bookings đang hoạt động:");
+                foreach (var booking in activeBookings)
+                {
+                    Console.WriteLine($"- OrderId: {booking.OrderId}, BookingId: {booking.BookingId}, ExpiresAt: {booking.ExpiresAt}");
+                }
+                
+                return activeBookings;
+            }
+        }
+
+        
+
+        // Helper class để lưu trữ thông tin pending booking
+        private class PendingBookingInfo
+        {
+            public string OrderId { get; set; } = string.Empty;
+            public int BookingId { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public DateTime ExpiresAt { get; set; }
         }
     }
 }

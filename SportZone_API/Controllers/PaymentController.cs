@@ -55,22 +55,29 @@ namespace SportZone_API.Controllers
                     return BadRequest(new { error = calculateResult.Message });
                 }
 
-               
-                decimal depositAmount = calculateResult.Data * 0.5m;
-
-                // Tạo OrderId
+                
                 string orderId = $"ORDER_{DateTime.Now:yyyyMMddHHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}";
 
-                // Lưu booking data tạm thời
+               
+                var pendingBookingResult = await _bookingService.CreatePendingBookingAsync(bookingData, orderId);
+                if (!pendingBookingResult.Success)
+                {
+                    return BadRequest(new { error = pendingBookingResult.Message });
+                }
+
+                decimal depositAmount = calculateResult.Data * 0.5m;
+
+                
                 var pendingBooking = new PendingBookingDto
                 {
                     BookingData = bookingData,
                     OrderId = orderId,
+                    BookingId = pendingBookingResult.Data.BookingId,
                     CreatedAt = DateTime.Now
                 };
                 _pendingBookings[orderId] = pendingBooking;
 
-                // Tạo VNPay request
+                
                 var vnpayRequest = new VNPayRequestDto
                 {
                     Amount = depositAmount,
@@ -79,22 +86,25 @@ namespace SportZone_API.Controllers
                     ReturnUrl = "https://localhost:7057/api/Payment/vnpay-return"
                 };
 
-                // Tạo URL thanh toán
+                
                 var paymentResult = await _vnpayService.CreatePaymentUrl(vnpayRequest);
 
                 if (!paymentResult.Success)
                 {
+                    await _bookingService.CancelPendingBookingAsync(pendingBookingResult.Data.BookingId);
                     return BadRequest(new { error = paymentResult.Message });
                 }
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Tính toán tiền đặt cọc và tạo URL thanh toán thành công.",
+                    message = "Tính toán tiền đặt cọc và tạo URL thanh toán thành công. Booking tạm thời đã được tạo với ID " + pendingBookingResult.Data.BookingId,
                     totalAmount = calculateResult.Data,
                     depositAmount = depositAmount,
                     paymentUrl = paymentResult.Data.PaymentUrl,
-                    orderId = paymentResult.Data.OrderId
+                    orderId = paymentResult.Data.OrderId,
+                    bookingId = pendingBookingResult.Data.BookingId,
+                    expiresAt = DateTime.Now.AddMinutes(5)
                 });
             }
             catch (Exception ex)
@@ -152,53 +162,50 @@ namespace SportZone_API.Controllers
                         {
                             try
                             {
-                                // Tạo booking
-                                var booking = await _bookingService.CreateBookingAsync(pendingBooking.BookingData);
-                                
-                                // Tự động tạo Order và OrderFieldId khi Booking thành công
-                                try
+                                // Xác nhận booking pending thành công
+                                var confirmResult = await _bookingService.ConfirmBookingAsync(pendingBooking.BookingId);
+                                if (!confirmResult)
                                 {
-                                    // Lấy booking entity để truyền cho OrderService
-                                    var bookingEntity = await _bookingService.GetBookingDetailAsync(booking.BookingId);
-                                    if (bookingEntity != null)
+                                    throw new Exception("Không thể xác nhận booking");
+                                }
+
+                                // Lấy booking entity để truyền cho OrderService
+                                var bookingEntity = await _bookingService.GetBookingDetailAsync(pendingBooking.BookingId);
+                                if (bookingEntity != null)
+                                {
+                                    var fieldinfo = await _fieldService.GetFieldEntityByIdAsync(bookingEntity.FieldId);
+                                    var facilityId = fieldinfo?.FacId;
+                                    // Tạo Order từ Booking
+                                    var bookingModel = new Booking
                                     {
-                                        var fieldinfo = await _fieldService.GetFieldEntityByIdAsync(booking.FieldId);
-                                        var facilityId = fieldinfo?.FacId;
-                                        // Tạo Order từ Booking
-                                        var bookingModel = new Booking
-                                        {
-                                            BookingId = booking.BookingId,
-                                            FieldId = booking.FieldId,
-                                            UId = booking.UserId,
-                                            GuestName = booking.GuestName,
-                                            GuestPhone = booking.GuestPhone,
-                                            CreateAt = booking.CreateAt,
-                                            Field = new Field { FacId = facilityId }
-                                        };
+                                        BookingId = bookingEntity.BookingId,
+                                        FieldId = bookingEntity.FieldId,
+                                        UId = bookingEntity.UserId,
+                                        GuestName = bookingEntity.GuestName,
+                                        GuestPhone = bookingEntity.GuestPhone,
+                                        CreateAt = bookingEntity.CreateAt,
+                                        Field = new Field { FacId = facilityId }
+                                    };
 
-                                        var order = await _orderService.CreateOrderFromBookingAsync(bookingModel);
+                                    var order = await _orderService.CreateOrderFromBookingAsync(bookingModel);
 
-                                        // Tạo OrderFieldId linking Order với Field
-                                        await _orderFieldIdService.CreateOrderFieldIdAsync(order.OrderId, booking.FieldId);
-                                    }
-                                }
-                                catch (Exception orderEx)
-                                {
-                                    Console.WriteLine($"Lỗi khi tạo Order/OrderFieldId: {orderEx.Message}");
+                                    // Tạo OrderFieldId linking Order với Field
+                                    await _orderFieldIdService.CreateOrderFieldIdAsync(order.OrderId, bookingEntity.FieldId);
                                 }
 
-                                // Xóa booking data tạm thời
                                 _pendingBookings.Remove(vnp_TxnRef);
 
-                                Console.WriteLine($"Booking đã được tạo thành công! BookingId: {booking.BookingId}");
+                                Console.WriteLine($"Booking đã được xác nhận thành công! BookingId: {pendingBooking.BookingId}");
                                 
-                                // Redirect với thông tin booking
-                                return Redirect($"https://localhost:3000/payment-success?bookingId={booking.BookingId}&message=Booking created successfully");
+                                // Redirect với thông tin booking // Sau có FE thì redirect sang các trang của FE
+                                return Redirect($"https://localhost:3000/payment-success?bookingId={pendingBooking.BookingId}&message=Booking confirmed successfully");
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"Lỗi khi tạo booking: {ex.Message}");
-                                return Redirect("https://localhost:3000/payment-failed?error=Failed to create booking");
+                                Console.WriteLine($"Lỗi khi xác nhận booking: {ex.Message}");
+                                // Hủy booking pending nếu xác nhận thất bại
+                                await _bookingService.CancelPendingBookingAsync(pendingBooking.BookingId);
+                                return Redirect("https://localhost:3000/payment-failed?error=Failed to confirm booking");
                             }
                         }
                         else
@@ -211,6 +218,13 @@ namespace SportZone_API.Controllers
                     {
                         // Thanh toán thất bại
                         Console.WriteLine($"Thanh toán thất bại. Response Code: {vnp_ResponseCode}");
+                        
+                        // Hủy booking pending khi thanh toán thất bại
+                        if (_pendingBookings.TryGetValue(vnp_TxnRef, out var failedBooking))
+                        {
+                            await _bookingService.CancelPendingBookingAsync(failedBooking.BookingId);
+                        }
+                        
                         return Redirect("https://localhost:3000/payment-failed");
                     }
                 }

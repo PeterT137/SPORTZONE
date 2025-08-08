@@ -119,6 +119,9 @@ builder.Services.AddScoped<IDiscountService, DiscountService>();
 
 builder.Services.AddScoped<IVNPayService, VNPayService>();
 
+// Đăng ký background service để cleanup expired reservations
+builder.Services.AddHostedService<ReservationCleanupService>();
+
 
 
 builder.Services.AddHttpContextAccessor();

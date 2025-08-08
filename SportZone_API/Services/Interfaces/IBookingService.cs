@@ -39,5 +39,30 @@ namespace SportZone_API.Services.Interfaces
         /// </summary>
         Task<ServiceResponse<decimal>> CalculateTotalAmount(CalculateAmountDTO calculateDto);
 
+        /// <summary>
+        /// Tạo booking tạm thời với status Pending cho thanh toán
+        /// </summary>
+        Task<ServiceResponse<BookingDetailDTO>> CreatePendingBookingAsync(BookingCreateDTO bookingDto, string orderId);
+
+        /// <summary>
+        /// Xác nhận booking sau khi thanh toán thành công
+        /// </summary>
+        Task<bool> ConfirmBookingAsync(int bookingId);
+
+        /// <summary>
+        /// Xóa booking pending và giải phóng slot
+        /// </summary>
+        Task<bool> CancelPendingBookingAsync(int bookingId);
+
+        /// <summary>
+        /// Xóa các booking pending hết hạn (được gọi bởi background service)
+        /// </summary>
+        Task CleanupExpiredPendingBookingsAsync();
+
+        /// <summary>
+        /// Lấy danh sách pending bookings (để debug)
+        /// </summary>
+        Task<List<PendingBookingDto>> GetPendingBookingsAsync();
+
     }
 }

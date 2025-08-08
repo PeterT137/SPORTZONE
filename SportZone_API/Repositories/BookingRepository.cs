@@ -329,6 +329,45 @@ namespace SportZone_API.Repository
             }
         }
 
+        public async Task<bool> DeleteBookingAsync(int bookingId)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.Orders)
+                    .FirstOrDefaultAsync(b => b.BookingId == bookingId);
+                if (booking == null)
+                {
+                    return false;
+                }
+
+                // Giải phóng slots
+                var scheduleSlots = await _context.FieldBookingSchedules
+                    .Where(s => s.BookingId == bookingId)
+                    .ToListAsync();
+                foreach (var slot in scheduleSlots)
+                {
+                    slot.BookingId = null;
+                    slot.Status = "Available";
+                    slot.Notes = null;
+                }
+
+                // Xóa booking hoàn toàn
+                _context.FieldBookingSchedules.UpdateRange(scheduleSlots);
+                _context.Bookings.Remove(booking);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
+            }
+        }
+
         public async Task<IEnumerable<BookingResponseDTO>> GetBookingsByUserAsync(int userId)
         {
             try
@@ -390,6 +429,20 @@ namespace SportZone_API.Repository
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi lấy Discount: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<bool> UpdateBookingAsync(Booking booking)
+        {
+            try
+            {
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật booking: {ex.Message}", ex);
             }
         }
     }
