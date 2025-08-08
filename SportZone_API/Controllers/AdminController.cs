@@ -20,7 +20,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("/get-all-account")]
-        [RoleAuthorize("2,3")]
+        [RoleAuthorize("3")]
         [SwaggerOperation(Summary = "Lấy toàn bộ Account : Admin, Shop")]
         public async Task<IActionResult> GetAllAccount()
         {
@@ -78,7 +78,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPost("/create-account")]
-        [RoleAuthorize("2,3")]
+        [RoleAuthorize("3")]
         [SwaggerOperation(Summary = "Tạo tài khoản : Admin")]
         public async Task<IActionResult> CreateAccount([FromBody] CreateAccountDto createAccountDto)
         {

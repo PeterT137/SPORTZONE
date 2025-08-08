@@ -122,7 +122,7 @@ builder.Services.AddScoped<IDiscountService, DiscountService>();
 
 builder.Services.AddScoped<IVNPayService, VNPayService>();
 
-
+builder.Services.AddHostedService<ScheduleStatusUpdaterService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(options =>

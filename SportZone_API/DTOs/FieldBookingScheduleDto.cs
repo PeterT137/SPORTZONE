@@ -28,9 +28,6 @@ namespace SportZone_API.DTOs
         [Required(ErrorMessage = "Ngày kết thúc là bắt buộc.")]
         public DateOnly EndDate { get; set; }
 
-        //[Required(ErrorMessage = "Thời lượng mỗi slot là bắt buộc (ví dụ: 01:00:00 cho 1 giờ).")]
-        //public TimeSpan SlotDuration { get; set; }
-
         [Required(ErrorMessage = "Thời gian bắt đầu hàng ngày là bắt buộc (ví dụ: 08:00:00).")]
         public TimeSpan DailyStartTime { get; set; }
 

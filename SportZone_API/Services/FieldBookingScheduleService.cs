@@ -21,7 +21,7 @@ namespace SportZone_API.Services
         private readonly IFacilityRepository _facilityRepository;
         private readonly IMapper _mapper;
         private readonly IHubContext<NotificationHub> _hubContext;
-        private readonly IHttpContextAccessor _httpContextAccessor; // Thêm để lấy thông tin người dùng
+        private readonly IHttpContextAccessor _httpContextAccessor; 
         private static readonly TimeSpan FixedSlotDuration = TimeSpan.FromMinutes(30);
 
         public FieldBookingScheduleService(
