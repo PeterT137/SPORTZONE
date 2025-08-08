@@ -188,5 +188,52 @@ namespace SportZone_API.Controllers
                 });
             }
         }
+
+        [HttpGet("owner/{ownerId}/facility-revenue")]
+        public async Task<IActionResult> GetOwnerFacilityRevenue(
+            int ownerId,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var revenueData = await _orderService.GetOwnerTotalRevenueAsync(ownerId, startDate, endDate, null);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy thống kê doanh thu theo cơ sở thành công",
+                    data = new
+                    {
+                        ownerId = revenueData.OwnerId,
+                        ownerName = revenueData.OwnerName,
+                        facilities = revenueData.Facilities,
+                        totalRevenue = revenueData.TotalRevenue,
+                        period = new
+                        {
+                            startDate = revenueData.StartDate,
+                            endDate = revenueData.EndDate
+                        }
+                    }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy thống kê doanh thu theo cơ sở",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }
