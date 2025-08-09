@@ -251,92 +251,127 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<OrderDetailByScheduleDTO?> GetOrderByScheduleIdAsync(int scheduleId)
+        {
+            try
+            {
+                var schedule = await _context.FieldBookingSchedules
+                    .Include(s => s.Booking)
+                    .Include(s => s.Field)
+                        .ThenInclude(f => f.Category)
+                    .FirstOrDefaultAsync(s => s.ScheduleId == scheduleId);
 
+                if (schedule == null || schedule.Booking == null)
+                {
+                    return null;
+                }
 
+                var order = await _context.Orders
+                    .Include(o => o.Booking)
+                    .Include(o => o.Fac)
+                    .Include(o => o.Discount)
+                    .Include(o => o.OrderServices)
+                        .ThenInclude(os => os.Service)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Customer)
+                    .FirstOrDefaultAsync(o => o.BookingId == schedule.Booking.BookingId);
 
+                if (order == null)
+                {
+                    return null;
+                }
 
+                var bookedSlots = await _context.FieldBookingSchedules
+                    .Include(s => s.Field)
+                         .ThenInclude(f => f.Category)
+                    .Where(s => s.BookingId == schedule.BookingId)
+                    .OrderBy(s => s.Date)
+                    .ThenBy(s => s.StartTime)
+                    .ToListAsync();
 
+                var orderDetail = new OrderDetailByScheduleDTO
+                {
+                    OrderId = order.OrderId,
+                    UId = order.UId,
+                    FacId = order.FacId,
+                    DiscountId = order.DiscountId,
+                    BookingId = order.BookingId,
+                    GuestName = order.GuestName,
+                    GuestPhone = order.GuestPhone,
+                    TotalPrice = order.TotalPrice,
+                    TotalServicePrice = order.TotalServicePrice,
+                    ContentPayment = order.ContentPayment,
+                    StatusPayment = order.StatusPayment,
+                    CreateAt = order.CreateAt,
+                    FacilityName = order.Fac?.Name,
+                    FacilityAddress = order.Fac?.Address,
+                    CustomerInfo = new OrderCustomerInfoDTO(),
+                    BookedSlots = new List<BookingSlotDTO>(),
+                    Services = new List<OrderDetailServiceDTO>(),
+                    DiscountInfo = null
+                };
 
+                if (order.UId != null && order.UIdNavigation != null)
+                {
+                    orderDetail.CustomerInfo.CustomerType = "User";
+                    orderDetail.CustomerInfo.Name = order.UIdNavigation.Customer?.Name;
+                    orderDetail.CustomerInfo.Phone = order.UIdNavigation.Customer?.Phone;
+                    orderDetail.CustomerInfo.Email = order.UIdNavigation.UEmail;
+                }
+                else if (!string.IsNullOrEmpty(order.GuestName))
+                {
+                    orderDetail.CustomerInfo.CustomerType = "Guest";
+                    orderDetail.CustomerInfo.Name = order.GuestName;
+                    orderDetail.CustomerInfo.Phone = order.GuestPhone;
+                }
 
+                foreach (var slot in bookedSlots)
+                {
+                    orderDetail.BookedSlots.Add(new BookingSlotDTO
+                    {
+                        ScheduleId = slot.ScheduleId,
+                        FieldId = slot.FieldId ?? 0,
+                        FieldName = slot.Field?.FieldName,
+                        CategoryName = slot.Field?.Category?.CategoryFieldName,
+                        StartTime = slot.StartTime ?? TimeOnly.MinValue,
+                        EndTime = slot.EndTime ?? TimeOnly.MinValue,
+                        Date = slot.Date ?? DateOnly.MinValue,
+                        Price = slot.Price,
+                        Status = slot.Status
+                    });
+                }
 
+                foreach (var orderService in order.OrderServices)
+                {
+                    orderDetail.Services.Add(new OrderDetailServiceDTO
+                    {
+                        ServiceId = orderService.ServiceId ?? 0,
+                        ServiceName = orderService.Service?.ServiceName,
+                        Price = orderService.Price,
+                        Quantity = orderService.Quantity,
+                        ImageUrl = orderService.Service?.Image
+                    });
+                }
 
+                if (order.Discount != null)
+                {
+                    orderDetail.DiscountInfo = new OrderDiscountInfoDTO
+                    {
+                        DiscountId = order.Discount.DiscountId,
+                        DiscountPercentage = order.Discount.DiscountPercentage,
+                        Description = order.Discount.Description,
+                        DiscountAmount = order.TotalPrice.HasValue && order.Discount.DiscountPercentage.HasValue
+                            ? (order.TotalPrice.Value * order.Discount.DiscountPercentage.Value / 100)
+                            : null
+                    };
+                }
 
-
-
-
-
-
-
-
-
-        //public async Task<bool> AddOrderServiceAsync(OrderService order_Service)
-        //{
-        //    await _context.OrderServices.AddAsync(order_Service);
-        //    return await _context.SaveChangesAsync() > 0;
-        //}
-
-        //public async Task<bool> RemoveOrderServiceAsync(int orderId, int serviceId)
-        //{
-        //    var order_Service = await _context.OrderServices
-        //                                             .FirstOrDefaultAsync(os => os.OrderId == orderId && os.ServiceId == serviceId);
-        //    if (order_Service == null)
-        //    {
-        //        return false;
-        //    }
-
-        //    _context.OrderServices.Remove(order_Service);
-        //    return await _context.SaveChangesAsync() > 0;
-        //}
-
-        //public async Task<List<OrderService>> GetOrderServicesByOrderIdAsync(int orderId)
-        //{
-        //    return await _context.OrderServices
-        //                         .Where(os => os.OrderId == orderId)
-        //                         .Include(os => os.Service)
-        //                         .ToListAsync();
-        //}
-
-        //public async Task<Service?> GetServiceByIdAsync(int serviceId)
-        //{
-        //    return await _context.Services.FirstOrDefaultAsync(s => s.ServiceId == serviceId);
-        //}
-
-        //public async Task<Booking?> GetBookingByIdAsync(int bookingId)
-        //{
-        //    return await _context.Bookings
-        //                         .Include(b => b.Field)
-        //                         .Include(b => b.UIdNavigation) 
-        //                            .ThenInclude(u => u.Customer)
-        //                         .Include(b => b.FieldBookingSchedules)
-        //                         .FirstOrDefaultAsync(b => b.BookingId == bookingId);
-        //}
-
-        //public async Task<Discount?> GetActiveDiscountByBookingIdAsync(int bookingId)
-        //{
-        //    return null;
-        //}
-
-        //public async Task<Field?> GetFieldByIdAsync(int fieldId)
-        //{
-        //    return await _context.Fields.FirstOrDefaultAsync(f => f.FieldId == fieldId);
-        //}
-
-        //public async Task<bool> UpdateOrderServiceAsync(OrderService order_Service)
-        //{
-        //    _context.OrderServices.Update(order_Service);
-        //    return await _context.SaveChangesAsync() > 0;
-        //}
-
-        //public async Task<bool> UpdateOrderTotalPriceAsync(int orderId, decimal? newTotalPrice, decimal? newTotalServicePrice)
-        //{
-        //    var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderId == orderId);
-        //    if (order == null)
-        //    {
-        //        return false;
-        //    }
-        //    order.TotalPrice = newTotalPrice;
-        //    order.TotalServicePrice = newTotalServicePrice;
-        //    return await _context.SaveChangesAsync() > 0;
-        //}
+                return orderDetail;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy Order theo ScheduleId: {ex.Message}", ex);
+            }
+        }
     }
 }

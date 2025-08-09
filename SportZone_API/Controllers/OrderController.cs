@@ -235,5 +235,47 @@ namespace SportZone_API.Controllers
                 });
             }
         }
+
+        [HttpGet("schedule/{scheduleId}")]
+        public async Task<IActionResult> GetOrderByScheduleId(int scheduleId)
+        {
+            try
+            {
+                var orderDetail = await _orderService.GetOrderByScheduleIdAsync(scheduleId);
+
+                if (orderDetail == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Không tìm thấy Order cho ScheduleId: {scheduleId}"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy thông tin chi tiết Order thành công",
+                    data = orderDetail
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy thông tin chi tiết Order",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

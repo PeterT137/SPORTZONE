@@ -158,5 +158,17 @@ namespace SportZone_API.Services
                 throw new Exception($"Lỗi khi lấy doanh thu của chủ sân: {ex.Message}", ex);
             }
         }
+
+        public async Task<OrderDetailByScheduleDTO?> GetOrderByScheduleIdAsync(int scheduleId)
+        {
+            try
+            {
+                return await _orderRepository.GetOrderByScheduleIdAsync(scheduleId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy thông tin Order theo ScheduleId: {ex.Message}", ex);
+            }
+        }
     }
 }
