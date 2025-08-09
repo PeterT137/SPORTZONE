@@ -373,5 +373,39 @@ namespace SportZone_API.Repositories
                 throw new Exception($"Lỗi khi lấy Order theo ScheduleId: {ex.Message}", ex);
             }
         }
+
+        public async Task<OrderSlotDetailDTO?> GetOrderSlotDetailByScheduleIdAsync(int scheduleId)
+        {
+            try
+            {
+                var schedule = await _context.FieldBookingSchedules
+                    .Include(s => s.Booking)
+                         .ThenInclude(b => b.UIdNavigation)
+                               .ThenInclude(u => u.Customer)
+                    .FirstOrDefaultAsync(s => s.ScheduleId == scheduleId);
+
+                if (schedule == null || schedule.Booking == null)
+                {
+                    return null;
+                }
+
+                var booking = schedule.Booking;
+                string? name = booking.UIdNavigation?.Customer?.Name ?? booking.GuestName;
+                string? phone = booking.UIdNavigation?.Customer?.Phone ?? booking.GuestPhone;
+
+                return new OrderSlotDetailDTO
+                {
+                    Name = name,
+                    Phone = phone,
+                    StartTime = (schedule.StartTime ?? TimeOnly.MinValue).ToString("HH:mm"),
+                    EndTime = (schedule.EndTime ?? TimeOnly.MinValue).ToString("HH:mm"),
+                    Date = (schedule.Date ?? DateOnly.MinValue).ToString("dd/MM/yyyy")
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy chi tiết Order theo ScheduleId: {ex.Message}", ex);
+            }
+        }
     }
 }

@@ -277,5 +277,24 @@ namespace SportZone_API.Controllers
                 });
             }
         }
+
+        [HttpGet("schedule/{scheduleId}/slot-detail")]
+        public async Task<IActionResult> GetOrderSlotDetailByScheduleId(int scheduleId)
+        {
+            try
+            {
+                var data = await _orderService.GetOrderSlotDetailByScheduleIdAsync(scheduleId);
+                if (data == null)
+                {
+                    return NotFound(new { success = false, message = $"Không tìm thấy dữ liệu cho ScheduleId: {scheduleId}" });
+                }
+
+                return Ok(new { success = true, message = "Lấy chi tiết giờ đặt thành công", data });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "Có lỗi xảy ra", error = ex.Message });
+            }
+        }
     }
 }
