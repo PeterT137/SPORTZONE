@@ -21,5 +21,9 @@ namespace SportZone_API.Services.Interfaces
         Task<OrderDTO?> GetOrderByBookingIdAsync(int bookingId);
 
         Task<OrderDTO?> UpdateOrderContentPaymentAsync(int orderId, int option);
+        /// <summary>
+        /// Lấy tổng doanh thu của chủ sân
+        /// </summary>
+        Task<OwnerRevenueDTO> GetOwnerTotalRevenueAsync(int ownerId, DateTime? startDate = null, DateTime? endDate = null, int? facilityId = null);
     }
 }
