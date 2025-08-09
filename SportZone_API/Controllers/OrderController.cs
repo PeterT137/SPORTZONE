@@ -56,5 +56,245 @@ namespace SportZone_API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Error updating order content payment: {ex.Message}");
             }
         }
+
+        [HttpGet("Owner/{ownerId}/TotalRevenue")]
+        public async Task<IActionResult> GetOwnerTotalRevenue(
+            int ownerId,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int? facilityId = null)
+        {
+            try
+            {
+                var revenueData = await _orderService.GetOwnerTotalRevenueAsync(ownerId, startDate, endDate, facilityId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy tổng doanh thu thành công",
+                    data = revenueData
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy tổng doanh thu",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("owner/{ownerId}/monthlyRevenue")]
+        public async Task<IActionResult> GetOwnerMonthlyRevenue(
+            int ownerId,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int? facilityId = null)
+        {
+            try
+            {
+                var revenueData = await _orderService.GetOwnerTotalRevenueAsync(ownerId, startDate, endDate, facilityId);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy thống kê doanh thu theo tháng thành công",
+                    data = new
+                    {
+                        ownerId = revenueData.OwnerId,
+                        ownerName = revenueData.OwnerName,
+                        monthlyRevenue = revenueData.MonthlyRevenue,
+                        totalRevenue = revenueData.TotalRevenue,
+                        period = new
+                        {
+                            startDate = revenueData.StartDate,
+                            endDate = revenueData.EndDate
+                        }
+                    }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy thống kê doanh thu theo tháng",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("owner/{ownerId}/yearlyRevenue")]
+        public async Task<IActionResult> GetOwnerYearlyRevenue(
+            int ownerId,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] int? facilityId = null)
+        {
+            try
+            {
+                var revenueData = await _orderService.GetOwnerTotalRevenueAsync(ownerId, startDate, endDate, facilityId);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy thống kê doanh thu theo năm thành công",
+                    data = new
+                    {
+                        ownerId = revenueData.OwnerId,
+                        ownerName = revenueData.OwnerName,
+                        yearlyRevenue = revenueData.YearlyRevenue,
+                        totalRevenue = revenueData.TotalRevenue,
+                        period = new
+                        {
+                            startDate = revenueData.StartDate,
+                            endDate = revenueData.EndDate
+                        }
+                    }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy thống kê doanh thu theo năm",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("owner/{ownerId}/facility-revenue")]
+        public async Task<IActionResult> GetOwnerFacilityRevenue(
+            int ownerId,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var revenueData = await _orderService.GetOwnerTotalRevenueAsync(ownerId, startDate, endDate, null);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy thống kê doanh thu theo cơ sở thành công",
+                    data = new
+                    {
+                        ownerId = revenueData.OwnerId,
+                        ownerName = revenueData.OwnerName,
+                        facilities = revenueData.Facilities,
+                        totalRevenue = revenueData.TotalRevenue,
+                        period = new
+                        {
+                            startDate = revenueData.StartDate,
+                            endDate = revenueData.EndDate
+                        }
+                    }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy thống kê doanh thu theo cơ sở",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("schedule/{scheduleId}")]
+        public async Task<IActionResult> GetOrderByScheduleId(int scheduleId)
+        {
+            try
+            {
+                var orderDetail = await _orderService.GetOrderByScheduleIdAsync(scheduleId);
+
+                if (orderDetail == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Không tìm thấy Order cho ScheduleId: {scheduleId}"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy thông tin chi tiết Order thành công",
+                    data = orderDetail
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy thông tin chi tiết Order",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("schedule/{scheduleId}/slot-detail")]
+        public async Task<IActionResult> GetOrderSlotDetailByScheduleId(int scheduleId)
+        {
+            try
+            {
+                var data = await _orderService.GetOrderSlotDetailByScheduleIdAsync(scheduleId);
+                if (data == null)
+                {
+                    return NotFound(new { success = false, message = $"Không tìm thấy dữ liệu cho ScheduleId: {scheduleId}" });
+                }
+
+                return Ok(new { success = true, message = "Lấy chi tiết giờ đặt thành công", data });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "Có lỗi xảy ra", error = ex.Message });
+            }
+        }
     }
 }

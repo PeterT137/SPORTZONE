@@ -16,15 +16,20 @@ namespace SportZone_API.Repositories.Interfaces
 
         Task<OrderDTO?> UpdateOrderContentPaymentAsync(int orderId, int option);
         Task<OrderDTO?> GetOrderByIdAsync(int orderId);
-        Task<bool> AddOrderServiceAsync(OrderService order_Service);
-        Task<bool> RemoveOrderServiceAsync(int orderId, int serviceId);
-        Task<List<OrderService>> GetOrderServicesByOrderIdAsync(int orderId);
-        Task<Service?> GetServiceByIdAsync(int serviceId);
-        Task<Booking?> GetBookingByIdAsync(int bookingId);
-        Task<Discount?> GetActiveDiscountByBookingIdAsync(int bookingId);
-        Task<Field?> GetFieldByIdAsync(int fieldId);
 
-        Task<bool> UpdateOrderServiceAsync(OrderService order_Service);
-        Task<bool> UpdateOrderTotalPriceAsync(int orderId, decimal? newTotalPrice, decimal? newTotalServicePrice);
+        /// <summary>
+        /// Lấy tổng doanh thu của chủ sân
+        /// </summary>
+        Task<OwnerRevenueDTO> GetOwnerTotalRevenueAsync(int ownerId, DateTime? startDate = null, DateTime? endDate = null, int? facilityId = null);
+
+        /// <summary>
+        /// Lấy thông tin chi tiết Order theo ScheduleId
+        /// </summary>
+        Task<OrderDetailByScheduleDTO?> GetOrderByScheduleIdAsync(int scheduleId);
+
+        /// <summary>
+        /// Lấy thông tin đơn giản (tên, điện thoại, giờ đặt, ngày đặt) theo ScheduleId
+        /// </summary>
+        Task<OrderSlotDetailDTO?> GetOrderSlotDetailByScheduleIdAsync(int scheduleId);
     }
 }

@@ -141,5 +141,56 @@ namespace SportZone_API.Services
                 throw new Exception($"Lỗi khi tính giá field cho booking: {ex.Message}", ex);
             }
         }
+
+        public async Task<OwnerRevenueDTO> GetOwnerTotalRevenueAsync(int ownerId,
+                                                                     DateTime? startDate = null,
+                                                                     DateTime? endDate = null,
+                                                                     int? facilityId = null)
+        {
+            try
+            {
+                if (ownerId <= 0)
+                {
+                    throw new ArgumentException("OwnerId không hợp lệ", nameof(ownerId));
+                }
+                if (startDate.HasValue && endDate.HasValue && startDate > endDate)
+                {
+                    throw new ArgumentException("Ngày bắt đầu không thể lớn hơn ngày kết thúc");
+                }
+                if (facilityId.HasValue && facilityId <= 0)
+                {
+                    throw new ArgumentException("FacilityId không hợp lệ", nameof(facilityId));
+                }
+                return await _orderRepository.GetOwnerTotalRevenueAsync(ownerId, startDate, endDate, facilityId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy doanh thu của chủ sân: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<OrderDetailByScheduleDTO?> GetOrderByScheduleIdAsync(int scheduleId)
+        {
+            try
+            {
+                return await _orderRepository.GetOrderByScheduleIdAsync(scheduleId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy thông tin Order theo ScheduleId: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<OrderSlotDetailDTO?> GetOrderSlotDetailByScheduleIdAsync(int scheduleId)
+        {
+            try
+            {
+                return await _orderRepository.GetOrderSlotDetailByScheduleIdAsync(scheduleId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy thông tin slot theo ScheduleId: {ex.Message}", ex);
+            }
+        }
     }
 }
