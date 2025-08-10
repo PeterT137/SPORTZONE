@@ -10,6 +10,7 @@ namespace SportZone_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -20,6 +21,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("{orderId}")]
+        [RoleAuthorize("2,4")]
         public async Task<IActionResult> GetOrderDetails(int orderId)
         {
             try
@@ -34,6 +36,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPut("Order/{orderId}/Update/ContentPayment")]
+        [RoleAuthorize("2,4")]
 
         public async Task<IActionResult> UpdateOrderContentPayment(int orderId, int option)
         {
@@ -58,6 +61,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("Owner/{ownerId}/TotalRevenue")]
+        [RoleAuthorize("2,4")]
         public async Task<IActionResult> GetOwnerTotalRevenue(
             int ownerId,
             [FromQuery] DateTime? startDate = null,
@@ -94,6 +98,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("owner/{ownerId}/monthlyRevenue")]
+        [RoleAuthorize("2,4")]
         public async Task<IActionResult> GetOwnerMonthlyRevenue(
             int ownerId,
             [FromQuery] DateTime? startDate = null,
@@ -142,6 +147,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("owner/{ownerId}/yearlyRevenue")]
+        [RoleAuthorize("2,4")]
         public async Task<IActionResult> GetOwnerYearlyRevenue(
             int ownerId,
             [FromQuery] DateTime? startDate = null,
@@ -190,6 +196,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("owner/{ownerId}/facility-revenue")]
+        [RoleAuthorize("2,4")]
         public async Task<IActionResult> GetOwnerFacilityRevenue(
             int ownerId,
             [FromQuery] DateTime? startDate = null,
@@ -237,6 +244,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("schedule/{scheduleId}")]
+        [RoleAuthorize("2,4")]
         public async Task<IActionResult> GetOrderByScheduleId(int scheduleId)
         {
             try
@@ -279,6 +287,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("schedule/{scheduleId}/slot-detail")]
+        [RoleAuthorize("2,4")]
         public async Task<IActionResult> GetOrderSlotDetailByScheduleId(int scheduleId)
         {
             try

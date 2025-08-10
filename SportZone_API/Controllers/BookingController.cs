@@ -4,11 +4,14 @@ using SportZone_API.Models;
 using SportZone_API.Services.Interfaces;
 using SportZone_API.DTOs;
 using SportZone_API.Repository.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using SportZone_API.Attributes;
 
 namespace SportZone_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class BookingController : ControllerBase
     {
         private readonly IBookingService _bookingService;
@@ -27,6 +30,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPost("CreateBooking")]
+        [AllowAnonymous]
         public async Task<IActionResult> CreateBooking([FromBody] BookingCreateDTO bookingDto)
         {
             try
@@ -99,6 +103,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("GetBookingById/{id}")]
+        [RoleAuthorize("3,2,4")]
         public async Task<IActionResult> GetBookingDetail(int id)
         {
             try
@@ -139,6 +144,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpDelete("CancelBooking/{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> CancelBooking(int id)
         {
             try
@@ -178,6 +184,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("user/{userId}")]
+        [RoleAuthorize("1")]
         public async Task<IActionResult> GetUserBookings(int userId)
         {
             try
