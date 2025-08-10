@@ -58,6 +58,25 @@ namespace SportZone_API.Mappings
                 .ForMember(dest => dest.OrderFieldId1, opt => opt.Ignore()) // Auto-generated
                 .ForMember(dest => dest.Field, opt => opt.Ignore()) // Navigation property
                 .ForMember(dest => dest.Order, opt => opt.Ignore()); // Navigation property
+
+            // FieldBookingSchedule to BookingSlotDTO
+            CreateMap<FieldBookingSchedule, BookingSlotDTO>()
+                .ForMember(dest => dest.ScheduleId, opt => opt.MapFrom(src => src.ScheduleId))
+                .ForMember(dest => dest.FieldId, opt => opt.MapFrom(src => src.FieldId ?? 0))
+                .ForMember(dest => dest.FieldName, opt => opt.MapFrom(src => src.Field != null ? src.Field.FieldName : null))
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Field != null && src.Field.Category != null ? src.Field.Category.CategoryFieldName : null))
+                .ForMember(dest => dest.StartTime, opt => opt.MapFrom(src => src.StartTime ?? TimeOnly.MinValue))
+                .ForMember(dest => dest.EndTime, opt => opt.MapFrom(src => src.EndTime ?? TimeOnly.MinValue))
+                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date ?? DateOnly.MinValue))
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src.Price))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status));
+
+            // Discount to DiscountInfoDTO
+            CreateMap<Discount, OrderDiscountInfoDTO>()
+                .ForMember(dest => dest.DiscountId, opt => opt.MapFrom(src => src.DiscountId))
+                .ForMember(dest => dest.DiscountPercentage, opt => opt.MapFrom(src => src.DiscountPercentage))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+                .ForMember(dest => dest.DiscountAmount, opt => opt.Ignore()); // Calculated separately
         }
     }
 }

@@ -22,15 +22,14 @@ namespace SportZone_API.Repositories.Interfaces
         /// </summary>
         Task<OwnerRevenueDTO> GetOwnerTotalRevenueAsync(int ownerId, DateTime? startDate = null, DateTime? endDate = null, int? facilityId = null);
 
-        //Task<bool> AddOrderServiceAsync(OrderService order_Service);
-        //Task<bool> RemoveOrderServiceAsync(int orderId, int serviceId);
-        //Task<List<OrderService>> GetOrderServicesByOrderIdAsync(int orderId);
-        //Task<Service?> GetServiceByIdAsync(int serviceId);
-        //Task<Booking?> GetBookingByIdAsync(int bookingId);
-        //Task<Discount?> GetActiveDiscountByBookingIdAsync(int bookingId);
-        //Task<Field?> GetFieldByIdAsync(int fieldId);
+        /// <summary>
+        /// Lấy thông tin chi tiết Order theo ScheduleId
+        /// </summary>
+        Task<OrderDetailByScheduleDTO?> GetOrderByScheduleIdAsync(int scheduleId);
 
-        //Task<bool> UpdateOrderServiceAsync(OrderService order_Service);
-        //Task<bool> UpdateOrderTotalPriceAsync(int orderId, decimal? newTotalPrice, decimal? newTotalServicePrice);
+        /// <summary>
+        /// Lấy thông tin đơn giản (tên, điện thoại, giờ đặt, ngày đặt) theo ScheduleId
+        /// </summary>
+        Task<OrderSlotDetailDTO?> GetOrderSlotDetailByScheduleIdAsync(int scheduleId);
     }
 }
