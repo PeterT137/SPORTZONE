@@ -86,7 +86,7 @@ namespace SportZone_API.Controllers
                     Amount = depositAmount,
                     OrderId = orderId,
                     OrderInfo = $"Dat coc dat san - {bookingData.Title ?? "Booking"}",
-                    ReturnUrl = "https://localhost:5173/api/Payment/vnpay-return"
+                    ReturnUrl = "https://localhost:7057/api/Payment/vnpay-return"
                 };
 
                 

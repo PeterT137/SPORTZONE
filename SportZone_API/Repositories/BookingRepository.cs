@@ -18,7 +18,7 @@ namespace SportZone_API.Repository
             _mapper = mapper;
         }
 
-        public async Task<Booking> CreateBookingAsync(BookingCreateDTO bookingDto)
+        public async Task<Booking> CreateBookingAsync(BookingCreateDTO bookingDto, string? statusPayment = null)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -66,8 +66,8 @@ namespace SportZone_API.Repository
                     Date = firstSlot.Date,
                     StartTime = firstSlot.StartTime,
                     EndTime = lastSlot.EndTime,
-                    Status = "Success",
-                    StatusPayment = "Success",
+                    Status = statusPayment ?? "Pending",
+                    StatusPayment = statusPayment ?? "Pending",
                     CreateAt = DateTime.Now,
                     GuestName = bookingDto.UserId.HasValue ? null : bookingDto.GuestName,
                     GuestPhone = bookingDto.UserId.HasValue ? null : bookingDto.GuestPhone
