@@ -23,7 +23,7 @@ const FieldListPage: React.FC = () => {
   const { fields, loading } = useFacilities();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 3;
+  const pageSize = 9;
 
   const filteredFields = useMemo(() => {
     return fields.filter((field) => {

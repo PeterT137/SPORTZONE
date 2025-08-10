@@ -23,6 +23,7 @@ import ServiceManager from "./components/services/ServiceManager";
 import StaffManager from "./components/staff/StaffManager";
 import UsersManager from "./components/users/UsersManager";
 import RegulationManager from "./components/regulation/RegulationManager";
+import FinanceManager from "./pages/FinanceManager";
 const AppContent: React.FC = () => {
   return (
     <Routes>
@@ -49,6 +50,7 @@ const AppContent: React.FC = () => {
       <Route path="/staff_manager" element={<StaffManager />} />
       <Route path="/users_manager" element={<UsersManager />} />
       <Route path="/regulation_manager" element={<RegulationManager />} />
+      <Route path="/finance_manager" element={<FinanceManager />} />
       <Route path="/booking-history" element={<BookingHistoryPage />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/payment-failed" element={<PaymentFailed />} />

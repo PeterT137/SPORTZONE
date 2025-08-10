@@ -2346,10 +2346,6 @@ const WeeklySchedule: React.FC = () => {
       setFacility(facilityData);
       console.log("Facility loaded successfully:", facilityData);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Lỗi không xác định khi lấy thông tin cơ sở";
       console.error("Fetch facility error:", err);
 
       // Không hiển thị toast error, chỉ set default values
