@@ -123,7 +123,7 @@ interface BookingDetail {
   fieldName?: string;
   facilityName?: string;
   facilityAddress?: string;
-  userId?: number | null;
+  uId?: number | null;
   guestName?: string | null;
   guestPhone?: string | null;
   title?: string;
@@ -177,7 +177,7 @@ const mapServiceToIconAndUnit = (
   } else if (lowerName.includes("găng")) {
     return { icon: "🧤", unit: "đôi" };
   }
-  return { icon: "🛠️", unit: "lần" }; // Mặc định cho các dịch vụ không xác định
+  return { icon: "🛠️", unit: "lần" };
 };
 
 const BookingCell: React.FC<{
@@ -215,16 +215,9 @@ const BookingCell: React.FC<{
 
   if (!booking) return null;
 
-  // Xử lý click - chỉ cho phép mở modal nếu không phải slot trống
-  const handleClick = () => {
-    if (!isEmpty) {
-      onClick(booking);
-    }
-  };
-
   return (
     <div
-      onClick={handleClick}
+      onClick={() => onClick(booking)}
       className={`relative p-3 rounded-lg border-2 ${
         isEmpty ? emptySlotColor : statusColors[booking.status]
       } ${
@@ -275,7 +268,6 @@ const BookingCell: React.FC<{
         )}
       </div>
 
-      {/* Hover effect overlay - chỉ cho slot đã đặt */}
       {!isEmpty && (
         <div className="absolute inset-0 bg-white bg-opacity-20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
       )}
@@ -315,13 +307,11 @@ const BookingDetailsModal: React.FC<{
     return {};
   }, []);
 
-  // Function để lấy thông tin user từ API
   const fetchUserInfo = useCallback(
     async (userId: number) => {
       setIsLoadingUserInfo(true);
       try {
         const endpoint = `${API_URL}/get-all-account`;
-        console.log(`🔍 Trying endpoint: ${endpoint}`);
         const response = await fetch(endpoint, {
           method: "GET",
           headers: {
@@ -331,28 +321,21 @@ const BookingDetailsModal: React.FC<{
         });
         if (response.ok) {
           const result = await response.json();
-          console.log(`✅ Response from ${endpoint}:`, result);
           if (result.success && result.data) {
             const user = result.data.find(
               (account: UserInfo) => account.uId === userId
             );
+            console.log("Fetched user info1212:", user);
             if (user) {
               setUserInfo(user);
-              console.log("Found user info from endpoint:", user);
               return;
             } else {
-              console.log("⚠️ Không tìm thấy userId trong danh sách account");
               setUserInfo(null);
             }
           } else {
-            console.log(
-              "⚠️ API trả về không đúng định dạng hoặc không có data"
-            );
             setUserInfo(null);
           }
         } else if (response.status === 403 || response.status === 401) {
-          // Không đủ quyền truy cập
-          console.log("🚫 Không đủ quyền truy cập endpoint get-all-account");
           setUserInfo({
             uId: userId,
             uEmail: "",
@@ -360,12 +343,10 @@ const BookingDetailsModal: React.FC<{
             customers: undefined,
             fieldOwner: undefined,
             staff: undefined,
-            // Đánh dấu lỗi quyền
             error:
               "Bạn không có quyền xem thông tin khách hàng. Vui lòng đăng nhập bằng tài khoản admin!",
           } as any);
         } else {
-          console.log(`❌ ${endpoint} returned ${response.status}`);
           setUserInfo(null);
         }
       } catch (error) {
@@ -380,12 +361,11 @@ const BookingDetailsModal: React.FC<{
 
   // Function để lấy thông tin booking chi tiết
   const fetchBookingDetail = useCallback(
-    async (bookingId: number) => {
+    async (scheduleId: number) => {
       try {
-        console.log("Fetching booking detail for ID:", bookingId);
-
+        console.log("Fetching order detail for scheduleId:", scheduleId);
         const response = await fetch(
-          `${API_URL}/api/Booking/GetBookingById/${bookingId}`,
+          `${API_URL}/api/Order/schedule/${scheduleId}`,
           {
             method: "GET",
             headers: {
@@ -394,82 +374,26 @@ const BookingDetailsModal: React.FC<{
             },
           }
         );
-
-        console.log("Booking detail API response status:", response.status);
-
+        console.log("Order detail API response status:", response.status);
         if (response.ok) {
           const result = await response.json();
-          console.log("Booking detail response:", result);
-
+          console.log("Order detail response:", result);
           if (result.success && result.data) {
             setBookingDetail(result.data);
-            console.log("✅ Set booking detail:", result.data);
-
-            // DEBUG: Log toàn bộ cấu trúc data để hiểu rõ
-            console.log("🔍 BookingDetail structure analysis:");
-            console.log("- Keys:", Object.keys(result.data));
-            console.log("- userId:", result.data.userId);
-            console.log("- guestName:", result.data.guestName);
-            console.log("- guestPhone:", result.data.guestPhone);
-            console.log("- order object:", result.data.order);
-
-            if (result.data.order) {
-              console.log("🔍 Order object analysis:");
-              console.log("- Order keys:", Object.keys(result.data.order));
-              console.log("- Order guestName:", result.data.order.guestName);
-              console.log("- Order guestPhone:", result.data.order.guestPhone);
-              console.log(
-                "- Order customerName:",
-                result.data.order.customerName
-              );
-              console.log(
-                "- Order customerPhone:",
-                result.data.order.customerPhone
-              );
-            }
-
-            // CHỈ fetch thông tin user khi thực sự có userId
-            if (result.data.userId) {
-              console.log(
-                "📞 Có userId, đang fetch thông tin user cho userId:",
-                result.data.userId
-              );
-              await fetchUserInfo(result.data.userId);
+            if (typeof result.data.uId === "number" && result.data.uId > 0) {
+              console.log("Calling fetchUserInfo with uId:", result.data.uId);
+              await fetchUserInfo(result.data.uId);
             } else {
-              console.log(
-                "🎯 Không có userId - đây là booking guest, sử dụng guestName và guestPhone"
-              );
-              console.log("Guest info từ booking detail:", {
-                guestName: result.data.guestName,
-                guestPhone: result.data.guestPhone,
-              });
-              console.log("Guest info từ order:", {
-                guestName: result.data.order?.guestName,
-                guestPhone: result.data.order?.guestPhone,
-              });
-              // Không cần fetch user info cho guest
               setUserInfo(null);
             }
           } else {
-            console.log("API response không có success hoặc data:", result);
-          }
-        } else {
-          console.error(
-            "Booking detail API error:",
-            response.status,
-            await response.text()
-          );
-
-          // Nếu 404, có nghĩa là booking không tồn tại trong database
-          if (response.status === 404) {
-            console.log(
-              "Booking không tồn tại, có thể là slot trống hoặc dữ liệu không đồng bộ"
-            );
             setBookingDetail(null);
           }
+        } else {
+          setBookingDetail(null);
         }
       } catch (error) {
-        console.error("Error fetching booking detail:", error);
+        console.error("Error fetching order detail:", error);
         setBookingDetail(null);
       }
     },
@@ -478,58 +402,37 @@ const BookingDetailsModal: React.FC<{
 
   // Effect để load dữ liệu khi modal mở
   useEffect(() => {
-    if (booking && booking.bookingId) {
+    if (booking && booking.id) {
       // Reset state trước khi fetch
       setUserInfo(null);
       setBookingDetail(null);
       setIsLoadingUserInfo(false);
 
-      // Kiểm tra bookingId hợp lệ (phải là số dương)
-      if (booking.bookingId > 0) {
-        console.log(
-          "Fetching booking detail for valid bookingId:",
-          booking.bookingId
-        );
-        fetchBookingDetail(booking.bookingId);
+      // Kiểm tra scheduleId hợp lệ (phải là số dương)
+      if (booking.id > 0) {
+        console.log("Fetching order detail for valid scheduleId:", booking.id);
+        fetchBookingDetail(booking.id);
       } else {
-        console.log(
-          "Invalid bookingId:",
-          booking.bookingId,
-          "- skipping fetch"
-        );
-        // Đây có thể là slot trống hoặc dữ liệu không hợp lệ
         setBookingDetail(null);
       }
     } else {
-      console.log("No booking or bookingId provided:", booking);
-      // Reset state khi không có booking
       setUserInfo(null);
       setBookingDetail(null);
       setIsLoadingUserInfo(false);
     }
   }, [booking, fetchBookingDetail]);
 
-  // Function để lấy tên hiển thị
+  // NOTE: This function uses a complex fallback chain to reliably get the customer's name
+  // from multiple potential data sources due to API inconsistencies.
+  // The priority is: UserInfo -> BookingDetail (Order) -> Original Booking Prop.
   const getDisplayName = (): string => {
     console.log("Getting display name - booking detail:", bookingDetail);
     console.log("Getting display name - userInfo:", userInfo);
     console.log("Getting display name - original booking:", booking);
 
-    // Nếu userInfo có lỗi quyền thì trả về thông báo
-    if ((userInfo as any)?.error) {
-      return (userInfo as any).error;
-    }
-    // ƯU TIÊN 1: Thử truy cập guest info từ order object
-    if (bookingDetail?.order) {
-      const order = bookingDetail.order as any;
-      if (order.guestName) return order.guestName;
-      if (order.customerName && order.customerName !== "Không có tên")
-        return order.customerName;
-    }
-    // ƯU TIÊN 2: Guest info trực tiếp từ booking detail level
-    if (bookingDetail?.guestName) return bookingDetail.guestName;
-    // ƯU TIÊN 3: Nếu có userId, dùng thông tin user đã fetch
-    if (bookingDetail?.userId && userInfo) {
+    // Ưu tiên lấy từ userInfo nếu có
+    if ((userInfo as any)?.error) return (userInfo as any).error;
+    if (userInfo) {
       const name =
         userInfo.admin?.name ||
         userInfo.customers?.[0]?.name ||
@@ -537,7 +440,14 @@ const BookingDetailsModal: React.FC<{
         userInfo.staff?.name;
       if (name) return name;
     }
-    // CUỐI CÙNG: Fallback từ booking gốc
+    // Nếu không có userInfo, lấy từ bookingDetail
+    if (bookingDetail?.order) {
+      const order = bookingDetail.order as any;
+      if (order.guestName) return order.guestName;
+      if (order.customerName && order.customerName !== "Không có tên")
+        return order.customerName;
+    }
+    if (bookingDetail?.guestName) return bookingDetail.guestName;
     let fallbackName = booking?.customerName || "Khách hàng";
     if (fallbackName.startsWith("Đặt sân "))
       fallbackName = fallbackName.replace("Đặt sân ", "").trim();
@@ -546,28 +456,28 @@ const BookingDetailsModal: React.FC<{
     return fallbackName;
   };
 
-  // Function để lấy số điện thoại hiển thị
+  // NOTE: This function uses a complex fallback chain to get the customer's phone number.
+  // The priority is: UserInfo -> BookingDetail (Order) -> Original Booking Prop.
   const getDisplayPhone = (): string => {
     console.log("Getting display phone - booking detail:", bookingDetail);
     console.log("Getting display phone - userInfo:", userInfo);
 
-    // ƯUTTIÊN 1: Thử truy cập guest info từ order object
+    // Ưu tiên lấy từ userInfo nếu có
+    if ((userInfo as any)?.error) return "Không có quyền xem";
+    if (userInfo) {
+      const phone =
+        userInfo.admin?.phone ||
+        userInfo.customers?.[0]?.phone ||
+        userInfo.fieldOwner?.phone ||
+        userInfo.staff?.phone;
+      if (phone) return phone;
+    }
+    // Nếu không có userInfo, lấy từ bookingDetail
     if (bookingDetail?.order) {
       const order = bookingDetail.order as any;
-      console.log("📋 Order object for phone:", order);
-
-      if (order.guestPhone) {
-        console.log("🎯 Found guest phone in order:", order.guestPhone);
-        return order.guestPhone;
-      }
-
-      if (order.customerPhone) {
-        console.log("🎯 Found customer phone in order:", order.customerPhone);
-        return order.customerPhone;
-      }
+      if (order.guestPhone) return order.guestPhone;
+      if (order.customerPhone) return order.customerPhone;
     }
-
-    // ƯUTTIÊN 2: Guest info trực tiếp từ booking detail level
     if (bookingDetail?.guestPhone) {
       console.log(
         "🎯 Guest booking - Using guest phone from booking detail:",
@@ -575,46 +485,35 @@ const BookingDetailsModal: React.FC<{
       );
       return bookingDetail.guestPhone;
     }
-
-    // ƯUTTIÊN 3: Nếu có userId, dùng thông tin user đã fetch
-    if (bookingDetail?.userId && userInfo) {
-      const phone =
-        userInfo.admin?.phone ||
-        userInfo.customers?.[0]?.phone ||
-        userInfo.fieldOwner?.phone ||
-        userInfo.staff?.phone;
-
-      if (phone) {
-        console.log("👤 User booking - Using user phone:", phone);
-        return phone;
-      }
-    }
-
     // CUỐI CÙNG: Fallback từ booking gốc
     let fallbackPhone = booking?.contact;
     if (!fallbackPhone || fallbackPhone === "Unknown") {
       fallbackPhone = "Chưa có thông tin";
     }
-
     console.log("⚠️ Final fallback phone:", fallbackPhone);
     return fallbackPhone;
   };
 
-  // Function để lấy email hiển thị
+  // NOTE: This function uses a complex fallback chain to get the customer's email.
+  // The priority is: UserInfo -> BookingDetail -> Default text.
   const getDisplayEmail = (): string => {
     console.log("Getting display email - userInfo:", userInfo);
     console.log("Getting display email - bookingDetail:", bookingDetail);
 
-    // ƯUTTIÊN 1: Nếu có userId, hiển thị email từ user info
-    if (bookingDetail?.userId && userInfo) {
-      const email = userInfo.uEmail || userInfo.customers?.[0]?.email;
+    // Ưu tiên lấy từ userInfo nếu có
+    if ((userInfo as any)?.error) return "Không có quyền xem";
+    if (userInfo) {
+      const email = userInfo.uEmail || userInfo.customers?.[0]?.email || "";
+      if (email) return email;
+    }
+    // Nếu không có userInfo, lấy từ bookingDetail
+    if (bookingDetail?.uId && (bookingDetail as any).customerInfo) {
+      const email = (bookingDetail as any).customerInfo.email;
       if (email) {
         console.log("👤 User booking - Using user email:", email);
         return email;
       }
     }
-
-    // ƯUTTIÊN 2: Guest không có email, luôn hiển thị "Khách vãng lai"
     console.log("🎯 Guest booking or no user info - Using default email");
     return "Khách vãng lai";
   };
@@ -670,12 +569,15 @@ const BookingDetailsModal: React.FC<{
   if (!booking) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div
+      style={{ marginTop: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    >
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl z-10">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-800">
-              Chi tiết đặt sân
+              Chi tiết hóa đơn
             </h2>
             <button
               onClick={onClose}
@@ -687,8 +589,8 @@ const BookingDetailsModal: React.FC<{
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-6 mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-gray-50 rounded-xl p-4">
               <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 Thông tin khách hàng
@@ -697,7 +599,7 @@ const BookingDetailsModal: React.FC<{
                 )}
               </h3>
 
-              <div className="space-y-2">
+              <div className="space-y-2 text-sm">
                 <p>
                   <span className="font-medium">Tên khách hàng:</span>{" "}
                   <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
@@ -720,25 +622,25 @@ const BookingDetailsModal: React.FC<{
                   <span className="font-medium">Loại khách hàng:</span>{" "}
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
-                      // Kiểm tra userId từ bookingDetail thay vì userInfo
-                      bookingDetail?.userId
+                      userInfo &&
+                      typeof userInfo.uId === "number" &&
+                      userInfo.uId > 0
                         ? "bg-blue-100 text-blue-800"
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {/* Hiển thị loại khách hàng dựa trên userId từ bookingDetail */}
-                    {bookingDetail?.userId
-                      ? userInfo
-                        ? userInfo.admin
-                          ? "Quản trị viên"
-                          : userInfo.fieldOwner
-                          ? "Chủ sân"
-                          : userInfo.staff
-                          ? "Nhân viên"
-                          : userInfo.customers?.[0]
-                          ? "Khách hàng thành viên"
-                          : "Người dùng"
-                        : "Thành viên (đang tải...)"
+                    {userInfo &&
+                    typeof userInfo.uId === "number" &&
+                    userInfo.uId > 0
+                      ? userInfo.admin
+                        ? "Quản trị viên"
+                        : userInfo.fieldOwner
+                        ? "Chủ sân"
+                        : userInfo.staff
+                        ? "Nhân viên"
+                        : userInfo.customers?.[0]
+                        ? "Khách hàng thành viên"
+                        : "Thành viên"
                       : "Khách vãng lai"}
                   </span>
                 </p>
@@ -778,62 +680,65 @@ const BookingDetailsModal: React.FC<{
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4">
-              <h3 className="font-semibold text-gray-700 mb-3">
-                Tổng kết thanh toán
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Tiền thuê sân:</span>
-                  <span>{booking.basePrice.toLocaleString("vi-VN")}đ</span>
+            <div className="space-y-6">
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h3 className="font-semibold text-gray-700 mb-3">
+                  Tổng kết thanh toán
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Tiền thuê sân:</span>
+                    <span>{booking.basePrice.toLocaleString("vi-VN")}đ</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Dịch vụ & cho thuê:</span>
+                    <span>{totalServicePrice.toLocaleString("vi-VN")}đ</span>
+                  </div>
+                  <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
+                    <span>Tổng cộng:</span>
+                    <span className="text-green-600">
+                      {totalPrice.toLocaleString("vi-VN")}đ
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Dịch vụ & cho thuê:</span>
-                  <span>{totalServicePrice.toLocaleString("vi-VN")}đ</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                  <span>Tổng cộng:</span>
-                  <span className="text-green-600">
-                    {totalPrice.toLocaleString("vi-VN")}đ
-                  </span>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h3 className="font-semibold text-gray-700 mb-3">
+                  Phương thức thanh toán
+                </h3>
+                <div className="flex space-x-6">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="cash"
+                      checked={paymentMethod === "cash"}
+                      onChange={(e) =>
+                        setPaymentMethod(e.target.value as "cash")
+                      }
+                      className="mr-2"
+                    />
+                    <span>Tiền mặt</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="transfer"
+                      checked={paymentMethod === "transfer"}
+                      onChange={(e) =>
+                        setPaymentMethod(e.target.value as "transfer")
+                      }
+                      className="mr-2"
+                    />
+                    <span>Chuyển khoản</span>
+                  </label>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-xl p-4">
-            <h3 className="font-semibold text-gray-700 mb-3">
-              Phương thức thanh toán
-            </h3>
-            <div className="flex space-x-6">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="cash"
-                  checked={paymentMethod === "cash"}
-                  onChange={(e) => setPaymentMethod(e.target.value as "cash")}
-                  className="mr-2"
-                />
-                <span>Tiền mặt</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="transfer"
-                  checked={paymentMethod === "transfer"}
-                  onChange={(e) =>
-                    setPaymentMethod(e.target.value as "transfer")
-                  }
-                  className="mr-2"
-                />
-                <span>Chuyển khoản</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 rounded-xl p-4">
+          <div className="bg-gray-50 rounded-xl p-4 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-gray-700">
                 Dịch vụ & đồ cho thuê đã chọn
@@ -930,7 +835,7 @@ const BookingDetailsModal: React.FC<{
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">
-                Chọn dịch vụ & đồ cho thuê
+                Thêm dịch vụ vào đơn đặt sân
               </h3>
               <button
                 onClick={() => setShowAddService(false)}
@@ -1640,7 +1545,7 @@ const PricingManagementModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl z-10">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-800">
               Quản lý giá đặt theo giờ
@@ -1962,6 +1867,8 @@ const PricingManagementModal: React.FC<{
 const WeeklySchedule: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showQuickModal, setShowQuickModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -1979,6 +1886,167 @@ const WeeklySchedule: React.FC = () => {
   const fieldName = searchParams.get("fieldName") || "Sân không xác định";
   const facId = Number(searchParams.get("facId")) || 0; // Lấy facId từ searchParams
 
+  const handleOpenDetailModal = () => {
+    if (selectedBooking) {
+      setShowQuickModal(false);
+      setShowDetailModal(true); // Open the detail modal with the same selected booking
+    }
+  };
+
+  const handleCloseDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedBooking(null); // Clear selection when closing detail modal
+  };
+
+  const [quickCustomerName, setQuickCustomerName] = useState<string>("");
+  const [quickCustomerPhone, setQuickCustomerPhone] = useState<string>("");
+  const [quickLoading, setQuickLoading] = useState<boolean>(false);
+
+  const getAuthHeaders = useCallback((): Record<string, string> => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+    return {};
+  }, []);
+
+  const handleSlotClick = async (booking: Booking) => {
+    setSelectedBooking(booking);
+    // Show the modal immediately to provide user feedback
+    setShowQuickModal(true);
+    // Set loading state and initial (potentially incomplete) info
+    setQuickLoading(true);
+    setQuickCustomerName(booking.customerName);
+    setQuickCustomerPhone(booking.contact);
+
+    // If booking or its ID is invalid, it's an empty slot. Stop.
+    if (!booking || !booking.id) {
+      setQuickCustomerName(booking.customerName || "Slot trống");
+      setQuickCustomerPhone("Không có thông tin");
+      setQuickLoading(false);
+      return;
+    }
+
+    // The booking.id from the schedule is the scheduleId
+    const scheduleId = booking.id;
+
+    try {
+      // Step 1: Fetch detailed booking info using scheduleId
+      const detailResponse = await fetch(
+        `${API_URL}/api/Order/schedule/${scheduleId}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        }
+      );
+
+      let bookingDetail: BookingDetail | null = null;
+      if (detailResponse.ok) {
+        const detailResult = await detailResponse.json();
+        if (detailResult.success && detailResult.data) {
+          bookingDetail = detailResult.data;
+        }
+      } else {
+        console.warn(
+          `Quick details fetch failed for scheduleId: ${scheduleId}`
+        );
+        // Don't return, let fallback logic handle it
+      }
+
+      // Step 2: Fetch user info if a userId is available from the detail
+      let userInfo: UserInfo | null = null;
+      if (
+        bookingDetail &&
+        typeof bookingDetail.uId === "number" &&
+        bookingDetail.uId > 0
+      ) {
+        const userResponse = await fetch(`${API_URL}/get-all-account`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        });
+        if (userResponse.ok) {
+          const userResult = await userResponse.json();
+          if (userResult.success && userResult.data) {
+            userInfo =
+              userResult.data.find(
+                (account: UserInfo) => account.uId === bookingDetail?.uId
+              ) || null;
+          }
+        }
+      }
+
+      // Step 3: Replicate the logic from getDisplayName and getDisplayPhone
+      // --- Name Logic ---
+      let finalName = booking.customerName || "Khách hàng"; // Start with fallback
+      if (userInfo) {
+        const name =
+          userInfo.admin?.name ||
+          userInfo.customers?.[0]?.name ||
+          userInfo.fieldOwner?.name ||
+          userInfo.staff?.name;
+        if (name) finalName = name;
+      } else if (bookingDetail?.order) {
+        const order = bookingDetail.order as any;
+        if (order.guestName) {
+          finalName = order.guestName;
+        } else if (
+          order.customerName &&
+          order.customerName !== "Không có tên"
+        ) {
+          finalName = order.customerName;
+        }
+      } else if (bookingDetail?.guestName) {
+        finalName = bookingDetail.guestName;
+      }
+
+      // Clean up the name
+      if (finalName.startsWith("Đặt sân "))
+        finalName = finalName.replace("Đặt sân ", "").trim();
+      if (finalName === booking.field || finalName.includes("Sân "))
+        finalName = "Khách hàng";
+
+      // --- Phone Logic ---
+      let finalPhone = booking.contact || "Chưa có thông tin"; // Start with fallback
+      if (userInfo) {
+        const phone =
+          userInfo.admin?.phone ||
+          userInfo.customers?.[0]?.phone ||
+          userInfo.fieldOwner?.phone ||
+          userInfo.staff?.phone;
+        if (phone) finalPhone = phone;
+      } else if (bookingDetail?.order) {
+        const order = bookingDetail.order as any;
+        if (order.guestPhone) {
+          finalPhone = order.guestPhone;
+        } else if (order.customerPhone) {
+          finalPhone = order.customerPhone;
+        }
+      } else if (bookingDetail?.guestPhone) {
+        finalPhone = bookingDetail.guestPhone;
+      }
+
+      if (!finalPhone || finalPhone === "Unknown") {
+        finalPhone = "Chưa có thông tin";
+      }
+
+      // Set the final, accurate state
+      setQuickCustomerName(finalName);
+      setQuickCustomerPhone(finalPhone);
+    } catch (error) {
+      console.error("Error fetching full booking info for quick modal:", error);
+      // In case of error, the initial values will remain.
+    } finally {
+      setQuickLoading(false);
+    }
+  };
+
+  const handleCloseQuickModal = () => {
+    setShowQuickModal(false);
+    setSelectedBooking(null);
+    setQuickCustomerName("");
+    setQuickCustomerPhone("");
+  };
+
   const showToast = (message: string, type: "success" | "error") => {
     Swal.fire({
       toast: true,
@@ -1995,15 +2063,6 @@ const WeeklySchedule: React.FC = () => {
     });
   };
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-    return {};
-  };
-
-  // Kiểm tra xem sân đã có cấu hình giá chưa
   const checkPricingConfiguration = useCallback(async () => {
     try {
       const response = await fetch(
@@ -2029,7 +2088,7 @@ const WeeklySchedule: React.FC = () => {
       console.error("Error checking pricing configuration:", err);
       setHasPricingConfiguration(false);
     }
-  }, [fieldId]);
+  }, [fieldId, getAuthHeaders]);
 
   const fetchSchedule = useCallback(async () => {
     setLoading(true);
@@ -2109,7 +2168,7 @@ const WeeklySchedule: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [fieldId, fieldName]);
+  }, [fieldId, fieldName, getAuthHeaders]);
 
   const fetchServices = useCallback(async () => {
     if (!facId) {
@@ -2163,7 +2222,7 @@ const WeeklySchedule: React.FC = () => {
       console.error("Fetch services error:", err);
       showToast(errorMessage, "error");
     }
-  }, [facId]);
+  }, [facId, getAuthHeaders]);
 
   // Fetch thông tin facility để lấy giờ mở cửa/đóng cửa
   const fetchFacility = useCallback(async () => {
@@ -2357,7 +2416,7 @@ const WeeklySchedule: React.FC = () => {
         closeTime: "23:00:00",
       });
     }
-  }, [facId]);
+  }, [facId, getAuthHeaders]);
 
   useEffect(() => {
     if (fieldId && facId) {
@@ -2393,8 +2452,8 @@ const WeeklySchedule: React.FC = () => {
   // Tạo timeSlots dựa trên giờ mở cửa và đóng cửa của facility
   const timeSlots = useMemo(() => {
     if (!facility) {
-      // Default: 6AM to 5PM nếu chưa có thông tin facility
-      return Array.from({ length: 12 }, (_, i) => i + 6);
+      // Default: 6AM to 11PM nếu chưa có thông tin facility
+      return Array.from({ length: 18 }, (_, i) => i + 6);
     }
 
     // Parse giờ mở cửa và đóng cửa từ facility
@@ -2408,21 +2467,22 @@ const WeeklySchedule: React.FC = () => {
     }
 
     console.log(
-      `Generated time slots from ${openHour}:00 to ${closeHour - 1}:00:`,
+      `Generated time slots from ${openHour}:00 to ${closeHour}:00:`,
       slots
     );
     return slots;
   }, [facility]);
 
   const filteredBookings = useMemo(() => {
+    if (!searchTerm) {
+      return bookings;
+    }
     return bookings.filter(
       (booking) =>
         booking.customerName
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        false ||
-        booking.field?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        false
+        booking.field?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [bookings, searchTerm]);
 
@@ -2584,11 +2644,32 @@ const WeeklySchedule: React.FC = () => {
     return (
       <>
         <Sidebar />
-        <div className="min-h-screen flex flex-col bg-gray-50 pl-4 pt-4">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Đang tải...
-            </h2>
+        <div className="min-h-screen flex flex-col bg-gray-50 pl-4 pt-4 ml-[256px]">
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <svg
+                className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Đang tải lịch sân...
+              </h2>
+            </div>
           </div>
         </div>
       </>
@@ -2600,7 +2681,7 @@ const WeeklySchedule: React.FC = () => {
       <Sidebar />
       <div className="min-h-screen flex flex-col bg-gray-50 pl-4 pt-4">
         <div className="flex-1 ml-[256px] p-4">
-          <div className="max-w-7xl w-full space-y-6">
+          <div className="max-w-7xl w-full mx-auto space-y-6">
             {/* Cảnh báo khi chưa có cấu hình giá */}
             {!hasPricingConfiguration && (
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
@@ -2788,18 +2869,40 @@ const WeeklySchedule: React.FC = () => {
 
             <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Lịch đặt sân theo tuần
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Click vào slot để xem chi tiết và quản lý đặt sân
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      Lịch đặt sân theo tuần
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Click vào slot để xem chi tiết và quản lý đặt sân
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-6 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-green-200 border border-green-400 rounded"></div>
+                      <span className="text-gray-600">Đã xác nhận</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded"></div>
+                      <span className="text-gray-600">Chờ xác nhận</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-red-200 border border-red-400 rounded"></div>
+                      <span className="text-gray-600">Đã hủy</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded"></div>
+                      <span className="text-gray-600">Chưa đặt</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
-                <div className="min-w-[768px]">
+                <div className="min-w-[1200px] schedule-grid">
                   <div className="grid grid-cols-8 gap-1 bg-gray-100 p-2">
-                    <div className="bg-white rounded-lg p-3 flex items-center justify-center">
+                    <div className="bg-white rounded-lg p-3 flex items-center justify-center sticky left-0 z-10">
                       <span className="text-sm font-medium text-gray-500">
                         Giờ
                       </span>
@@ -2840,7 +2943,7 @@ const WeeklySchedule: React.FC = () => {
 
                     {timeSlots.map((hour) => (
                       <React.Fragment key={hour}>
-                        <div className="bg-white rounded-lg flex items-center justify-end pr-4 py-4 font-semibold text-gray-700 border-r border-gray-200">
+                        <div className="bg-white rounded-lg flex items-center justify-end pr-4 py-4 font-semibold text-gray-700 border-r border-gray-200 sticky left-0 z-10">
                           <div className="text-right">
                             <div className="text-lg">{hour}:00</div>
                             <div className="text-xs text-gray-500">
@@ -2885,7 +2988,7 @@ const WeeklySchedule: React.FC = () => {
                                     <BookingCell
                                       key={booking.id}
                                       booking={booking}
-                                      onClick={setSelectedBooking}
+                                      onClick={handleSlotClick}
                                     />
                                   ))}
                                 </div>
@@ -2898,46 +3001,75 @@ const WeeklySchedule: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-6 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-green-200 border border-green-400 rounded"></div>
-                      <span className="text-gray-600">Đã xác nhận</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded"></div>
-                      <span className="text-gray-600">Chờ xác nhận</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-red-200 border border-red-400 rounded"></div>
-                      <span className="text-gray-600">Đã hủy</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded"></div>
-                      <span className="text-gray-600">Chưa đặt</span>
-                    </div>
+            {showQuickModal && selectedBooking && (
+              <div
+                style={{ marginTop: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+              >
+                <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg">
+                  <h3 className="text-lg font-bold mb-2">Thông tin đặt sân</h3>
+                  <div className="space-y-2">
+                    <p>
+                      <span className="font-medium">Tên khách hàng:</span>{" "}
+                      {quickLoading ? (
+                        <span className="text-gray-400">Đang tải...</span>
+                      ) : (
+                        quickCustomerName
+                      )}
+                    </p>
+                    <p>
+                      <span className="font-medium">Số điện thoại:</span>{" "}
+                      {quickLoading ? (
+                        <span className="text-gray-400">Đang tải...</span>
+                      ) : (
+                        quickCustomerPhone
+                      )}
+                    </p>
+                    <p>
+                      <span className="font-medium">Sân:</span>{" "}
+                      {selectedBooking.field}
+                    </p>
+                    <p>
+                      <span className="font-medium">Thời gian:</span>{" "}
+                      {selectedBooking.duration} giờ
+                    </p>
+                    <p>
+                      <span className="font-medium">Trạng thái:</span>{" "}
+                      {selectedBooking.status === "confirmed"
+                        ? "Đã xác nhận"
+                        : selectedBooking.status === "pending"
+                        ? "Chờ xác nhận"
+                        : "Đã hủy"}
+                    </p>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    Giờ hoạt động:{" "}
-                    {facility
-                      ? `${facility.openTime.substring(
-                          0,
-                          5
-                        )} - ${facility.closeTime.substring(0, 5)}`
-                      : "6:00 - 23:00"}
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button
+                      onClick={handleCloseQuickModal}
+                      className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                    >
+                      Đóng
+                    </button>
+                    <button
+                      onClick={handleOpenDetailModal}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Hóa đơn tổng
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <BookingDetailsModal
-              booking={selectedBooking}
-              onClose={() => setSelectedBooking(null)}
-              onConfirm={handleBookingConfirm}
-              availableServices={services}
-            />
+            {showDetailModal && selectedBooking && (
+              <BookingDetailsModal
+                booking={selectedBooking}
+                onClose={handleCloseDetailModal}
+                onConfirm={handleBookingConfirm}
+                availableServices={services}
+              />
+            )}
 
             <CreateSlotModal
               isOpen={showCreateSlotModal}
