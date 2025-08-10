@@ -1,75 +1,227 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using SportZone_API.DTOs;
+using SportZone_API.Models;
 using SportZone_API.Services.Interfaces;
-using Swashbuckle.AspNetCore.Annotations;
+using SportZone_API.DTOs;
+using SportZone_API.Repository.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using SportZone_API.Attributes;
 
 namespace SportZone_API.Controllers
 {
-    [ApiController]
     [Route("api/[controller]")]
-    [AllowAnonymous]
+    [ApiController]
+    [Authorize]
     public class BookingController : ControllerBase
     {
         private readonly IBookingService _bookingService;
-
-        public BookingController(IBookingService bookingService)
+        private readonly IOrderService _orderService;
+        private readonly IOrderFieldIdService _orderFieldIdService;
+        private readonly IFieldService _fieldService;
+        public BookingController(IBookingService bookingService,
+                                 IOrderService orderService,
+                                 IOrderFieldIdService orderFieldIdService,
+                                 IFieldService fieldService)
         {
             _bookingService = bookingService;
+            _orderService = orderService;
+            _orderFieldIdService = orderFieldIdService;
+            _fieldService = fieldService;
         }
 
-        // GET: api/Booking/check-pending/{bookingId}
-        [HttpGet("check-pending/{bookingId}")]
-        [SwaggerOperation(Summary = "Kiểm tra trạng thái booking pending", Description = "Kiểm tra xem booking có đang ở trạng thái pending không")]
-        public async Task<IActionResult> CheckPendingBooking(int bookingId)
+        [HttpPost("CreateBooking")]
+        [AllowAnonymous]
+        public async Task<IActionResult> CreateBooking([FromBody] BookingCreateDTO bookingDto)
         {
             try
             {
-                var booking = await _bookingService.GetBookingDetailAsync(bookingId);
-                if (booking == null)
+                if (!ModelState.IsValid)
                 {
-                    return NotFound(new { error = "Không tìm thấy booking" });
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Dữ liệu không hợp lệ",
+                        errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                    });
                 }
 
-                var isPending = booking.StatusPayment == "Pending";
-                return Ok(new
+                var booking = await _bookingService.CreateBookingAsync(bookingDto);
+                // Tự động tạo Order và OrderFieldId khi Booking thành công
+                try
                 {
-                    bookingId = bookingId,
-                    isPending = isPending,
-                    statusPayment = booking.StatusPayment,
-                    message = isPending ? "Booking đang chờ thanh toán" : "Booking đã được xử lý"
+                    // Lấy booking entity để truyền cho OrderService
+                    var bookingEntity = await _bookingService.GetBookingDetailAsync(booking.BookingId);
+                    if (bookingEntity != null)
+                    {
+                        var fieldinfo = await _fieldService.GetFieldEntityByIdAsync(booking.FieldId);
+                        var facilityId = fieldinfo?.FacId;
+                        // Tạo Order từ Booking
+                        var bookingModel = new Booking
+                        {
+                            BookingId = booking.BookingId,
+                            FieldId = booking.FieldId,
+                            UId = booking.UserId,
+                            GuestName = booking.GuestName,
+                            GuestPhone = booking.GuestPhone,
+                            CreateAt = booking.CreateAt,
+                            Field = new Field { FacId = facilityId }
+                        };
+
+                        var order = await _orderService.CreateOrderFromBookingAsync(bookingModel, bookingDto.DiscountId);
+
+                        // Tạo OrderFieldId linking Order với Field
+                        await _orderFieldIdService.CreateOrderFieldIdAsync(order.OrderId, booking.FieldId);
+                    }
+                }
+                catch (Exception orderEx)
+                {
+                    Console.WriteLine($"Lỗi khi tạo Order/OrderFieldId: {orderEx.Message}");
+                }
+                return CreatedAtAction(nameof(GetBookingDetail), new { id = booking.BookingId }, new
+                {
+                    success = true,
+                    message = "Tạo booking thành công",
+                    data = booking
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
             }
         }
 
-        // GET: api/Booking/debug-pending
-        [HttpGet("debug-pending")]
-        [SwaggerOperation(Summary = "Debug pending bookings", Description = "Lấy danh sách pending bookings để debug")]
-        public async Task<IActionResult> DebugPendingBookings()
+        [HttpGet("GetBookingById/{id}")]
+        [RoleAuthorize("3,2,4")]
+        public async Task<IActionResult> GetBookingDetail(int id)
         {
             try
             {
-                var pendingBookings = await _bookingService.GetPendingBookingsAsync();
+                var booking = await _bookingService.GetBookingDetailAsync(id);
+                if (booking == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy booking"
+                    });
+                }
+
                 return Ok(new
                 {
-                    count = pendingBookings.Count,
-                    pendingBookings = pendingBookings.Select(p => new
-                    {
-                        orderId = p.OrderId,
-                        bookingId = p.BookingId,
-                        createdAt = p.CreatedAt,
-                        expiresAt = p.ExpiresAt,
-                        isExpired = p.ExpiresAt <= DateTime.Now
-                    })
+                    success = true,
+                    message = "Lấy chi tiết booking thành công",
+                    data = booking
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpDelete("CancelBooking/{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            try
+            {
+                var result = await _bookingService.CancelBookingAsync(id);
+                if (!result)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy booking hoặc không thể hủy"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Hủy booking thành công"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
+
+        [HttpGet("user/{userId}")]
+        [RoleAuthorize("1")]
+        public async Task<IActionResult> GetUserBookings(int userId)
+        {
+            try
+            {
+                var bookings = await _bookingService.GetUserBookingsAsync(userId);
+                if (bookings == null || !bookings.Any())
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy booking cho khách hàng này"
+                    });
+                }
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy danh sách booking thành công",
+                    data = bookings,
+                    count = bookings.Count(),
+                    usersId = userId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
             }
         }
     }
