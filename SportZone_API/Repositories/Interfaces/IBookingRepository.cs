@@ -8,7 +8,7 @@ namespace SportZone_API.Repository.Interfaces
         /// <summary>
         /// Tạo booking mới
         /// </summary>
-        Task<Booking> CreateBookingAsync(BookingCreateDTO bookingDto);
+        Task<Booking> CreateBookingAsync(BookingCreateDTO bookingDto, string? statusPayment = null);
         /// <summary>
         /// Lấy booking theo ID
         /// </summary>
