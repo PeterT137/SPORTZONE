@@ -33,10 +33,14 @@ const RegulationManager: React.FC = () => {
     null
   );
 
-  // Fetch data from API
   useEffect(() => {
     setLoading(true);
-    fetch("https://localhost:7057/api/RegulationSystem")
+    const token = localStorage.getItem("token");
+    fetch("https://localhost:7057/api/RegulationSystem", {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
       .then(async (res) => {
         if (!res.ok) throw new Error("Lỗi khi lấy danh sách quy định");
         const data = await res.json();
@@ -71,12 +75,15 @@ const RegulationManager: React.FC = () => {
   const handleSubmitRegulation = async (data: RegulationFormData) => {
     setLoading(true);
     setError(null);
+    const token = localStorage.getItem("token");
     try {
       if (editRegulationId === null) {
-        // Add
         const res = await fetch("https://localhost:7057/api/RegulationSystem", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             title: data.regulationName,
             description: data.description,
@@ -90,7 +97,10 @@ const RegulationManager: React.FC = () => {
           `https://localhost:7057/api/RegulationSystem/${editRegulationId}`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
             body: JSON.stringify({
               title: data.regulationName,
               description: data.description,
@@ -101,19 +111,28 @@ const RegulationManager: React.FC = () => {
         if (!res.ok) throw new Error("Lỗi khi cập nhật quy định");
       }
       // Refresh list
-      const res = await fetch("https://localhost:7057/api/RegulationSystem");
+      const res = await fetch("https://localhost:7057/api/RegulationSystem", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       const newData = await res.json();
       setRegulations(Array.isArray(newData) ? newData : []);
       setModalOpen(false);
       setEditRegulationId(null);
-    } catch (err: any) {
-      setError(err.message || "Lỗi không xác định");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Lỗi không xác định");
+      } else {
+        setError("Lỗi không xác định");
+      }
     }
     setLoading(false);
   };
 
   // Xác nhận xóa regulation qua API
   const handleConfirmDelete = async () => {
+    const token = localStorage.getItem("token");
     if (deleteRegulationId !== null) {
       setLoading(true);
       setError(null);
@@ -122,15 +141,29 @@ const RegulationManager: React.FC = () => {
           `https://localhost:7057/api/RegulationSystem/${deleteRegulationId}`,
           {
             method: "DELETE",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           }
         );
         if (!res.ok) throw new Error("Lỗi khi xóa quy định");
         // Refresh list
-        const res2 = await fetch("https://localhost:7057/api/RegulationSystem");
+        const res2 = await fetch(
+          "https://localhost:7057/api/RegulationSystem",
+          {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
         const newData = await res2.json();
         setRegulations(Array.isArray(newData) ? newData : []);
-      } catch (err: any) {
-        setError(err.message || "Lỗi không xác định");
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message || "Lỗi không xác định");
+        } else {
+          setError("Lỗi không xác định");
+        }
       }
       setLoading(false);
     }
