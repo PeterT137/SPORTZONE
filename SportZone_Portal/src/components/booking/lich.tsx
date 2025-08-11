@@ -11,15 +11,17 @@ import {
   startOfWeek,
 } from "date-fns";
 import { vi } from "date-fns/locale";
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiCalendar,
   FiChevronLeft,
   FiChevronRight,
   FiDollarSign,
-  FiDownload,
+  FiEdit,
   FiMinus,
   FiPlus,
+  FiRefreshCw,
+  FiSave,
   FiSearch,
   FiTrash2,
   FiX,
@@ -27,6 +29,74 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import Sidebar from "../../Sidebar";
+
+const API_URL = "https://localhost:7057";
+
+// === CÁC HÀM API VÀ INTERFACE (KHÔNG THAY ĐỔI) ===
+const updateBookingSlot = async (data: {
+  fieldId: number;
+  startDate: string;
+  endDate: string;
+  dailyStartTime: string;
+  dailyEndTime: string;
+  notes?: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(
+      `${API_URL}/api/FieldBookingSchedule/update-generate`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(data),
+      }
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Lỗi cập nhật slot: ${response.status} - ${errorText}`);
+    }
+    const result = await response.json();
+    return result;
+  } catch (err) {
+    console.error("Update slot error:", err);
+    throw err;
+  }
+};
+
+const deleteBookingSlot = async (data: {
+  fieldId: number;
+  startDate: string;
+  endDate: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(
+      `${API_URL}/api/FieldBookingSchedule/delete-generate`,
+      {
+        method: "DELETE",
+        headers,
+        body: JSON.stringify(data),
+      }
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Lỗi xóa slot: ${response.status} - ${errorText}`);
+    }
+    const result = await response.json();
+    return result;
+  } catch (err) {
+    console.error("Delete slot error:", err);
+    throw err;
+  }
+};
 
 interface Booking {
   id: number;
@@ -91,32 +161,17 @@ interface Facility {
   name: string;
   openTime: string;
   closeTime: string;
-  // Thêm các trường khác nếu cần
 }
 
 interface UserInfo {
   uId: number;
   uEmail: string;
-  admin?: {
-    name: string;
-    phone: string;
-  };
-  customers?: Array<{
-    name: string;
-    phone: string;
-    email: string;
-  }>;
-  fieldOwner?: {
-    name: string;
-    phone: string;
-  };
-  staff?: {
-    name: string;
-    phone: string;
-  };
+  admin?: { name: string; phone: string };
+  customers?: Array<{ name: string; phone: string; email: string }>;
+  fieldOwner?: { name: string; phone: string };
+  staff?: { name: string; phone: string };
 }
 
-// Interface cho booking detail từ API
 interface BookingDetail {
   bookingId: number;
   fieldId: number;
@@ -134,7 +189,6 @@ interface BookingDetail {
   statusPayment?: string;
   createAt?: string;
   notes?: string;
-  // Thêm các trường mới dựa trên cấu trúc thực tế
   field?: any;
   order?: {
     orderId?: number;
@@ -146,37 +200,26 @@ interface BookingDetail {
     [key: string]: any;
   };
   bookedSlots?: any[];
-  [key: string]: any; // Cho phép các trường khác
+  [key: string]: any;
 }
 
-const API_URL = "https://localhost:7057";
-
-// Hàm ánh xạ tên dịch vụ sang icon và unit
 const mapServiceToIconAndUnit = (
   serviceName: string
 ): { icon: string; unit: string } => {
   const lowerName = serviceName.toLowerCase();
-  if (lowerName.includes("áo")) {
-    return { icon: "👕", unit: "bộ" };
-  } else if (lowerName.includes("giày")) {
-    return { icon: "👟", unit: "đôi" };
-  } else if (
+  if (lowerName.includes("áo")) return { icon: "👕", unit: "bộ" };
+  if (lowerName.includes("giày")) return { icon: "👟", unit: "đôi" };
+  if (
     lowerName.includes("nước") ||
     lowerName.includes("suối") ||
     lowerName.includes("tăng lực")
-  ) {
+  )
     return { icon: "🥤", unit: "chai" };
-  } else if (lowerName.includes("bóng")) {
-    return { icon: "⚽", unit: "quả" };
-  } else if (lowerName.includes("khăn")) {
-    return { icon: "🏃‍♂️", unit: "chiếc" };
-  } else if (lowerName.includes("băng")) {
-    return { icon: "🩹", unit: "bộ" };
-  } else if (lowerName.includes("tất")) {
-    return { icon: "🧦", unit: "đôi" };
-  } else if (lowerName.includes("găng")) {
-    return { icon: "🧤", unit: "đôi" };
-  }
+  if (lowerName.includes("bóng")) return { icon: "⚽", unit: "quả" };
+  if (lowerName.includes("khăn")) return { icon: "🏃‍♂️", unit: "chiếc" };
+  if (lowerName.includes("băng")) return { icon: "🩹", unit: "bộ" };
+  if (lowerName.includes("tất")) return { icon: "🧦", unit: "đôi" };
+  if (lowerName.includes("găng")) return { icon: "🧤", unit: "đôi" };
   return { icon: "🛠️", unit: "lần" };
 };
 
@@ -184,7 +227,6 @@ const BookingCell: React.FC<{
   booking: Booking;
   onClick: (booking: Booking) => void;
 }> = ({ booking, onClick }) => {
-  // Kiểm tra xem có phải slot trống không
   const isEmpty =
     booking.customerName === "Không có tên" && booking.contact === "Unknown";
 
@@ -197,7 +239,6 @@ const BookingCell: React.FC<{
       "bg-gradient-to-br from-red-100 to-red-200 border-red-400 text-red-800 hover:from-red-200 hover:to-red-300 shadow-red-100",
   };
 
-  // Màu cho slot trống (chưa đặt)
   const emptySlotColor =
     "bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300 text-gray-600 hover:from-gray-150 hover:to-gray-250 shadow-gray-100";
 
@@ -241,7 +282,6 @@ const BookingCell: React.FC<{
           </span>
         </div>
       </div>
-
       <div className="space-y-1">
         {isEmpty ? (
           <>
@@ -267,7 +307,6 @@ const BookingCell: React.FC<{
           </>
         )}
       </div>
-
       {!isEmpty && (
         <div className="absolute inset-0 bg-white bg-opacity-20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
       )}
@@ -298,7 +337,6 @@ const BookingDetailsModal: React.FC<{
   );
   const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false);
 
-  // Function để lấy auth headers
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -325,7 +363,6 @@ const BookingDetailsModal: React.FC<{
             const user = result.data.find(
               (account: UserInfo) => account.uId === userId
             );
-            console.log("Fetched user info1212:", user);
             if (user) {
               setUserInfo(user);
               return;
@@ -339,10 +376,6 @@ const BookingDetailsModal: React.FC<{
           setUserInfo({
             uId: userId,
             uEmail: "",
-            admin: undefined,
-            customers: undefined,
-            fieldOwner: undefined,
-            staff: undefined,
             error:
               "Bạn không có quyền xem thông tin khách hàng. Vui lòng đăng nhập bằng tài khoản admin!",
           } as any);
@@ -359,11 +392,9 @@ const BookingDetailsModal: React.FC<{
     [getAuthHeaders]
   );
 
-  // Function để lấy thông tin booking chi tiết
   const fetchBookingDetail = useCallback(
     async (scheduleId: number) => {
       try {
-        console.log("Fetching order detail for scheduleId:", scheduleId);
         const response = await fetch(
           `${API_URL}/api/Order/schedule/${scheduleId}`,
           {
@@ -374,14 +405,11 @@ const BookingDetailsModal: React.FC<{
             },
           }
         );
-        console.log("Order detail API response status:", response.status);
         if (response.ok) {
           const result = await response.json();
-          console.log("Order detail response:", result);
           if (result.success && result.data) {
             setBookingDetail(result.data);
             if (typeof result.data.uId === "number" && result.data.uId > 0) {
-              console.log("Calling fetchUserInfo with uId:", result.data.uId);
               await fetchUserInfo(result.data.uId);
             } else {
               setUserInfo(null);
@@ -400,17 +428,12 @@ const BookingDetailsModal: React.FC<{
     [fetchUserInfo, getAuthHeaders]
   );
 
-  // Effect để load dữ liệu khi modal mở
   useEffect(() => {
     if (booking && booking.id) {
-      // Reset state trước khi fetch
       setUserInfo(null);
       setBookingDetail(null);
       setIsLoadingUserInfo(false);
-
-      // Kiểm tra scheduleId hợp lệ (phải là số dương)
       if (booking.id > 0) {
-        console.log("Fetching order detail for valid scheduleId:", booking.id);
         fetchBookingDetail(booking.id);
       } else {
         setBookingDetail(null);
@@ -422,15 +445,7 @@ const BookingDetailsModal: React.FC<{
     }
   }, [booking, fetchBookingDetail]);
 
-  // NOTE: This function uses a complex fallback chain to reliably get the customer's name
-  // from multiple potential data sources due to API inconsistencies.
-  // The priority is: UserInfo -> BookingDetail (Order) -> Original Booking Prop.
   const getDisplayName = (): string => {
-    console.log("Getting display name - booking detail:", bookingDetail);
-    console.log("Getting display name - userInfo:", userInfo);
-    console.log("Getting display name - original booking:", booking);
-
-    // Ưu tiên lấy từ userInfo nếu có
     if ((userInfo as any)?.error) return (userInfo as any).error;
     if (userInfo) {
       const name =
@@ -440,7 +455,6 @@ const BookingDetailsModal: React.FC<{
         userInfo.staff?.name;
       if (name) return name;
     }
-    // Nếu không có userInfo, lấy từ bookingDetail
     if (bookingDetail?.order) {
       const order = bookingDetail.order as any;
       if (order.guestName) return order.guestName;
@@ -456,13 +470,7 @@ const BookingDetailsModal: React.FC<{
     return fallbackName;
   };
 
-  // NOTE: This function uses a complex fallback chain to get the customer's phone number.
-  // The priority is: UserInfo -> BookingDetail (Order) -> Original Booking Prop.
   const getDisplayPhone = (): string => {
-    console.log("Getting display phone - booking detail:", bookingDetail);
-    console.log("Getting display phone - userInfo:", userInfo);
-
-    // Ưu tiên lấy từ userInfo nếu có
     if ((userInfo as any)?.error) return "Không có quyền xem";
     if (userInfo) {
       const phone =
@@ -472,49 +480,33 @@ const BookingDetailsModal: React.FC<{
         userInfo.staff?.phone;
       if (phone) return phone;
     }
-    // Nếu không có userInfo, lấy từ bookingDetail
     if (bookingDetail?.order) {
       const order = bookingDetail.order as any;
       if (order.guestPhone) return order.guestPhone;
       if (order.customerPhone) return order.customerPhone;
     }
     if (bookingDetail?.guestPhone) {
-      console.log(
-        "🎯 Guest booking - Using guest phone from booking detail:",
-        bookingDetail.guestPhone
-      );
       return bookingDetail.guestPhone;
     }
-    // CUỐI CÙNG: Fallback từ booking gốc
     let fallbackPhone = booking?.contact;
     if (!fallbackPhone || fallbackPhone === "Unknown") {
       fallbackPhone = "Chưa có thông tin";
     }
-    console.log("⚠️ Final fallback phone:", fallbackPhone);
     return fallbackPhone;
   };
 
-  // NOTE: This function uses a complex fallback chain to get the customer's email.
-  // The priority is: UserInfo -> BookingDetail -> Default text.
   const getDisplayEmail = (): string => {
-    console.log("Getting display email - userInfo:", userInfo);
-    console.log("Getting display email - bookingDetail:", bookingDetail);
-
-    // Ưu tiên lấy từ userInfo nếu có
     if ((userInfo as any)?.error) return "Không có quyền xem";
     if (userInfo) {
       const email = userInfo.uEmail || userInfo.customers?.[0]?.email || "";
       if (email) return email;
     }
-    // Nếu không có userInfo, lấy từ bookingDetail
     if (bookingDetail?.uId && (bookingDetail as any).customerInfo) {
       const email = (bookingDetail as any).customerInfo.email;
       if (email) {
-        console.log("👤 User booking - Using user email:", email);
         return email;
       }
     }
-    console.log("🎯 Guest booking or no user info - Using default email");
     return "Khách vãng lai";
   };
 
@@ -588,7 +580,6 @@ const BookingDetailsModal: React.FC<{
             </button>
           </div>
         </div>
-
         <div className="p-6 mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-gray-50 rounded-xl p-4">
@@ -598,28 +589,27 @@ const BookingDetailsModal: React.FC<{
                   <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                 )}
               </h3>
-
               <div className="space-y-2 text-sm">
                 <p>
-                  <span className="font-medium">Tên khách hàng:</span>{" "}
+                  <span className="font-medium">Tên khách hàng:</span>
                   <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
                     {getDisplayName()}
                   </span>
                 </p>
                 <p>
-                  <span className="font-medium">Số điện thoại:</span>{" "}
+                  <span className="font-medium">Số điện thoại:</span>
                   <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
                     {getDisplayPhone()}
                   </span>
                 </p>
                 <p>
-                  <span className="font-medium">Email:</span>{" "}
+                  <span className="font-medium">Email:</span>
                   <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
                     {getDisplayEmail()}
                   </span>
                 </p>
                 <p>
-                  <span className="font-medium">Loại khách hàng:</span>{" "}
+                  <span className="font-medium">Loại khách hàng:</span>
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
                       userInfo &&
@@ -645,7 +635,7 @@ const BookingDetailsModal: React.FC<{
                   </span>
                 </p>
                 <p>
-                  <span className="font-medium">Ngày đặt:</span>{" "}
+                  <span className="font-medium">Ngày đặt:</span>
                   {format(booking.date, "dd/MM/yyyy", { locale: vi })}
                 </p>
                 <p>
@@ -653,10 +643,11 @@ const BookingDetailsModal: React.FC<{
                   {format(booking.date, "HH:mm", { locale: vi })}
                 </p>
                 <p>
-                  <span className="font-medium">Sân:</span> {booking.field}
+                  <span className="font-medium">Sân:</span>
+                  {booking.field}
                 </p>
                 <p>
-                  <span className="font-medium">Thời gian:</span>{" "}
+                  <span className="font-medium">Thời gian:</span>
                   {booking.duration} giờ
                 </p>
                 <p>
@@ -679,7 +670,6 @@ const BookingDetailsModal: React.FC<{
                 </p>
               </div>
             </div>
-
             <div className="space-y-6">
               <div className="bg-gray-50 rounded-xl p-4">
                 <h3 className="font-semibold text-gray-700 mb-3">
@@ -737,7 +727,6 @@ const BookingDetailsModal: React.FC<{
               </div>
             </div>
           </div>
-
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-gray-700">
@@ -751,7 +740,6 @@ const BookingDetailsModal: React.FC<{
                 <span>Thêm dịch vụ</span>
               </button>
             </div>
-
             {selectedServices.length === 0 ? (
               <p className="text-gray-500 text-center py-4">
                 Chưa chọn dịch vụ nào
@@ -812,7 +800,6 @@ const BookingDetailsModal: React.FC<{
               </div>
             )}
           </div>
-
           <div className="flex justify-end space-x-4 pt-4 border-t">
             <button
               onClick={onClose}
@@ -829,7 +816,6 @@ const BookingDetailsModal: React.FC<{
           </div>
         </div>
       </div>
-
       {showAddService && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
@@ -881,11 +867,22 @@ const BookingDetailsModal: React.FC<{
 const CreateSlotModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (slotData: CreateSlotData) => void;
+  onSubmit: (slotData: CreateSlotData) => Promise<void>;
+  onUpdate: (slotData: CreateSlotData) => Promise<void>;
+  onDelete: (slotData: CreateSlotData) => Promise<void>;
   fieldId: number;
   fieldName: string;
   facility: Facility | null;
-}> = ({ isOpen, onClose, onSubmit, fieldId, fieldName, facility }) => {
+}> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  onUpdate,
+  onDelete,
+  fieldId,
+  fieldName,
+  facility,
+}) => {
   const [formData, setFormData] = useState<CreateSlotData>({
     fieldId: fieldId,
     startDate: format(new Date(), "yyyy-MM-dd"),
@@ -900,33 +897,29 @@ const CreateSlotModal: React.FC<{
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async (action: "create" | "update" | "delete") => {
     if (isSubmitting) return;
 
-    // Validate form
-    if (
-      !formData.startDate ||
-      !formData.endDate ||
-      !formData.startTime ||
-      !formData.endTime
-    ) {
-      Swal.fire("Vui lòng điền đầy đủ thông tin!", "error");
-      return;
+    if (action === "create" || action === "update") {
+      if (
+        !formData.startDate ||
+        !formData.endDate ||
+        !formData.startTime ||
+        !formData.endTime
+      ) {
+        Swal.fire("Lỗi", "Vui lòng điền đầy đủ thông tin!", "error");
+        return;
+      }
+      if (formData.startTime >= formData.endTime) {
+        Swal.fire(
+          "Lỗi",
+          "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!",
+          "error"
+        );
+        return;
+      }
     }
 
-    // Validate time range
-    if (formData.startTime >= formData.endTime) {
-      Swal.fire(
-        "Lỗi",
-        "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!",
-        "error"
-      );
-      return;
-    }
-
-    // Validate date range
     if (new Date(formData.startDate) > new Date(formData.endDate)) {
       Swal.fire(
         "Lỗi",
@@ -938,20 +931,13 @@ const CreateSlotModal: React.FC<{
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
-      // Reset form khi thành công
-      setFormData({
-        fieldId: fieldId,
-        startDate: format(new Date(), "yyyy-MM-dd"),
-        endDate: format(new Date(), "yyyy-MM-dd"),
-        startTime: facility ? facility.openTime.substring(0, 5) : "06:00",
-        endTime: facility
-          ? `${(parseInt(facility.openTime.split(":")[0], 10) + 1)
-              .toString()
-              .padStart(2, "0")}:00`
-          : "07:00",
-        notes: "",
-      });
+      if (action === "create") {
+        await onSubmit(formData);
+      } else if (action === "update") {
+        await onUpdate(formData);
+      } else if (action === "delete") {
+        await onDelete(formData);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -969,8 +955,6 @@ const CreateSlotModal: React.FC<{
 
   const generateTimeOptions = () => {
     const times = [];
-
-    // Sử dụng giờ mở cửa và đóng cửa từ facility, hoặc default 6-23
     const startHour = facility
       ? parseInt(facility.openTime.split(":")[0], 10)
       : 6;
@@ -997,7 +981,7 @@ const CreateSlotModal: React.FC<{
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-800">
-              Tạo slot đặt sân
+              Quản lý slot đặt sân
             </h2>
             <button
               onClick={onClose}
@@ -1008,26 +992,26 @@ const CreateSlotModal: React.FC<{
             </button>
           </div>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <div className="p-6 space-y-6">
           <div className="bg-blue-50 rounded-xl p-4">
             <h3 className="font-semibold text-blue-900 mb-2">Thông tin sân</h3>
             <p className="text-blue-800">
-              <span className="font-medium">Sân:</span> {fieldName}
+              <span className="font-medium">Sân:</span>
+              {fieldName}
             </p>
             {facility && (
               <p className="text-blue-800 mt-1">
-                <span className="font-medium">Giờ hoạt động:</span>{" "}
-                {facility.openTime.substring(0, 5)} -{" "}
+                <span className="font-medium">Giờ hoạt động:</span>
+                {facility.openTime.substring(0, 5)} -
                 {facility.closeTime.substring(0, 5)}
               </p>
             )}
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Ngày bắt đầu <span className="text-red-500">*</span>
+                Ngày bắt đầu
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -1040,10 +1024,10 @@ const CreateSlotModal: React.FC<{
                 required
               />
             </div>
-
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Ngày kết thúc <span className="text-red-500">*</span>
+                Ngày kết thúc
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -1056,10 +1040,10 @@ const CreateSlotModal: React.FC<{
                 required
               />
             </div>
-
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Thời gian bắt đầu <span className="text-red-500">*</span>
+                Thời gian bắt đầu
+                <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.startTime}
@@ -1076,10 +1060,10 @@ const CreateSlotModal: React.FC<{
                 ))}
               </select>
             </div>
-
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Thời gian kết thúc <span className="text-red-500">*</span>
+                Thời gian kết thúc
+                <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.endTime}
@@ -1097,7 +1081,6 @@ const CreateSlotModal: React.FC<{
               </select>
             </div>
           </div>
-
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
               Ghi chú
@@ -1110,26 +1093,23 @@ const CreateSlotModal: React.FC<{
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
           </div>
-
           <div className="bg-yellow-50 rounded-xl p-4">
             <h3 className="font-semibold text-yellow-900 mb-2">📋 Hướng dẫn</h3>
             <div className="text-yellow-800 text-sm space-y-1">
               <p>
-                • Chọn ngày bắt đầu và kết thúc để tạo slot cho khoảng thời gian
-                đó
+                • <strong>Tạo slot</strong>: Thêm các khung giờ trống mới vào
+                lịch.
               </p>
               <p>
-                • Thời gian slot sẽ được tạo từ 30 phút đến nhiều giờ tùy theo
-                lựa chọn
+                • <strong>Cập nhật slot</strong>: Ghi đè thông tin (giờ, ghi
+                chú) cho các slot hiện có.
               </p>
               <p>
-                • Slot sẽ được tạo cho tất cả các ngày trong khoảng thời gian đã
-                chọn
+                • <strong>Xóa slot</strong>: Loại bỏ các slot trống (chưa được
+                đặt) khỏi lịch trong khoảng ngày đã chọn.
               </p>
-              <p>• Các slot trùng lặp sẽ không được tạo</p>
             </div>
           </div>
-
           <div className="flex justify-end space-x-4 pt-4 border-t">
             <button
               type="button"
@@ -1139,7 +1119,32 @@ const CreateSlotModal: React.FC<{
               Hủy bỏ
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={() => handleSubmit("delete")}
+              disabled={isSubmitting}
+              className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-red-500 hover:bg-red-600 hover:shadow-lg"
+              }`}
+            >
+              Xóa slot
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSubmit("update")}
+              disabled={isSubmitting}
+              className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-yellow-500 hover:bg-yellow-600 hover:shadow-lg"
+              }`}
+            >
+              Cập nhật slot
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSubmit("create")}
               disabled={isSubmitting}
               className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
                 isSubmitting
@@ -1147,41 +1152,19 @@ const CreateSlotModal: React.FC<{
                   : "bg-green-500 hover:bg-green-600 hover:shadow-lg"
               }`}
             >
-              {isSubmitting ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Đang tạo...
-                </>
-              ) : (
-                "Tạo slot"
-              )}
+              {isSubmitting ? "Đang xử lý..." : "Tạo slot"}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
 };
 
-// Component quản lý giá đặt theo giờ
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// =================================================================
+// === PHẦN CODE ĐÃ ĐƯỢC SỬA LỖI VÀ HOÀN THIỆN: PricingManagementModal
+// =================================================================
 const PricingManagementModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -1200,35 +1183,22 @@ const PricingManagementModal: React.FC<{
   onPricingUpdate,
 }) => {
   const [pricingSlots, setPricingSlots] = useState<PricingSlot[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("token");
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-    return {};
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
-  // Fetch pricing data từ API khi modal mở
   const fetchPricingData = useCallback(async () => {
-    console.log("fetchPricingData called for fieldId:", fieldId);
-    if (!fieldId) {
-      console.log("No fieldId provided");
-      return;
-    }
-
+    if (!fieldId) return;
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const headers: Record<string, string> = {
+      const headers = {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
       };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
       const response = await fetch(
         `${API_URL}/api/FieldPricing/byField/${fieldId}`,
         {
@@ -1238,306 +1208,222 @@ const PricingManagementModal: React.FC<{
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Fetch pricing API error:", response.status, errorText);
-        // Nếu không có dữ liệu, để trống và hiển thị thông báo
-        console.log("Setting empty pricing slots due to API error");
+        // Nếu API trả về 404 hoặc lỗi khác mà không phải lỗi server nghiêm trọng,
+        // có thể sân này chưa có bảng giá. Coi đây là một mảng rỗng.
         setPricingSlots([]);
-        showToast(
-          "Chưa có cấu hình giá cho sân này. Vui lòng thêm giá mới.",
-          "error"
-        );
         return;
       }
 
       const result = await response.json();
-      console.log("Fetch pricing API response:", result);
+      const dataArray =
+        result.data && Array.isArray(result.data)
+          ? result.data
+          : Array.isArray(result)
+          ? result
+          : [];
 
-      if (result && Array.isArray(result) && result.length > 0) {
-        // Map dữ liệu từ API và lọc trùng lặp
-        const uniquePricings = new Map();
-        result.forEach((pricing: any) => {
-          const key = `${pricing.startTime}-${pricing.endTime}`;
-          if (!uniquePricings.has(key)) {
-            uniquePricings.set(key, pricing);
-          }
-        });
-
-        const mappedPricing: PricingSlot[] = Array.from(
-          uniquePricings.values()
-        ).map((pricing: any) => {
-          console.log("Raw pricing data from API:", pricing);
-          return {
-            id: pricing.fieldPricingId || pricing.id || pricing.pricingId, // Thử tất cả các trường ID có thể
-            startTime: pricing.startTime
-              ? pricing.startTime.substring(0, 5)
-              : "06:00", // Convert từ "HH:mm:ss" sang "HH:mm"
-            endTime: pricing.endTime
-              ? pricing.endTime.substring(0, 5)
-              : "12:00",
-            price: pricing.price || 100000,
-          };
-        });
-        console.log("Setting unique pricing slots from API:", mappedPricing);
+      if (dataArray.length > 0) {
+        const mappedPricing: PricingSlot[] = dataArray.map((p: any) => ({
+          id: p.fieldPricingId || p.pricingId || p.id,
+          startTime: p.startTime ? p.startTime.substring(0, 5) : "00:00",
+          endTime: p.endTime ? p.endTime.substring(0, 5) : "00:00",
+          price: p.price || 0,
+        }));
         setPricingSlots(mappedPricing);
       } else {
-        // Nếu không có dữ liệu, để trống và hiển thị thông báo
-        console.log("No pricing data found, setting empty array");
         setPricingSlots([]);
-        showToast(
-          "Chưa có cấu hình giá cho sân này. Vui lòng thêm giá mới.",
-          "error"
-        );
       }
     } catch (err) {
       console.error("Fetch pricing error:", err);
-      // Để trống khi có lỗi
-      console.log("Setting empty pricing slots due to error");
+      showToast("Không thể tải dữ liệu giá từ server.", "error");
       setPricingSlots([]);
-      showToast(
-        "Không thể tải dữ liệu giá từ server. Vui lòng thử lại sau.",
-        "error"
-      );
     } finally {
       setIsLoading(false);
     }
-  }, [fieldId, showToast]);
+  }, [fieldId, getAuthHeaders, showToast]);
 
   useEffect(() => {
     if (isOpen && fieldId) {
-      // Reset pricing slots trước khi fetch
-      setPricingSlots([]);
-      setIsLoading(true);
       fetchPricingData();
-    } else if (!isOpen) {
-      // Reset state khi modal đóng
-      setPricingSlots([]);
-      setIsLoading(false);
-      setIsSubmitting(false);
     }
   }, [isOpen, fieldId, fetchPricingData]);
 
-  const generateTimeOptions = () => {
-    const times = [];
-    for (let hour = 0; hour <= 23; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const timeString = `${hour.toString().padStart(2, "0")}:${minute
-          .toString()
-          .padStart(2, "0")}`;
-        times.push(timeString);
-      }
-    }
-    return times;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (isSubmitting) return;
-
-    // Validate pricing slots
-    for (let i = 0; i < pricingSlots.length; i++) {
-      const slot = pricingSlots[i];
-      if (!slot.startTime || !slot.endTime || slot.price <= 0) {
-        Swal.fire(
-          "Lỗi",
-          `Vui lòng điền đầy đủ thông tin cho khung giờ ${i + 1}!`,
-          "error"
-        );
-        return;
-      }
-      if (slot.startTime >= slot.endTime) {
-        Swal.fire(
-          "Lỗi",
-          `Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc ở khung giờ ${
-            i + 1
-          }!`,
-          "error"
-        );
-        return;
-      }
-    }
-
-    // Kiểm tra trùng lặp khung giờ
-    const timeSlotMap = new Map();
-    for (let i = 0; i < pricingSlots.length; i++) {
-      const slot = pricingSlots[i];
-      const key = `${slot.startTime}-${slot.endTime}`;
-      if (timeSlotMap.has(key)) {
-        Swal.fire(
-          "Lỗi",
-          `Khung giờ ${slot.startTime} - ${slot.endTime} bị trùng lặp!`,
-          "error"
-        );
-        return;
-      }
-      timeSlotMap.set(key, i);
-    }
-
-    setIsSubmitting(true);
-    try {
-      // HỆ THỐNG MỚI: Không xóa pricing cũ nữa, chỉ tạo mới/cập nhật
-      console.log("🔄 Bắt đầu cập nhật pricing - không xóa dữ liệu cũ");
-
-      // Tạo mới tất cả pricing slots (lọc trùng lặp trước)
-      const uniqueSlots = pricingSlots.filter(
-        (slot, index, self) =>
-          index ===
-          self.findIndex(
-            (s) => s.startTime === slot.startTime && s.endTime === slot.endTime
-          )
-      );
-
-      console.log(
-        "📊 Đang cập nhật",
-        uniqueSlots.length,
-        "khung giá:",
-        uniqueSlots
-      );
-
-      // Tạo từng slot mới (API sẽ xử lý logic overwrite/update)
-      const createPromises = uniqueSlots.map(async (slot) => {
-        const createData = {
-          fieldId: fieldId,
-          startTime: slot.startTime, // API sẽ parse "HH:mm" thành TimeOnly
-          endTime: slot.endTime,
-          price: slot.price,
-        };
-
-        console.log("💰 Đang xử lý khung giá:", createData);
-
-        // Chỉ sử dụng POST create và xử lý lỗi duplicate thông minh
-        const response = await fetch(`${API_URL}/api/FieldPricing`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify(createData),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-
-          // Nếu lỗi duplicate, bỏ qua và tiếp tục (không throw error)
-          if (
-            response.status === 409 ||
-            response.status === 400 ||
-            errorText.toLowerCase().includes("duplicate") ||
-            errorText.toLowerCase().includes("already exists") ||
-            errorText.toLowerCase().includes("đã tồn tại") ||
-            errorText.toLowerCase().includes("constraint")
-          ) {
-            console.log(
-              `Khung giá ${slot.startTime}-${slot.endTime} đã tồn tại, giữ nguyên`
-            );
-            return { success: true, message: "Already exists" };
-          }
-
-          console.error(" Lỗi tạo pricing:", response.status, errorText);
-          throw new Error(
-            `Lỗi khi tạo khung giá ${slot.startTime}-${slot.endTime}: ${response.status}`
-          );
-        }
-
-        const result = await response.json();
-        console.log(
-          `Tạo thành công khung giá ${slot.startTime}-${slot.endTime}`
-        );
-        return result;
-      });
-
-      const results = await Promise.all(createPromises);
-
-      // Đếm số lượng slot được tạo thành công và đã tồn tại
-      const createdCount = results.filter(
-        (r) => r && !r.message?.includes("Already exists")
-      ).length;
-      const existingCount = results.filter(
-        (r) => r && r.message?.includes("Already exists")
-      ).length;
-
-      console.log(
-        `📈 Kết quả: ${createdCount} khung giá mới, ${existingCount} khung giá đã tồn tại`
-      );
-
-      let successMessage = "Cập nhật giá thành công!";
-      if (createdCount > 0 && existingCount > 0) {
-        successMessage = `Đã tạo ${createdCount} khung giá mới và giữ nguyên ${existingCount} khung giá hiện có.`;
-      } else if (createdCount > 0) {
-        successMessage = `Đã tạo ${createdCount} khung giá mới thành công!`;
-      } else if (existingCount > 0) {
-        successMessage = `Tất cả khung giá đã được cấu hình trước đó. Không có thay đổi nào.`;
-      }
-
-      showToast(successMessage, "success");
-      onClose();
-      // Reload schedule và cập nhật pricing configuration
-      await fetchSchedule();
-      if (onPricingUpdate) {
-        await onPricingUpdate();
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Lỗi không xác định khi cập nhật giá";
-      console.error("Pricing management error:", err);
-      showToast(errorMessage, "error");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const updatePricingSlot = (
+  const handleSlotChange = (
     index: number,
     field: keyof PricingSlot,
     value: string | number
   ) => {
-    setPricingSlots((prev) =>
-      prev.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot))
-    );
+    const newSlots = [...pricingSlots];
+    newSlots[index] = { ...newSlots[index], [field]: value };
+    setPricingSlots(newSlots);
+  };
+
+  const validateSlot = (slot: PricingSlot): boolean => {
+    if (!slot.startTime || !slot.endTime || !slot.price || slot.price <= 0) {
+      showToast(
+        "Vui lòng điền đầy đủ thông tin và giá phải lớn hơn 0.",
+        "error"
+      );
+      return false;
+    }
+    if (slot.startTime >= slot.endTime) {
+      showToast("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.", "error");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCreatePricing = async (index: number) => {
+    const slotToCreate = pricingSlots[index];
+    if (!validateSlot(slotToCreate)) return;
+
+    setIsProcessing(true);
+    try {
+      const body = {
+        fieldId: fieldId,
+        startTime: `${slotToCreate.startTime}:00`,
+        endTime: `${slotToCreate.endTime}:00`,
+        price: slotToCreate.price,
+      };
+      const response = await fetch(`${API_URL}/api/FieldPricing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Tạo khung giá thất bại: ${errorText || response.statusText}`
+        );
+      }
+
+      showToast("Tạo khung giá thành công!", "success");
+      await fetchPricingData();
+      if (onPricingUpdate) await onPricingUpdate();
+      await fetchSchedule();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUpdatePricing = async (index: number) => {
+    const slotToUpdate = pricingSlots[index];
+    if (!slotToUpdate.id) {
+      showToast(
+        "Lỗi: Không tìm thấy ID của khung giá này để cập nhật.",
+        "error"
+      );
+      return;
+    }
+    if (!validateSlot(slotToUpdate)) return;
+
+    setIsProcessing(true);
+    try {
+      const body = {
+        startTime: `${slotToUpdate.startTime}:00`,
+        endTime: `${slotToUpdate.endTime}:00`,
+        price: slotToUpdate.price,
+      };
+      const response = await fetch(
+        `${API_URL}/api/FieldPricing/${slotToUpdate.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Cập nhật khung giá thất bại: ${errorText || response.statusText}`
+        );
+      }
+
+      showToast("Cập nhật thành công!", "success");
+      await fetchPricingData();
+      if (onPricingUpdate) await onPricingUpdate();
+      await fetchSchedule();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeletePricing = async (index: number) => {
+    const slotToDelete = pricingSlots[index];
+    if (!slotToDelete.id) {
+      removeNewPricingSlot(index);
+      return;
+    }
+
+    const confirmation = await Swal.fire({
+      title: "Bạn chắc chắn chứ?",
+      text: `Bạn sắp xóa khung giờ ${slotToDelete.startTime} - ${slotToDelete.endTime}.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Vâng, xóa nó!",
+      cancelButtonText: "Hủy",
+    });
+
+    if (!confirmation.isConfirmed) return;
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/FieldPricing/${slotToDelete.id}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Xóa khung giá thất bại: ${errorText || response.statusText}`
+        );
+      }
+
+      showToast("Đã xóa khung giá!", "success");
+      setPricingSlots((prev) => prev.filter((p) => p.id !== slotToDelete.id));
+      if (onPricingUpdate) await onPricingUpdate();
+      await fetchSchedule(); // Cập nhật lại lịch
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const addPricingSlot = () => {
-    console.log("addPricingSlot called, current slots:", pricingSlots.length);
-
-    // Tìm khung giờ không trùng lặp
-    let startTime = "06:00";
-    let endTime = "12:00";
-
-    // Kiểm tra xem khung giờ này đã tồn tại chưa
-    const existingSlot = pricingSlots.find(
-      (slot) => slot.startTime === startTime && slot.endTime === endTime
-    );
-
-    // Nếu trùng, thử tìm khung giờ khác
-    if (existingSlot) {
-      startTime = "12:00";
-      endTime = "18:00";
-
-      // Kiểm tra lại khung giờ mới
-      const existingSlot2 = pricingSlots.find(
-        (slot) => slot.startTime === startTime && slot.endTime === endTime
-      );
-
-      if (existingSlot2) {
-        startTime = "18:00";
-        endTime = "22:00";
-      }
-    }
-
-    setPricingSlots((prev) => {
-      const newSlots = [...prev, { startTime, endTime, price: 100000 }];
-      console.log("New pricing slots:", newSlots);
-      return newSlots;
-    });
+    setPricingSlots((prev) => [
+      ...prev,
+      { startTime: "06:00", endTime: "12:00", price: 100000 },
+    ]);
   };
 
-  const removePricingSlot = (index: number) => {
-    if (pricingSlots.length > 1) {
-      setPricingSlots((prev) => prev.filter((_, i) => i !== index));
+  const removeNewPricingSlot = (index: number) => {
+    setPricingSlots((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const generateTimeOptions = () => {
+    const times = [];
+    for (let h = 0; h <= 23; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        times.push(
+          `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+        );
+      }
     }
+    times.push("24:00");
+    return times;
   };
 
   if (!isOpen) return null;
@@ -1552,313 +1438,168 @@ const PricingManagementModal: React.FC<{
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-full"
               title="Đóng modal"
             >
               <FiX className="w-6 h-6 text-gray-500" />
             </button>
           </div>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <div className="p-6 space-y-6">
           <div className="bg-blue-50 rounded-xl p-4">
             <h3 className="font-semibold text-blue-900 mb-2">Thông tin sân</h3>
             <p className="text-blue-800">
               <span className="font-medium">Sân:</span> {fieldName}
             </p>
           </div>
-
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-800">
-                Nhập giá đặt theo khung giờ
+                Các khung giờ và giá
               </h3>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    Swal.fire({
-                      title: "Làm mới dữ liệu?",
-                      text: "Tải lại cấu hình giá từ server.",
-                      icon: "question",
-                      showCancelButton: true,
-                      confirmButtonColor: "#3085d6",
-                      cancelButtonColor: "#6b7280",
-                      confirmButtonText: "Làm mới",
-                      cancelButtonText: "Hủy",
-                    }).then((result) => {
-                      if (result.isConfirmed) {
-                        fetchPricingData();
-                        showToast("Đã làm mới dữ liệu", "success");
-                      }
-                    });
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  onClick={fetchPricingData}
+                  disabled={isLoading || isProcessing}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:bg-gray-300"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  Làm mới
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    Swal.fire({
-                      title: "Xóa tất cả giá?",
-                      text: "Bạn có chắc muốn xóa tất cả cấu hình giá hiện tại?",
-                      icon: "warning",
-                      showCancelButton: true,
-                      confirmButtonColor: "#d33",
-                      cancelButtonColor: "#3085d6",
-                      confirmButtonText: "Xóa tất cả",
-                      cancelButtonText: "Hủy",
-                    }).then((result) => {
-                      if (result.isConfirmed) {
-                        setPricingSlots([
-                          {
-                            startTime: "06:00",
-                            endTime: "12:00",
-                            price: 100000,
-                          },
-                        ]);
-                        showToast("Đã xóa tất cả cấu hình giá", "success");
-                      }
-                    });
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  <FiTrash2 className="w-4 h-4" />
-                  Xóa tất cả
+                  <FiRefreshCw className="w-4 h-4" /> Làm mới
                 </button>
                 <button
                   type="button"
                   onClick={addPricingSlot}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  disabled={isLoading || isProcessing}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300"
                 >
-                  <FiPlus className="w-4 h-4" />
-                  Thêm khung giờ
+                  <FiPlus className="w-4 h-4" /> Thêm khung giờ
                 </button>
               </div>
             </div>
-
             <div className="bg-gray-50 rounded-xl p-4">
-              <div className="grid grid-cols-4 gap-4 mb-4 text-sm font-medium text-gray-700">
-                <div>Giờ bắt đầu</div>
-                <div>Giờ kết thúc</div>
-                <div>Giá sân (VNĐ)/giờ</div>
-                <div>Thao tác</div>
+              <div className="grid grid-cols-10 gap-4 mb-4 text-sm font-medium text-gray-700 px-2">
+                <div className="col-span-2">Giờ bắt đầu</div>
+                <div className="col-span-2">Giờ kết thúc</div>
+                <div className="col-span-3">Giá sân (VNĐ)/giờ</div>
+                <div className="col-span-3 text-center">Thao tác</div>
               </div>
-
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="flex items-center space-x-2">
-                    <svg
-                      className="animate-spin h-5 w-5 text-blue-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    <span className="text-gray-600">
-                      Đang tải dữ liệu giá...
-                    </span>
-                  </div>
+                  <FiRefreshCw className="animate-spin h-6 w-6 text-blue-500" />
+                  <span className="ml-3 text-gray-600">
+                    Đang tải dữ liệu...
+                  </span>
                 </div>
               ) : pricingSlots.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="bg-yellow-50 rounded-xl p-6 mb-4">
-                    <div className="flex items-center justify-center mb-3">
-                      <svg
-                        className="w-12 h-12 text-yellow-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-                      Chưa có cấu hình giá
-                    </h3>
-                    <p className="text-yellow-700 mb-4">
-                      Sân này chưa có cấu hình giá theo khung giờ. Vui lòng thêm
-                      ít nhất một khung giá để khách hàng có thể đặt sân.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={addPricingSlot}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium"
-                    >
-                      <FiPlus className="w-5 h-5" />
-                      Thêm khung giá đầu tiên
-                    </button>
-                  </div>
+                  <h3 className="text-lg font-semibold text-gray-700">
+                    Chưa có cấu hình giá
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Vui lòng thêm ít nhất một khung giá cho sân này.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={addPricingSlot}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
+                  >
+                    <FiPlus /> Thêm khung giá đầu tiên
+                  </button>
                 </div>
               ) : (
-                pricingSlots.map((slot, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-4 gap-4 mb-3 items-center"
-                  >
-                    <select
-                      value={slot.startTime}
-                      onChange={(e) =>
-                        updatePricingSlot(index, "startTime", e.target.value)
-                      }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      aria-label={`Giờ bắt đầu khung giờ ${index + 1}`}
-                      title={`Chọn giờ bắt đầu cho khung giờ ${index + 1}`}
-                      required
+                <div className="space-y-2">
+                  {pricingSlots.map((slot, index) => (
+                    <div
+                      key={slot.id || `new-${index}`}
+                      className="grid grid-cols-10 gap-4 items-center bg-white p-2 rounded-lg shadow-sm"
                     >
-                      {generateTimeOptions().map((time) => (
-                        <option key={time} value={time}>
-                          {time}
-                        </option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={slot.endTime}
-                      onChange={(e) =>
-                        updatePricingSlot(index, "endTime", e.target.value)
-                      }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      aria-label={`Giờ kết thúc khung giờ ${index + 1}`}
-                      title={`Chọn giờ kết thúc cho khung giờ ${index + 1}`}
-                      required
-                    >
-                      {generateTimeOptions().map((time) => (
-                        <option key={time} value={time}>
-                          {time}
-                        </option>
-                      ))}
-                    </select>
-
-                    <input
-                      type="number"
-                      value={slot.price}
-                      onChange={(e) =>
-                        updatePricingSlot(
-                          index,
-                          "price",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      placeholder="Nhập giá..."
-                      min="0"
-                      step="1000"
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => removePricingSlot(index)}
-                      disabled={pricingSlots.length <= 1}
-                      className={`p-2 rounded-lg transition-colors ${
-                        pricingSlots.length <= 1
-                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                          : "bg-red-500 text-white hover:bg-red-600"
-                      }`}
-                      title="Xóa khung giờ"
-                    >
-                      <FiTrash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
+                      <div className="col-span-2">
+                        <select
+                          value={slot.startTime}
+                          onChange={(e) =>
+                            handleSlotChange(index, "startTime", e.target.value)
+                          }
+                          disabled={isProcessing}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                        >
+                          {generateTimeOptions().map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <select
+                          value={slot.endTime}
+                          onChange={(e) =>
+                            handleSlotChange(index, "endTime", e.target.value)
+                          }
+                          disabled={isProcessing}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                        >
+                          {generateTimeOptions().map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-3">
+                        <input
+                          type="number"
+                          value={slot.price}
+                          onChange={(e) =>
+                            handleSlotChange(
+                              index,
+                              "price",
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          disabled={isProcessing}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                          min="0"
+                          step="1000"
+                        />
+                      </div>
+                      <div className="col-span-3 flex justify-center items-center gap-2">
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdatePricing(index)}
+                            disabled={isProcessing}
+                            className="p-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
+                            title="Cập nhật"
+                          >
+                            <FiEdit className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePricing(index)}
+                            disabled={isProcessing}
+                            className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 disabled:bg-red-300"
+                            title="Xóa"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
-          <div className="bg-yellow-50 rounded-xl p-4">
-            <h3 className="font-semibold text-yellow-900 mb-2">
-              📋 Hướng dẫn chủ sân
-            </h3>
-            <div className="text-yellow-800 text-sm space-y-1">
-              <p>
-                • Phân loại giá đặt của các khung giờ trong ngày sẽ không giống
-                nhau do chỉ phí vận hành cơ sở ở các buổi trong ngày cũng khác
-                nhau vậy nên SPORTZONE sẽ hỗ trợ bạn điều chỉnh giá.
-              </p>
-              <p>
-                • Chủ sân sẽ thêm các khung giờ ở bảng bên và nhập giá thuê sân
-                tại khung giờ đó và lưu ý các khung giờ phải phù hợp với giờ mở
-                cửa và giờ đóng cửa của cơ sở.
-              </p>
-              <p>• SPORTZONE cảm ơn.</p>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-4 pt-4 border-t">
+          <div className="flex justify-end space-x-4 pt-4 border-t mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              Quay lại trang
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
-                isSubmitting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600 hover:shadow-lg"
-              }`}
-            >
-              {isSubmitting ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Đang lưu...
-                </>
-              ) : (
-                "Lưu giá đặt"
-              )}
+              Đóng
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
@@ -1884,18 +1625,18 @@ const WeeklySchedule: React.FC = () => {
 
   const fieldId = Number(searchParams.get("fieldId")) || 1;
   const fieldName = searchParams.get("fieldName") || "Sân không xác định";
-  const facId = Number(searchParams.get("facId")) || 0; // Lấy facId từ searchParams
+  const facId = Number(searchParams.get("facId")) || 0;
 
   const handleOpenDetailModal = () => {
     if (selectedBooking) {
       setShowQuickModal(false);
-      setShowDetailModal(true); // Open the detail modal with the same selected booking
+      setShowDetailModal(true);
     }
   };
 
   const handleCloseDetailModal = () => {
     setShowDetailModal(false);
-    setSelectedBooking(null); // Clear selection when closing detail modal
+    setSelectedBooking(null);
   };
 
   const [quickCustomerName, setQuickCustomerName] = useState<string>("");
@@ -1912,14 +1653,11 @@ const WeeklySchedule: React.FC = () => {
 
   const handleSlotClick = async (booking: Booking) => {
     setSelectedBooking(booking);
-    // Show the modal immediately to provide user feedback
     setShowQuickModal(true);
-    // Set loading state and initial (potentially incomplete) info
     setQuickLoading(true);
     setQuickCustomerName(booking.customerName);
     setQuickCustomerPhone(booking.contact);
 
-    // If booking or its ID is invalid, it's an empty slot. Stop.
     if (!booking || !booking.id) {
       setQuickCustomerName(booking.customerName || "Slot trống");
       setQuickCustomerPhone("Không có thông tin");
@@ -1927,11 +1665,9 @@ const WeeklySchedule: React.FC = () => {
       return;
     }
 
-    // The booking.id from the schedule is the scheduleId
     const scheduleId = booking.id;
 
     try {
-      // Step 1: Fetch detailed booking info using scheduleId
       const detailResponse = await fetch(
         `${API_URL}/api/Order/schedule/${scheduleId}`,
         {
@@ -1950,10 +1686,8 @@ const WeeklySchedule: React.FC = () => {
         console.warn(
           `Quick details fetch failed for scheduleId: ${scheduleId}`
         );
-        // Don't return, let fallback logic handle it
       }
 
-      // Step 2: Fetch user info if a userId is available from the detail
       let userInfo: UserInfo | null = null;
       if (
         bookingDetail &&
@@ -1975,9 +1709,7 @@ const WeeklySchedule: React.FC = () => {
         }
       }
 
-      // Step 3: Replicate the logic from getDisplayName and getDisplayPhone
-      // --- Name Logic ---
-      let finalName = booking.customerName || "Khách hàng"; // Start with fallback
+      let finalName = booking.customerName || "Khách hàng";
       if (userInfo) {
         const name =
           userInfo.admin?.name ||
@@ -1999,14 +1731,12 @@ const WeeklySchedule: React.FC = () => {
         finalName = bookingDetail.guestName;
       }
 
-      // Clean up the name
       if (finalName.startsWith("Đặt sân "))
         finalName = finalName.replace("Đặt sân ", "").trim();
       if (finalName === booking.field || finalName.includes("Sân "))
         finalName = "Khách hàng";
 
-      // --- Phone Logic ---
-      let finalPhone = booking.contact || "Chưa có thông tin"; // Start with fallback
+      let finalPhone = booking.contact || "Chưa có thông tin";
       if (userInfo) {
         const phone =
           userInfo.admin?.phone ||
@@ -2029,12 +1759,10 @@ const WeeklySchedule: React.FC = () => {
         finalPhone = "Chưa có thông tin";
       }
 
-      // Set the final, accurate state
       setQuickCustomerName(finalName);
       setQuickCustomerPhone(finalPhone);
     } catch (error) {
       console.error("Error fetching full booking info for quick modal:", error);
-      // In case of error, the initial values will remain.
     } finally {
       setQuickLoading(false);
     }
@@ -2054,11 +1782,11 @@ const WeeklySchedule: React.FC = () => {
       icon: type,
       title: message,
       showConfirmButton: false,
-      timer: 5000,
+      timer: 3000,
       timerProgressBar: true,
       didOpen: (toast) => {
-        toast.addEventListener("mouseenter", () => Swal.stopTimer());
-        toast.addEventListener("mouseleave", () => Swal.resumeTimer());
+        toast.addEventListener("mouseenter", Swal.stopTimer);
+        toast.addEventListener("mouseleave", Swal.resumeTimer);
       },
     });
   };
@@ -2078,9 +1806,10 @@ const WeeklySchedule: React.FC = () => {
 
       if (response.ok) {
         const result = await response.json();
-        const hasConfig = result && Array.isArray(result) && result.length > 0;
+        const data = result.data || result;
+        console.log("Pricing configuration data:", data);
+        const hasConfig = data && Array.isArray(data) && data.length > 0;
         setHasPricingConfiguration(hasConfig);
-        console.log("Pricing configuration check:", hasConfig);
       } else {
         setHasPricingConfiguration(false);
       }
@@ -2100,14 +1829,12 @@ const WeeklySchedule: React.FC = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Schedule API error:", response.status, errorText);
         throw new Error(
           `Lỗi HTTP: ${response.status} - ${errorText || response.statusText}`
         );
       }
 
       const result = await response.json();
-      console.log("Schedule API response:", result);
 
       if (result.success) {
         const mappedBookings: Booking[] = result.data.map(
@@ -2124,7 +1851,7 @@ const WeeklySchedule: React.FC = () => {
             );
             const duration =
               (endDateTime.getTime() - startDateTime.getTime()) /
-              (1000 * 60 * 60); // Tính duration theo giờ
+              (1000 * 60 * 60);
 
             return {
               id: schedule.scheduleId || 0,
@@ -2138,23 +1865,20 @@ const WeeklySchedule: React.FC = () => {
                   : schedule.status === "Scheduled"
                   ? "pending"
                   : "cancelled",
-              contact: "Unknown", // Sẽ được cập nhật từ booking detail
+              contact: "Unknown",
               basePrice: schedule.price || 0,
-              // Chỉ lưu bookingId nếu nó là số dương và có thể hợp lệ
               bookingId:
                 schedule.bookingId && schedule.bookingId > 0
                   ? schedule.bookingId
                   : null,
-              userId: null, // Sẽ được cập nhật từ booking detail
-              guestName: null, // Sẽ được cập nhật từ booking detail
-              guestPhone: null, // Sẽ được cập nhật từ booking detail
+              userId: null,
+              guestName: null,
+              guestPhone: null,
             };
           }
         );
 
         setBookings(mappedBookings);
-        // Chỉ hiển thị toast khi fetch lần đầu hoặc có yêu cầu refresh manual
-        console.log("Schedule loaded successfully");
       } else {
         showToast(result.message || "Không thể lấy lịch sân.", "error");
       }
@@ -2163,7 +1887,6 @@ const WeeklySchedule: React.FC = () => {
         err instanceof Error
           ? err.message
           : "Lỗi không xác định khi lấy lịch sân";
-      console.error("Fetch schedule error:", err);
       showToast(errorMessage, "error");
     } finally {
       setLoading(false);
@@ -2172,7 +1895,6 @@ const WeeklySchedule: React.FC = () => {
 
   const fetchServices = useCallback(async () => {
     if (!facId) {
-      showToast("Không tìm thấy facId.", "error");
       return;
     }
     try {
@@ -2183,7 +1905,6 @@ const WeeklySchedule: React.FC = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Services API error:", response.status, errorText);
         throw new Error(
           `Lỗi khi lấy danh sách dịch vụ: ${response.status} - ${
             errorText || response.statusText
@@ -2192,8 +1913,6 @@ const WeeklySchedule: React.FC = () => {
       }
 
       const result = await response.json();
-      console.log("Services API response:", result);
-
       if (result.success) {
         const mappedServices: Service[] = result.data.map((service: any) => {
           const { icon, unit } = mapServiceToIconAndUnit(service.serviceName);
@@ -2201,13 +1920,12 @@ const WeeklySchedule: React.FC = () => {
             id: service.serviceId,
             name: service.serviceName,
             price: service.price,
-            quantity: 1, // Mặc định quantity là 1
+            quantity: 1,
             icon,
             unit,
           };
         });
         setServices(mappedServices);
-        console.log("Services loaded successfully");
       } else {
         showToast(
           result.message || "Không thể lấy danh sách dịch vụ.",
@@ -2219,16 +1937,12 @@ const WeeklySchedule: React.FC = () => {
         err instanceof Error
           ? err.message
           : "Lỗi không xác định khi lấy danh sách dịch vụ";
-      console.error("Fetch services error:", err);
       showToast(errorMessage, "error");
     }
   }, [facId, getAuthHeaders]);
 
-  // Fetch thông tin facility để lấy giờ mở cửa/đóng cửa
   const fetchFacility = useCallback(async () => {
     if (!facId) {
-      console.log("No facId provided for facility fetch");
-      // Set default values khi không có facId
       setFacility({
         id: 0,
         name: "Cơ sở mặc định",
@@ -2237,178 +1951,22 @@ const WeeklySchedule: React.FC = () => {
       });
       return;
     }
-
-    console.log("Fetching facility info for facId:", facId);
-
     try {
       const response = await fetch(`${API_URL}/api/Facility/${facId}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       });
-
-      console.log("Facility API response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Facility API error:", response.status, errorText);
-
-        // Nếu là lỗi 404, có thể là endpoint không đúng, thử endpoint khác
-        if (response.status === 404) {
-          console.log("Trying alternative endpoint...");
-          const altResponse = await fetch(
-            `${API_URL}/api/Facility/GetById/${facId}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                ...getAuthHeaders(),
-              },
-            }
-          );
-
-          if (altResponse.ok) {
-            const altResult = await altResponse.json();
-            console.log("Alternative facility API response:", altResult);
-
-            if (
-              altResult &&
-              (altResult.success || altResult.data || altResult.id)
-            ) {
-              const data = altResult.data || altResult;
-              const facilityData: Facility = {
-                id: data.facilityId || data.id || facId,
-                name: data.facilityName || data.name || "Cơ sở không xác định",
-                openTime: data.openTime || data.openingTime || "06:00:00",
-                closeTime: data.closeTime || data.closingTime || "23:00:00",
-              };
-              setFacility(facilityData);
-              console.log(
-                "Facility loaded successfully from alternative endpoint:",
-                facilityData
-              );
-              return;
-            }
-          }
-        }
-
-        // Nếu không thể lấy được thông tin, set default và không hiển thị error
-        console.warn("Could not fetch facility info, using defaults");
-        setFacility({
-          id: facId,
-          name: "Cơ sở thể thao",
-          openTime: "06:00:00",
-          closeTime: "23:00:00",
-        });
-        return;
-      }
-
+      if (!response.ok) throw new Error("Failed to fetch facility");
       const result = await response.json();
-      console.log("Facility API response:", result);
-      console.log("Facility response type:", typeof result);
-      console.log("Facility response keys:", Object.keys(result));
-
-      // Xử lý nhiều format response khác nhau
-      let facilityData: Facility;
-
-      if (result.success && result.data) {
-        // Format: { success: true, data: {...} }
-        console.log("Using success + data format");
-        const data = result.data;
-        facilityData = {
-          id: data.facilityId || data.id || facId,
-          name:
-            data.facilityName ||
-            data.name ||
-            data.facilityAddress ||
-            "Cơ sở không xác định",
-          openTime: data.openTime || data.openingTime || "06:00:00",
-          closeTime: data.closeTime || data.closingTime || "23:00:00",
-        };
-      } else if (result.success && Array.isArray(result.data)) {
-        // Format: { success: true, data: [...] }
-        console.log("Using success + array data format");
-        const data = result.data[0];
-        facilityData = {
-          id: data.facilityId || data.id || facId,
-          name:
-            data.facilityName ||
-            data.name ||
-            data.facilityAddress ||
-            "Cơ sở không xác định",
-          openTime: data.openTime || data.openingTime || "06:00:00",
-          closeTime: data.closeTime || data.closingTime || "23:00:00",
-        };
-      } else if (result.id || result.facilityId || result.userId) {
-        // Format trực tiếp: { id: ..., name: ... } hoặc { userId: ..., name: ... }
-        console.log("Using direct format with userId/id");
-        facilityData = {
-          id: result.facilityId || result.id || result.userId || facId,
-          name:
-            result.facilityName ||
-            result.name ||
-            result.address ||
-            "Cơ sở không xác định",
-          openTime: result.openTime || result.openingTime || "06:00:00",
-          closeTime: result.closeTime || result.closingTime || "23:00:00",
-        };
-      } else if (Array.isArray(result) && result.length > 0) {
-        // Format array: [{ id: ..., name: ... }]
-        console.log("Using array format");
-        const data = result[0];
-        facilityData = {
-          id: data.facilityId || data.id || data.userId || facId,
-          name:
-            data.facilityName ||
-            data.name ||
-            data.address ||
-            "Cơ sở không xác định",
-          openTime: data.openTime || data.openingTime || "06:00:00",
-          closeTime: data.closeTime || data.closingTime || "23:00:00",
-        };
-      } else if (result.success) {
-        // Format: { success: true, ...other fields directly }
-        console.log("Using success direct format");
-        facilityData = {
-          id: result.facilityId || result.id || result.userId || facId,
-          name:
-            result.facilityName ||
-            result.name ||
-            result.address ||
-            "Cơ sở không xác định",
-          openTime: result.openTime || result.openingTime || "06:00:00",
-          closeTime: result.closeTime || result.closingTime || "23:00:00",
-        };
-      } else if (result.name && (result.openTime || result.closeTime)) {
-        // Format đơn giản: { name: ..., openTime: ..., closeTime: ... }
-        console.log("Using simple format with name and times");
-        facilityData = {
-          id: result.facilityId || result.id || result.userId || facId,
-          name: result.name || result.address || "Cơ sở không xác định",
-          openTime: result.openTime || "06:00:00",
-          closeTime: result.closeTime || "23:00:00",
-        };
-      } else {
-        // Fallback: sử dụng default values
-        console.log("Unknown response format, using default values");
-        console.log("Response structure:", JSON.stringify(result, null, 2));
-        facilityData = {
-          id: facId,
-          name: "Cơ sở thể thao",
-          openTime: "06:00:00",
-          closeTime: "23:00:00",
-        };
-      }
-
-      setFacility(facilityData);
-      console.log("Facility loaded successfully:", facilityData);
+      const data = result.data || result;
+      setFacility({
+        id: data.facilityId || data.id || facId,
+        name: data.facilityName || data.name || "Cơ sở không xác định",
+        openTime: data.openTime || data.openingTime || "06:00:00",
+        closeTime: data.closeTime || data.closingTime || "23:00:00",
+      });
     } catch (err) {
-      console.error("Fetch facility error:", err);
-
-      // Không hiển thị toast error, chỉ set default values
-      console.log("Setting default facility values due to error");
+      console.error("Fetch facility error, using defaults:", err);
       setFacility({
         id: facId,
         name: "Cơ sở thể thao",
@@ -2419,25 +1977,25 @@ const WeeklySchedule: React.FC = () => {
   }, [facId, getAuthHeaders]);
 
   useEffect(() => {
-    if (fieldId && facId) {
-      Promise.all([
+    if (fieldId) {
+      setLoading(true);
+      Promise.allSettled([
         fetchSchedule(),
         fetchServices(),
         fetchFacility(),
         checkPricingConfiguration(),
       ])
         .catch((err) => {
-          console.error("Error in useEffect:", err);
-          showToast("Lỗi khi tải dữ liệu. Vui lòng thử lại.", "error");
+          console.error("Error during initial data fetch:", err);
+          showToast("Lỗi khi tải dữ liệu ban đầu. Vui lòng thử lại.", "error");
         })
         .finally(() => setLoading(false));
     } else {
-      showToast("Không tìm thấy ID sân hoặc cơ sở.", "error");
+      showToast("Không tìm thấy ID sân. Đang điều hướng lại...", "error");
       navigate(-1);
     }
   }, [
     fieldId,
-    facId,
     navigate,
     fetchSchedule,
     fetchServices,
@@ -2449,27 +2007,16 @@ const WeeklySchedule: React.FC = () => {
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
   const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  // Tạo timeSlots dựa trên giờ mở cửa và đóng cửa của facility
   const timeSlots = useMemo(() => {
     if (!facility) {
-      // Default: 6AM to 11PM nếu chưa có thông tin facility
       return Array.from({ length: 18 }, (_, i) => i + 6);
     }
-
-    // Parse giờ mở cửa và đóng cửa từ facility
     const openHour = parseInt(facility.openTime.split(":")[0], 10);
     const closeHour = parseInt(facility.closeTime.split(":")[0], 10);
-
-    // Tạo mảng các giờ từ openHour đến closeHour-1
     const slots = [];
     for (let hour = openHour; hour < closeHour; hour++) {
       slots.push(hour);
     }
-
-    console.log(
-      `Generated time slots from ${openHour}:00 to ${closeHour}:00:`,
-      slots
-    );
     return slots;
   }, [facility]);
 
@@ -2511,69 +2058,32 @@ const WeeklySchedule: React.FC = () => {
 
   const handleCreateSlot = async (slotData: CreateSlotData) => {
     try {
-      // Kiểm tra xem sân đã có cấu hình giá chưa
-      console.log("Checking pricing configuration for field:", fieldId);
-      const pricingResponse = await fetch(
-        `${API_URL}/api/FieldPricing/byField/${fieldId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-        }
-      );
-
-      if (pricingResponse.ok) {
-        const pricingResult = await pricingResponse.json();
-        console.log("Pricing check result:", pricingResult);
-
-        if (
-          !pricingResult ||
-          !Array.isArray(pricingResult) ||
-          pricingResult.length === 0
-        ) {
-          Swal.fire({
-            icon: "warning",
-            title: "Chưa cấu hình giá",
-            text: "Sân này chưa có cấu hình giá theo khung giờ. Vui lòng cấu hình giá trước khi tạo slot.",
-            confirmButtonText: "Cấu hình giá ngay",
-            showCancelButton: true,
-            cancelButtonText: "Hủy bỏ",
-          }).then((result) => {
-            if (result.isConfirmed) {
-              setShowPricingModal(true);
-            }
-          });
-          return;
-        }
-      } else {
-        console.warn("Cannot check pricing, but allowing slot creation");
+      if (!hasPricingConfiguration) {
+        Swal.fire({
+          icon: "warning",
+          title: "Chưa cấu hình giá",
+          text: "Sân này chưa có cấu hình giá theo khung giờ. Vui lòng cấu hình giá trước khi tạo slot.",
+          confirmButtonText: "Cấu hình giá ngay",
+          showCancelButton: true,
+          cancelButtonText: "Hủy bỏ",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            setShowCreateSlotModal(false);
+            setShowPricingModal(true);
+          }
+        });
+        return;
       }
-
-      // Convert time strings to TimeSpan format (HH:mm:ss)
-      const formatTimeSpan = (timeString: string) => {
-        return `${timeString}:00`; // Convert "HH:mm" to "HH:mm:ss"
-      };
-
-      // Ensure date format is YYYY-MM-DD
-      const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toISOString().split("T")[0];
-      };
 
       const requestBody = {
         fieldId: Number(slotData.fieldId),
-        startDate: formatDate(slotData.startDate),
-        endDate: formatDate(slotData.endDate),
-        dailyStartTime: formatTimeSpan(slotData.startTime),
-        dailyEndTime: formatTimeSpan(slotData.endTime),
+        startDate: format(new Date(slotData.startDate), "yyyy-MM-dd"),
+        endDate: format(new Date(slotData.endDate), "yyyy-MM-dd"),
+        dailyStartTime: `${slotData.startTime}:00`,
+        dailyEndTime: `${slotData.endTime}:00`,
         notes: slotData.notes || "",
       };
 
-      console.log("Creating slot with data:", requestBody);
-
-      // API call để tạo slot
       const response = await fetch(
         `${API_URL}/api/FieldBookingSchedule/generate`,
         {
@@ -2588,55 +2098,74 @@ const WeeklySchedule: React.FC = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Create slot API error:", response.status, errorText);
-
-        // Try to parse error details
-        try {
-          const errorData = JSON.parse(errorText);
-          const errorMessages: string[] = [];
-
-          if (errorData.errors) {
-            Object.keys(errorData.errors).forEach((key) => {
-              errorData.errors[key].forEach((message: string) => {
-                errorMessages.push(`${key}: ${message}`);
-              });
-            });
-          }
-
-          const detailedError =
-            errorMessages.length > 0
-              ? errorMessages.join("\n")
-              : errorData.title || "Lỗi không xác định";
-
-          throw new Error(
-            `Lỗi khi tạo slot (${response.status}):\n${detailedError}`
-          );
-        } catch {
-          throw new Error(
-            `Lỗi khi tạo slot: ${response.status} - ${
-              errorText || response.statusText
-            }`
-          );
-        }
+        throw new Error(
+          `Lỗi khi tạo slot: ${response.status} - ${
+            errorText || response.statusText
+          }`
+        );
       }
 
-      const result = await response.json();
-      console.log("Create slot API response:", result);
-
-      // Kiểm tra cả success và có data
-      if (result.success || result.data || response.status === 200) {
-        showToast("Tạo slot đặt sân thành công!", "success");
-        setShowCreateSlotModal(false);
-        // Reload schedule data
-        await fetchSchedule();
-      } else {
-        showToast(result.message || "Không thể tạo slot.", "error");
-      }
+      showToast("Tạo slot đặt sân thành công!", "success");
+      setShowCreateSlotModal(false);
+      await fetchSchedule();
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Lỗi không xác định khi tạo slot";
-      console.error("Create slot error:", err);
-      showToast(errorMessage, "error");
+      showToast((err as Error).message, "error");
+    }
+  };
+
+  const handleUpdateSlot = async (slotData: CreateSlotData) => {
+    try {
+      const requestBody = {
+        fieldId: Number(slotData.fieldId),
+        startDate: format(new Date(slotData.startDate), "yyyy-MM-dd"),
+        endDate: format(new Date(slotData.endDate), "yyyy-MM-dd"),
+        dailyStartTime: `${slotData.startTime}:00`,
+        dailyEndTime: `${slotData.endTime}:00`,
+        notes: slotData.notes || "",
+      };
+
+      await updateBookingSlot(requestBody);
+      showToast("Cập nhật slot thành công!", "success");
+      setShowCreateSlotModal(false);
+      await fetchSchedule();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    }
+  };
+
+  const handleDeleteSlot = async (slotData: CreateSlotData) => {
+    try {
+      const confirmation = await Swal.fire({
+        title: "Bạn chắc chắn chứ?",
+        html: `Bạn sắp xóa tất cả các slot <strong>trống</strong> từ ngày <strong>${format(
+          new Date(slotData.startDate),
+          "dd/MM/yyyy"
+        )}</strong> đến <strong>${format(
+          new Date(slotData.endDate),
+          "dd/MM/yyyy"
+        )}</strong>.<br/>Các slot đã được đặt sẽ không bị ảnh hưởng. Hành động này không thể hoàn tác!`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Vâng, xóa!",
+        cancelButtonText: "Hủy",
+      });
+
+      if (!confirmation.isConfirmed) return;
+
+      const requestBody = {
+        fieldId: Number(slotData.fieldId),
+        startDate: format(new Date(slotData.startDate), "yyyy-MM-dd"),
+        endDate: format(new Date(slotData.endDate), "yyyy-MM-dd"),
+      };
+
+      await deleteBookingSlot(requestBody);
+      showToast("Xóa các slot trống thành công!", "success");
+      setShowCreateSlotModal(false);
+      await fetchSchedule();
+    } catch (err) {
+      showToast((err as Error).message, "error");
     }
   };
 
@@ -2647,25 +2176,7 @@ const WeeklySchedule: React.FC = () => {
         <div className="min-h-screen flex flex-col bg-gray-50 pl-4 pt-4 ml-[256px]">
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <svg
-                className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-4"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
+              <FiRefreshCw className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900">
                 Đang tải lịch sân...
               </h2>
@@ -2682,34 +2193,19 @@ const WeeklySchedule: React.FC = () => {
       <div className="min-h-screen flex flex-col bg-gray-50 pl-4 pt-4">
         <div className="flex-1 ml-[256px] p-4">
           <div className="max-w-7xl w-full mx-auto space-y-6">
-            {/* Cảnh báo khi chưa có cấu hình giá */}
             {!hasPricingConfiguration && (
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
                 <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-yellow-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
                   <div className="ml-3 flex-1">
                     <p className="text-sm text-yellow-700">
-                      <strong>Cảnh báo:</strong> Sân này chưa có cấu hình giá
-                      theo khung giờ. Vui lòng cấu hình giá trước khi tạo slot
-                      đặt sân.
+                      <strong>Cảnh báo:</strong> Sân này chưa có cấu hình giá.
+                      Vui lòng cấu hình giá trước khi tạo slot.
                     </p>
                   </div>
                   <div className="ml-3">
                     <button
                       onClick={() => setShowPricingModal(true)}
-                      className="bg-yellow-500 text-white px-4 py-2 rounded-md text-sm hover:bg-yellow-600 transition-colors"
+                      className="bg-yellow-500 text-white px-4 py-2 rounded-md text-sm hover:bg-yellow-600"
                     >
                       Cấu hình ngay
                     </button>
@@ -2717,12 +2213,11 @@ const WeeklySchedule: React.FC = () => {
                 </div>
               </div>
             )}
-
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => navigate(-1)}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
                   title="Quay lại trang trước"
                 >
                   <FiChevronLeft className="h-4 w-4" />
@@ -2732,84 +2227,39 @@ const WeeklySchedule: React.FC = () => {
                   <h1 className="text-3xl font-bold text-gray-900">
                     Lịch sân: {fieldName}
                   </h1>
-                  <p className="text-gray-600 text-sm mt-1">
-                    Quản lý lịch đặt sân và tạo slot mới
-                  </p>
                   {facility && (
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
-                        <span>🏢</span>
-                        {facility.name}
+                        🏢 {facility.name}
                       </span>
                       <span className="flex items-center gap-1">
-                        <span>🕐</span>
-                        {facility.openTime.substring(0, 5)} -{" "}
+                        🕐
+                        {facility.openTime.substring(0, 5)} -
                         {facility.closeTime.substring(0, 5)}
                       </span>
                     </div>
                   )}
                 </div>
               </div>
-
               <div className="flex items-center gap-3">
-                <div className="relative group">
-                  <button
-                    onClick={() => {
-                      if (hasPricingConfiguration) {
-                        setShowCreateSlotModal(true);
-                      } else {
-                        Swal.fire({
-                          icon: "warning",
-                          title: "Chưa cấu hình giá",
-                          text: "Vui lòng cấu hình giá cho sân trước khi tạo slot đặt sân.",
-                          confirmButtonText: "Cấu hình giá ngay",
-                          showCancelButton: true,
-                          cancelButtonText: "Hủy bỏ",
-                        }).then((result) => {
-                          if (result.isConfirmed) {
-                            setShowPricingModal(true);
-                          }
-                        });
-                      }
-                    }}
-                    disabled={!hasPricingConfiguration}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
-                      hasPricingConfiguration
-                        ? "bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
-                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    }`}
-                    title={
-                      hasPricingConfiguration
-                        ? "Tạo slot đặt sân mới"
-                        : "Vui lòng cấu hình giá trước"
-                    }
-                  >
-                    <FiPlus className="w-5 h-5" />
-                    Tạo slot
-                  </button>
-                  {!hasPricingConfiguration && (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      ⚠️ Chưa cấu hình giá cho sân
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => setShowCreateSlotModal(true)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg bg-green-500 text-white"
+                  title="Tạo, cập nhật, hoặc xóa slot trống hàng loạt"
+                >
+                  <FiCalendar className="w-5 h-5" />
+                  Quản lý slot
+                </button>
                 <button
                   onClick={() => setShowPricingModal(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg"
                   title="Quản lý giá đặt theo giờ"
                 >
                   <FiDollarSign className="w-5 h-5" />
                   Quản lý giá
                 </button>
-                <button
-                  className="p-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
-                  title="Xuất dữ liệu"
-                >
-                  <FiDownload className="w-5 h-5 text-gray-600" />
-                </button>
               </div>
             </div>
-
             <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <div className="flex items-center space-x-4">
                 <button
@@ -2821,11 +2271,12 @@ const WeeklySchedule: React.FC = () => {
                 </button>
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-gray-800">
-                    {format(weekStart, "dd/MM", { locale: vi })} -{" "}
+                    {format(weekStart, "dd/MM", { locale: vi })} -
                     {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Tuần {format(weekStart, "w", { locale: vi })} năm{" "}
+                    Tuần
+                    {format(weekStart, "w", { locale: vi })} năm
                     {format(weekStart, "yyyy")}
                   </p>
                 </div>
@@ -2845,7 +2296,6 @@ const WeeklySchedule: React.FC = () => {
                   <span>Hôm nay</span>
                 </button>
               </div>
-
               <div className="flex items-center space-x-4 w-full lg:w-auto">
                 <div className="relative flex-1 lg:flex-none">
                   <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -2857,16 +2307,8 @@ const WeeklySchedule: React.FC = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <span>Tìm thấy:</span>
-                  <span className="font-medium text-blue-600">
-                    {filteredBookings.length}
-                  </span>
-                  <span>đặt sân</span>
-                </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
@@ -2898,7 +2340,6 @@ const WeeklySchedule: React.FC = () => {
                   </div>
                 </div>
               </div>
-
               <div className="overflow-x-auto">
                 <div className="min-w-[1200px] schedule-grid">
                   <div className="grid grid-cols-8 gap-1 bg-gray-100 p-2">
@@ -2912,10 +2353,8 @@ const WeeklySchedule: React.FC = () => {
                       return (
                         <div
                           key={day.toString()}
-                          className={`bg-white rounded-lg text-center font-semibold py-4 transition-all duration-200 ${
-                            isToday
-                              ? "ring-2 ring-blue-500 bg-blue-50 shadow-md"
-                              : "hover:shadow-md hover:bg-gray-50"
+                          className={`bg-white rounded-lg text-center font-semibold py-4 ${
+                            isToday ? "ring-2 ring-blue-500" : ""
                           }`}
                         >
                           <div
@@ -2932,23 +2371,14 @@ const WeeklySchedule: React.FC = () => {
                           >
                             {format(day, "dd/MM", { locale: vi })}
                           </div>
-                          {isToday && (
-                            <div className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 mt-1">
-                              Hôm nay
-                            </div>
-                          )}
                         </div>
                       );
                     })}
-
                     {timeSlots.map((hour) => (
                       <React.Fragment key={hour}>
-                        <div className="bg-white rounded-lg flex items-center justify-end pr-4 py-4 font-semibold text-gray-700 border-r border-gray-200 sticky left-0 z-10">
+                        <div className="bg-white rounded-lg flex items-center justify-end pr-4 py-4 font-semibold text-gray-700 sticky left-0 z-10">
                           <div className="text-right">
                             <div className="text-lg">{hour}:00</div>
-                            <div className="text-xs text-gray-500">
-                              {hour < 12 ? "SA" : "CH"}
-                            </div>
                           </div>
                         </div>
                         {daysInWeek.map((day) => {
@@ -2958,30 +2388,15 @@ const WeeklySchedule: React.FC = () => {
                               booking.date.getHours() === hour
                           );
                           const isEmpty = dayBookings.length === 0;
-                          const isToday = isSameDay(day, new Date());
-
                           return (
                             <div
                               key={`${day}-${hour}`}
-                              className={`bg-white rounded-lg min-h-[100px] p-2 border transition-all duration-200 ${
-                                isEmpty
-                                  ? `border-dashed border-gray-200 hover:border-gray-300 hover:bg-gray-50 ${
-                                      isToday ? "bg-blue-25" : ""
-                                    }`
-                                  : "border-solid border-gray-100"
+                              className={`bg-white rounded-lg min-h-[100px] p-2 border ${
+                                isEmpty ? "border-dashed" : "border-solid"
                               }`}
                             >
                               {isEmpty ? (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                  <div className="text-center">
-                                    <div className="text-xs opacity-60">
-                                      Trống
-                                    </div>
-                                    {isToday && (
-                                      <div className="w-2 h-2 bg-blue-400 rounded-full mx-auto mt-1"></div>
-                                    )}
-                                  </div>
-                                </div>
+                                <div className="w-full h-full flex items-center justify-center text-gray-400"></div>
                               ) : (
                                 <div className="space-y-1">
                                   {dayBookings.map((booking) => (
@@ -3002,94 +2417,84 @@ const WeeklySchedule: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {showQuickModal && selectedBooking && (
-              <div
-                style={{ marginTop: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
-              >
-                <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg">
-                  <h3 className="text-lg font-bold mb-2">Thông tin đặt sân</h3>
-                  <div className="space-y-2">
-                    <p>
-                      <span className="font-medium">Tên khách hàng:</span>{" "}
-                      {quickLoading ? (
-                        <span className="text-gray-400">Đang tải...</span>
-                      ) : (
-                        quickCustomerName
-                      )}
-                    </p>
-                    <p>
-                      <span className="font-medium">Số điện thoại:</span>{" "}
-                      {quickLoading ? (
-                        <span className="text-gray-400">Đang tải...</span>
-                      ) : (
-                        quickCustomerPhone
-                      )}
-                    </p>
-                    <p>
-                      <span className="font-medium">Sân:</span>{" "}
-                      {selectedBooking.field}
-                    </p>
-                    <p>
-                      <span className="font-medium">Thời gian:</span>{" "}
-                      {selectedBooking.duration} giờ
-                    </p>
-                    <p>
-                      <span className="font-medium">Trạng thái:</span>{" "}
-                      {selectedBooking.status === "confirmed"
-                        ? "Đã xác nhận"
-                        : selectedBooking.status === "pending"
-                        ? "Chờ xác nhận"
-                        : "Đã hủy"}
-                    </p>
-                  </div>
-                  <div className="flex justify-end gap-2 mt-4">
-                    <button
-                      onClick={handleCloseQuickModal}
-                      className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                    >
-                      Đóng
-                    </button>
-                    <button
-                      onClick={handleOpenDetailModal}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      Hóa đơn tổng
-                    </button>
-                  </div>
+          </div>
+          {showQuickModal && selectedBooking && (
+            <div
+              style={{ marginTop: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+            >
+              <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg">
+                <h3 className="text-lg font-bold mb-2">Thông tin đặt sân</h3>
+                <div className="space-y-2">
+                  <p>
+                    <span className="font-medium">Tên khách hàng:</span>
+                    {quickLoading ? "Đang tải..." : quickCustomerName}
+                  </p>
+                  <p>
+                    <span className="font-medium">Số điện thoại:</span>
+                    {quickLoading ? "Đang tải..." : quickCustomerPhone}
+                  </p>
+                  <p>
+                    <span className="font-medium">Sân:</span>
+                    {selectedBooking.field}
+                  </p>
+                  <p>
+                    <span className="font-medium">Thời gian:</span>
+                    {selectedBooking.duration} giờ
+                  </p>
+                  <p>
+                    <span className="font-medium">Trạng thái:</span>
+                    {selectedBooking.status === "confirmed"
+                      ? "Đã xác nhận"
+                      : selectedBooking.status === "pending"
+                      ? "Chờ xác nhận"
+                      : "Đã hủy"}
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    onClick={handleCloseQuickModal}
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    onClick={handleOpenDetailModal}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Hóa đơn tổng
+                  </button>
                 </div>
               </div>
-            )}
-
-            {showDetailModal && selectedBooking && (
-              <BookingDetailsModal
-                booking={selectedBooking}
-                onClose={handleCloseDetailModal}
-                onConfirm={handleBookingConfirm}
-                availableServices={services}
-              />
-            )}
-
-            <CreateSlotModal
-              isOpen={showCreateSlotModal}
-              onClose={() => setShowCreateSlotModal(false)}
-              onSubmit={handleCreateSlot}
-              fieldId={fieldId}
-              fieldName={fieldName}
-              facility={facility}
+            </div>
+          )}
+          {showDetailModal && selectedBooking && (
+            <BookingDetailsModal
+              booking={selectedBooking}
+              onClose={handleCloseDetailModal}
+              onConfirm={handleBookingConfirm}
+              availableServices={services}
             />
-
-            <PricingManagementModal
-              isOpen={showPricingModal}
-              onClose={() => setShowPricingModal(false)}
-              fieldId={fieldId}
-              fieldName={fieldName}
-              showToast={showToast}
-              fetchSchedule={fetchSchedule}
-              onPricingUpdate={checkPricingConfiguration}
-            />
-          </div>
+          )}
+          <CreateSlotModal
+            isOpen={showCreateSlotModal}
+            onClose={() => setShowCreateSlotModal(false)}
+            onSubmit={handleCreateSlot}
+            onUpdate={handleUpdateSlot}
+            onDelete={handleDeleteSlot}
+            fieldId={fieldId}
+            fieldName={fieldName}
+            facility={facility}
+          />
+          <PricingManagementModal
+            isOpen={showPricingModal}
+            onClose={() => setShowPricingModal(false)}
+            fieldId={fieldId}
+            fieldName={fieldName}
+            showToast={showToast}
+            fetchSchedule={fetchSchedule}
+            onPricingUpdate={checkPricingConfiguration}
+          />
         </div>
       </div>
     </>

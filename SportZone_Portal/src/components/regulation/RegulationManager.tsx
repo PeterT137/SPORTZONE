@@ -13,11 +13,11 @@ import type { RegulationFormData } from "./RegulationFormModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
 type Regulation = {
-  regulationId: number;
+  regulationSystemId: number;
   title: string;
   description: string;
   status: string;
-  createdDate?: string;
+  createAt?: string;
 };
 
 const RegulationManager: React.FC = () => {
@@ -44,6 +44,7 @@ const RegulationManager: React.FC = () => {
       .then(async (res) => {
         if (!res.ok) throw new Error("Lỗi khi lấy danh sách quy định");
         const data = await res.json();
+        console.log("API quy định trả về:", data);
         setRegulations(Array.isArray(data) ? data : []);
         setLoading(false);
       })
@@ -278,7 +279,7 @@ const RegulationManager: React.FC = () => {
                   {paginatedRegulations.length > 0 ? (
                     paginatedRegulations.map((regulation, idx) => (
                       <tr
-                        key={regulation.regulationId}
+                        key={regulation.regulationSystemId ?? `row-${idx}`}
                         className="hover:bg-gray-50"
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -291,10 +292,10 @@ const RegulationManager: React.FC = () => {
                           {regulation.description}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {regulation.createdDate
-                            ? new Date(
-                                regulation.createdDate
-                              ).toLocaleDateString("vi-VN")
+                          {regulation.createAt
+                            ? new Date(regulation.createAt).toLocaleDateString(
+                                "vi-VN"
+                              )
                             : ""}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -314,19 +315,47 @@ const RegulationManager: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() =>
-                                handleEditRegulation(regulation.regulationId)
+                                regulation.regulationSystemId !== undefined &&
+                                regulation.regulationSystemId !== null
+                                  ? handleEditRegulation(
+                                      regulation.regulationSystemId
+                                    )
+                                  : undefined
                               }
-                              className="text-green-600 hover:text-green-800 p-1"
+                              className={`text-green-600 hover:text-green-800 p-1${
+                                regulation.regulationSystemId === undefined ||
+                                regulation.regulationSystemId === null
+                                  ? " opacity-50 cursor-not-allowed"
+                                  : ""
+                              }`}
                               title="Chỉnh sửa"
+                              disabled={
+                                regulation.regulationSystemId === undefined ||
+                                regulation.regulationSystemId === null
+                              }
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() =>
-                                handleDeleteRegulation(regulation.regulationId)
+                                regulation.regulationSystemId !== undefined &&
+                                regulation.regulationSystemId !== null
+                                  ? handleDeleteRegulation(
+                                      regulation.regulationSystemId
+                                    )
+                                  : undefined
                               }
-                              className="text-red-600 hover:text-red-800 p-1"
+                              className={`text-red-600 hover:text-red-800 p-1${
+                                regulation.regulationSystemId === undefined ||
+                                regulation.regulationSystemId === null
+                                  ? " opacity-50 cursor-not-allowed"
+                                  : ""
+                              }`}
                               title="Xóa"
+                              disabled={
+                                regulation.regulationSystemId === undefined ||
+                                regulation.regulationSystemId === null
+                              }
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -409,7 +438,7 @@ const RegulationManager: React.FC = () => {
             editRegulationId !== null
               ? (() => {
                   const r = regulations.find(
-                    (r) => r.regulationId === editRegulationId
+                    (r) => r.regulationSystemId === editRegulationId
                   );
                   return r
                     ? {
@@ -433,8 +462,9 @@ const RegulationManager: React.FC = () => {
           onConfirm={handleConfirmDelete}
           regulationName={
             deleteRegulationId !== null
-              ? regulations.find((r) => r.regulationId === deleteRegulationId)
-                  ?.title
+              ? regulations.find(
+                  (r) => r.regulationSystemId === deleteRegulationId
+                )?.title
               : ""
           }
         />

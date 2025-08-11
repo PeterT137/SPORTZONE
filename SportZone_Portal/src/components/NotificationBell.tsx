@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 
 interface Notification {
-  id: number;
-  text: string;
+  notiId: number;
+  content: string;
   isRead: boolean;
 }
 
@@ -17,18 +17,28 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userId }) => {
 
   const fetchNotifications = React.useCallback(async () => {
     setLoading(true);
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`/api/Notification/user/${userId}`, {
         credentials: "include",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setNotifications(data);
-      } else if (data.success && Array.isArray(data.data)) {
-        setNotifications(data.data);
-      } else {
-        setNotifications([]);
-      }
+      const arr = Array.isArray(data)
+        ? data
+        : data.success && Array.isArray(data.data)
+        ? data.data
+        : [];
+      const notifications: Notification[] = arr.map(
+        (item: { notiId: number; content?: string; isRead?: boolean }) => ({
+          notiId: item.notiId,
+          content: item.content ?? "",
+          isRead: item.isRead ?? false,
+        })
+      );
+      setNotifications(notifications);
     } catch {
       setNotifications([]);
     }
@@ -41,30 +51,44 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userId }) => {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const markAsRead = async (notificationId: number) => {
-    await fetch(`/api/Notification/mark-as-read/${notificationId}`, {
+  const markAsRead = async (notiId: number | undefined) => {
+    if (typeof notiId !== "number" || isNaN(notiId)) return;
+    const token = localStorage.getItem("token");
+    await fetch(`/api/Notification/mark-as-read/${notiId}`, {
       method: "PUT",
       credentials: "include",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
     setNotifications((prev) =>
-      prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
+      prev.map((n) => (n.notiId === notiId ? { ...n, isRead: true } : n))
     );
   };
 
   const markAllAsRead = async () => {
+    const token = localStorage.getItem("token");
     await fetch(`/api/Notification/mark-all-as-read/${userId}`, {
       method: "PUT",
       credentials: "include",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
-  const deleteNotification = async (notificationId: number) => {
-    await fetch(`/api/Notification/${notificationId}`, {
+  const deleteNotification = async (notiId: number | undefined) => {
+    if (typeof notiId !== "number" || isNaN(notiId)) return;
+    const token = localStorage.getItem("token");
+    await fetch(`/api/Notification/${notiId}`, {
       method: "DELETE",
       credentials: "include",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
-    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    setNotifications((prev) => prev.filter((n) => n.notiId !== notiId));
   };
 
   return (
@@ -120,59 +144,65 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userId }) => {
                 Không có thông báo mới
               </li>
             ) : (
-              notifications.map((noti) => (
-                <li
-                  key={noti.id}
-                  className={`px-5 py-3 flex items-center gap-2 group ${
-                    noti.isRead ? "opacity-60" : ""
-                  }`}
-                >
-                  <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                  <span className="flex-1 text-sm text-gray-800">
-                    {noti.text}
-                  </span>
-                  {!noti.isRead && (
-                    <button
-                      className="ml-2 text-green-500 hover:text-green-700 p-1 rounded-full transition-colors"
-                      title="Đánh dấu đã đọc"
-                      onClick={() => markAsRead(noti.id)}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                  <button
-                    className="ml-2 text-red-500 hover:text-red-700 p-1 rounded-full transition-colors"
-                    title="Xóa thông báo"
-                    onClick={() => deleteNotification(noti.id)}
+              notifications.map((noti, idx) => {
+                const validId =
+                  typeof noti.notiId === "number" && !isNaN(noti.notiId);
+                return (
+                  <li
+                    key={validId ? noti.notiId : `noti-${idx}`}
+                    className={`px-5 py-3 flex items-center gap-2 group ${
+                      noti.isRead ? "opacity-60" : ""
+                    }`}
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </li>
-              ))
+                    <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                    <span className="flex-1 text-sm text-gray-800">
+                      {noti.content}
+                    </span>
+                    {!noti.isRead && validId && (
+                      <button
+                        className="ml-2 text-green-500 hover:text-green-700 p-1 rounded-full transition-colors"
+                        title="Đánh dấu đã đọc"
+                        onClick={() => markAsRead(noti.notiId)}
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                    {validId && (
+                      <button
+                        className="ml-2 text-red-500 hover:text-red-700 p-1 rounded-full transition-colors"
+                        title="Xóa thông báo"
+                        onClick={() => deleteNotification(noti.notiId)}
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </li>
+                );
+              })
             )}
           </ul>
         </div>

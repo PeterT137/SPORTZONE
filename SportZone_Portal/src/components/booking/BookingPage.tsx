@@ -604,7 +604,6 @@ const BookingPage: React.FC = () => {
     selectedServices: [],
   });
 
-  // Helper function to get user info from localStorage
   const getUserInfoFromStorage = useCallback((): UserProfile | null => {
     try {
       const userStr = localStorage.getItem("user");
@@ -614,7 +613,7 @@ const BookingPage: React.FC = () => {
       return {
         fullName:
           user.Admin?.name ||
-          user.Customers?.[0]?.name ||
+          user.Customer?.name ||
           user.FieldOwner?.name ||
           user.Staff?.name ||
           "",
@@ -638,19 +637,16 @@ const BookingPage: React.FC = () => {
           user.Staff?.phone ||
           "",
       };
-    } catch (error) {
-      console.error("Error parsing user from localStorage:", error);
+    } catch {
       return null;
     }
   }, []);
 
-  // Helper function to get user info from token (fallback)
   const getUserInfoFromToken = useCallback((): UserProfile | null => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return null;
 
-      // Decode JWT token to get user info
       const base64Url = token.split(".")[1];
       const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
       const jsonPayload = decodeURIComponent(

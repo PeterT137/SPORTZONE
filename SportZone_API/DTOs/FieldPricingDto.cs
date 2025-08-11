@@ -5,6 +5,7 @@ namespace SportZone_API.DTOs
 {
     public class FieldPricingDto
     {
+        public int PricingId { get; set; }
         public int FieldId { get; set; }
         public TimeOnly StartTime { get; set; } 
         public TimeOnly EndTime { get; set; }   
