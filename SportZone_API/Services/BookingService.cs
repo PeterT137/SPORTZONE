@@ -37,7 +37,7 @@ namespace SportZone_API.Services
                 var validation = await ValidateBookingRulesAsync(bookingDto);
                 if (!validation.IsValid)
                     throw new ArgumentException(validation.ErrorMessage);
-                var booking = await _bookingRepository.CreateBookingAsync(bookingDto);
+                var booking = await _bookingRepository.CreateBookingAsync(bookingDto, "Success");
                 var detail = await _bookingRepository.GetBookingByIdAsync(booking.BookingId);
                 if (detail == null)
                     throw new Exception("Không thể lấy thông tin booking vừa tạo");
@@ -311,8 +311,8 @@ namespace SportZone_API.Services
                     FacilityId = bookingDto.FacilityId
                 };
 
-                // Tạo booking
-                var booking = await _bookingRepository.CreateBookingAsync(pendingBookingDto);
+                // Tạo booking với status Pending
+                var booking = await _bookingRepository.CreateBookingAsync(pendingBookingDto, "Pending");
 
                 // Lưu thông tin pending booking
                 var pendingInfo = new PendingBookingInfo
@@ -358,6 +358,8 @@ namespace SportZone_API.Services
                 if (booking == null)
                     return false;
 
+                // Update cả Status và StatusPayment thành Success khi thanh toán thành công
+                booking.Status = "Success";
                 booking.StatusPayment = "Success";
                 await _bookingRepository.UpdateBookingAsync(booking);
 

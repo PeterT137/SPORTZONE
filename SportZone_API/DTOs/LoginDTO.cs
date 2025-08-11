@@ -64,4 +64,29 @@ namespace SportZone_API.DTOs
         public string? Address { get; set; }
         public string? Description { get; set; }
     }
+
+    public class LoginResponseDTO
+    {
+        public int UId { get; set; }
+        public int? RoleId { get; set; }
+        public string? UEmail { get; set; }
+        public string? UPassword { get; set; }
+        public string? UStatus { get; set; }
+        public DateTime? UCreateDate { get; set; }
+        public bool? IsExternalLogin { get; set; }
+        public bool? IsVerify { get; set; }
+
+        // Thông tin từ bảng Role
+        public string? RoleName { get; set; }
+
+        // Thông tin Name và Phone từ các bảng con
+        public string? Name { get; set; }
+        public string? Phone { get; set; }
+
+        // Các collection khác
+        public List<object> Bookings { get; set; } = new List<object>();
+        public List<object> Notifications { get; set; } = new List<object>();
+        public List<object> Orders { get; set; } = new List<object>();
+        public List<object> Payments { get; set; } = new List<object>();
+    }
 }
