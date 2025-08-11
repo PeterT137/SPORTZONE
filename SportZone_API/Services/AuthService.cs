@@ -61,7 +61,7 @@ namespace SportZone_API.Services
             return HasRole(user, UserRole.Staff);
         }
 
-        public async Task<(string token, User user, FacilityInfoLoginDTO? facilityInfo)> LoginAsync(LoginDTO loginDto)
+        public async Task<(string token, LoginResponseDTO user, FacilityInfoLoginDTO? facilityInfo)> LoginAsync(LoginDTO loginDto)
         {
             try
             {
@@ -97,14 +97,70 @@ namespace SportZone_API.Services
                 var token = GenerateJwtToken(authenticatedUser);
                 var facilityInfo = await GetUserFacilityInfoAsync(authenticatedUser);
 
+                // Tạo LoginResponseDTO với thông tin đầy đủ
+                var loginResponse = CreateLoginResponseDTO(authenticatedUser);
+
                 await _hubContext.Clients.User(authenticatedUser.UId.ToString()).SendAsync("ReceiveNotification", $"Chào mừng bạn đã trở lại, {authenticatedUser.UEmail}!");
 
-                return (token, authenticatedUser, facilityInfo);
+                return (token, loginResponse, facilityInfo);
             }
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi đăng nhập: {ex.Message}", ex);
             }
+        }
+        private LoginResponseDTO CreateLoginResponseDTO(User user)
+        {
+            var response = new LoginResponseDTO
+            {
+                UId = user.UId,
+                RoleId = user.RoleId,
+                UEmail = user.UEmail,
+                UPassword = user.UPassword,
+                UStatus = user.UStatus,
+                UCreateDate = user.UCreateDate,
+                IsExternalLogin = user.IsExternalLogin,
+                IsVerify = user.IsVerify,
+                RoleName = user.Role?.RoleName,
+                Bookings = new List<object>(),
+                Notifications = new List<object>(),
+                Orders = new List<object>(),
+                Payments = new List<object>()
+            };
+
+            switch (user.RoleId)
+            {
+                case 1: // Customer
+                    if (user.Customer != null)
+                    {
+                        response.Name = user.Customer.Name;
+                        response.Phone = user.Customer.Phone;
+                    }
+                    break;
+                case 2: // FieldOwner
+                    if (user.FieldOwner != null)
+                    {
+                        response.Name = user.FieldOwner.Name;
+                        response.Phone = user.FieldOwner.Phone;
+                    }
+                    break;
+                case 3: // Admin
+                    if (user.Admin != null)
+                    {
+                        response.Name = user.Admin.Name;
+                        response.Phone = user.Admin.Phone;
+                    }
+                    break;
+                case 4: // Staff
+                    if (user.Staff != null)
+                    {
+                        response.Name = user.Staff.Name;
+                        response.Phone = user.Staff.Phone;
+                    }
+                    break;
+            }
+
+            return response;
         }
 
         public async Task<(string token, User user)> GoogleLoginAsync(GoogleLoginDTO googleLoginDto)

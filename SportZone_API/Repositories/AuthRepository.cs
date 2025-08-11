@@ -18,6 +18,11 @@ namespace SportZone_API.Repositories
             try
             {
                 return await _context.Users
+                    .Include(u => u.Customer)
+                    .Include(u => u.Staff)
+                    .Include(u => u.Admin)
+                    .Include(u => u.FieldOwner)
+                    .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.UEmail == email && u.IsExternalLogin == isExternalLogin);
             }
             catch (Exception ex)
@@ -31,6 +36,11 @@ namespace SportZone_API.Repositories
             try
             {
                 return await _context.Users
+                    .Include(u => u.Customer)
+                    .Include(u => u.Staff)
+                    .Include(u => u.Admin)
+                    .Include(u => u.FieldOwner)
+                    .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.UId == userId);
             }
             catch (Exception ex)
