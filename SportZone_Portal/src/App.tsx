@@ -24,6 +24,7 @@ import StaffManager from "./components/staff/StaffManager";
 import UsersManager from "./components/users/UsersManager";
 import RegulationManager from "./components/regulation/RegulationManager";
 import FinanceManager from "./pages/FinanceManager";
+import AppNotificationDemo from "./AppNotificationDemo";
 const AppContent: React.FC = () => {
   return (
     <Routes>
@@ -61,6 +62,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <Router>
+      <AppNotificationDemo />
       <AppContent />
     </Router>
   );

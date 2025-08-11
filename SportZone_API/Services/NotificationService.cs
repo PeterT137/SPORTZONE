@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using SportZone_API.Models;
 using SportZone_API.Repository.Interfaces;
 using SportZone_API.Services.Interfaces;
@@ -10,11 +11,13 @@ namespace SportZone_API.Services
     {
         private readonly INotificationRepository _notificationRepository;
         private readonly SportZoneContext _context;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<SportZone_API.Hubs.NotificationHub> _hubContext;
 
-        public NotificationService(INotificationRepository notificationRepository, SportZoneContext context)
+        public NotificationService(INotificationRepository notificationRepository, SportZoneContext context, Microsoft.AspNetCore.SignalR.IHubContext<SportZone_API.Hubs.NotificationHub> hubContext)
         {
             _notificationRepository = notificationRepository;
             _context = context;
+            _hubContext = hubContext;
         }
 
         public async Task CreateBookingSuccessNotificationAsync(Booking booking)
@@ -63,6 +66,7 @@ namespace SportZone_API.Services
 
                     await _notificationRepository.CreateNotificationAsync(ownerNotification);
                 }
+                    await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Đặt sân thành công! Bạn đã đặt sân " + bookingDetail.Field?.FieldName + " vào ngày " + bookingDetail.Date?.ToString("dd/MM/yyyy") + ".");
             }
             catch (Exception ex)
             {
