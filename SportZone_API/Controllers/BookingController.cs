@@ -31,6 +31,7 @@ namespace SportZone_API.Controllers
 
         [HttpPost("CreateBooking")]
         [AllowAnonymous]
+        [RoleAuthorize("1,2,4")]
         public async Task<IActionResult> CreateBooking([FromBody] BookingCreateDTO bookingDto)
         {
             try
