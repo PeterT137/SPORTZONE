@@ -185,7 +185,7 @@ namespace SportZone_API.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        [RoleAuthorize("1")]
+        [RoleAuthorize("1,2,3,4")]
         public async Task<IActionResult> GetUserBookings(int userId)
         {
             try

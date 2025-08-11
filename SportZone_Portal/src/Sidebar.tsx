@@ -91,10 +91,10 @@ const Sidebar: React.FC = () => {
                 {user?.RoleId === 3
                   ? "Admin"
                   : user?.RoleId === 2
-                  ? "Field Owner"
+                  ? "Chủ sân"
                   : user?.RoleId === 4
-                  ? "Staff"
-                  : "User"}
+                  ? "Nhân viên"
+                  : "Người dùng"}
               </div>
             </div>
           </div>
@@ -140,7 +140,13 @@ const Sidebar: React.FC = () => {
             <Link to="/staff_manager" className={linkClasses("/staff_manager")}>
               <User2 size={18} /> Nhân viên
             </Link>
-            <div className="relative">
+            <Link
+              to="/finance_manager"
+              className={linkClasses("/finance_manager")}
+            >
+              <ClipboardList size={18} /> Quản lý tài chính
+            </Link>
+            {/* <div className="relative">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className={`${linkClasses("/notifications")} w-full text-left`}
@@ -206,7 +212,7 @@ const Sidebar: React.FC = () => {
                   </ul>
                 </div>
               )}
-            </div>
+            </div> */}
             <Link to="/order_manager" className={linkClasses("/order_manager")}>
               <ClipboardList size={18} /> Đơn đặt
             </Link>

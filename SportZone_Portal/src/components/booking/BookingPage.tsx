@@ -604,53 +604,32 @@ const BookingPage: React.FC = () => {
     selectedServices: [],
   });
 
-  // Helper function to get user info from localStorage
   const getUserInfoFromStorage = useCallback((): UserProfile | null => {
     try {
       const userStr = localStorage.getItem("user");
       if (!userStr) return null;
 
       const user = JSON.parse(userStr);
+
+      console.log("User info from localStorage:", user);
+      // Lấy trực tiếp name và phone từ user object
       return {
-        fullName:
-          user.Admin?.name ||
-          user.Customers?.[0]?.name ||
-          user.FieldOwner?.name ||
-          user.Staff?.name ||
-          "",
-        phoneNumber:
-          user.Admin?.phone ||
-          user.Customers?.[0]?.phone ||
-          user.FieldOwner?.phone ||
-          user.Staff?.phone ||
-          "",
-        email: user.UEmail || "",
-        name:
-          user.Admin?.name ||
-          user.Customers?.[0]?.name ||
-          user.FieldOwner?.name ||
-          user.Staff?.name ||
-          "",
-        phone:
-          user.Admin?.phone ||
-          user.Customers?.[0]?.phone ||
-          user.FieldOwner?.phone ||
-          user.Staff?.phone ||
-          "",
+        fullName: user.name || "",
+        phoneNumber: user.phone || "",
+        email: user.UEmail || user.uEmail || "",
+        name: user.name || "",
+        phone: user.phone || "",
       };
-    } catch (error) {
-      console.error("Error parsing user from localStorage:", error);
+    } catch {
       return null;
     }
   }, []);
 
-  // Helper function to get user info from token (fallback)
   const getUserInfoFromToken = useCallback((): UserProfile | null => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return null;
 
-      // Decode JWT token to get user info
       const base64Url = token.split(".")[1];
       const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
       const jsonPayload = decodeURIComponent(

@@ -52,7 +52,12 @@ const BookingHistoryList: React.FC = () => {
     }
     const apiUrl =
       (window as any).REACT_APP_API_URL || "https://localhost:7057";
-    fetch(`${apiUrl}/api/Booking/user/${userId}`)
+    const token = localStorage.getItem("token");
+    fetch(`${apiUrl}/api/Booking/user/${userId}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Lỗi khi lấy dữ liệu lịch sử đặt sân");
         return res.json();

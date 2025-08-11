@@ -27,7 +27,14 @@ namespace SportZone_API.Controllers
         public async Task<ActionResult<IEnumerable<FieldPricingDto>>> GetAllFieldPricings()
         {
             var pricings = await _fieldPricingService.GetAllFieldPricingsAsync();
-            return Ok(pricings);
+            var result = pricings.Select(p => new {
+                id = p.PricingId,
+                fieldId = p.FieldId,
+                startTime = p.StartTime,
+                endTime = p.EndTime,
+                price = p.Price
+            });
+            return Ok(new { success = true, data = result });
         }
 
         // GET: api/FieldPricing/{id}
@@ -40,7 +47,14 @@ namespace SportZone_API.Controllers
             {
                 return NotFound("Không tìm thấy cấu hình giá.");
             }
-            return Ok(pricing);
+            var result = new {
+                id = pricing.PricingId,
+                fieldId = pricing.FieldId,
+                startTime = pricing.StartTime,
+                endTime = pricing.EndTime,
+                price = pricing.Price
+            };
+            return Ok(new { success = true, data = result });
         }
 
         // GET: api/FieldPricing/byField/{fieldId}
@@ -50,7 +64,14 @@ namespace SportZone_API.Controllers
         public async Task<ActionResult<IEnumerable<FieldPricingDto>>> GetFieldPricingsByField(int fieldId)
         {
             var pricings = await _fieldPricingService.GetFieldPricingsByFieldIdAsync(fieldId);
-            return Ok(pricings);
+            var result = pricings.Select(p => new {
+                id = p.PricingId,
+                fieldId = p.FieldId,
+                startTime = p.StartTime,
+                endTime = p.EndTime,
+                price = p.Price
+            });
+            return Ok(new { success = true, data = result });
         }
 
         // POST: api/FieldPricing

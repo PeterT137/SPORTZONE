@@ -13,11 +13,11 @@ import type { RegulationFormData } from "./RegulationFormModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
 type Regulation = {
-  regulationId: number;
+  regulationSystemId: number;
   title: string;
   description: string;
   status: string;
-  createdDate?: string;
+  createAt?: string;
 };
 
 const RegulationManager: React.FC = () => {
@@ -33,13 +33,18 @@ const RegulationManager: React.FC = () => {
     null
   );
 
-  // Fetch data from API
   useEffect(() => {
     setLoading(true);
-    fetch("https://localhost:7057/api/RegulationSystem")
+    const token = localStorage.getItem("token");
+    fetch("https://localhost:7057/api/RegulationSystem", {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
       .then(async (res) => {
         if (!res.ok) throw new Error("Lỗi khi lấy danh sách quy định");
         const data = await res.json();
+        console.log("API quy định trả về:", data);
         setRegulations(Array.isArray(data) ? data : []);
         setLoading(false);
       })
@@ -71,12 +76,15 @@ const RegulationManager: React.FC = () => {
   const handleSubmitRegulation = async (data: RegulationFormData) => {
     setLoading(true);
     setError(null);
+    const token = localStorage.getItem("token");
     try {
       if (editRegulationId === null) {
-        // Add
         const res = await fetch("https://localhost:7057/api/RegulationSystem", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             title: data.regulationName,
             description: data.description,
@@ -90,7 +98,10 @@ const RegulationManager: React.FC = () => {
           `https://localhost:7057/api/RegulationSystem/${editRegulationId}`,
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
             body: JSON.stringify({
               title: data.regulationName,
               description: data.description,
@@ -101,19 +112,28 @@ const RegulationManager: React.FC = () => {
         if (!res.ok) throw new Error("Lỗi khi cập nhật quy định");
       }
       // Refresh list
-      const res = await fetch("https://localhost:7057/api/RegulationSystem");
+      const res = await fetch("https://localhost:7057/api/RegulationSystem", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       const newData = await res.json();
       setRegulations(Array.isArray(newData) ? newData : []);
       setModalOpen(false);
       setEditRegulationId(null);
-    } catch (err: any) {
-      setError(err.message || "Lỗi không xác định");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Lỗi không xác định");
+      } else {
+        setError("Lỗi không xác định");
+      }
     }
     setLoading(false);
   };
 
   // Xác nhận xóa regulation qua API
   const handleConfirmDelete = async () => {
+    const token = localStorage.getItem("token");
     if (deleteRegulationId !== null) {
       setLoading(true);
       setError(null);
@@ -122,15 +142,29 @@ const RegulationManager: React.FC = () => {
           `https://localhost:7057/api/RegulationSystem/${deleteRegulationId}`,
           {
             method: "DELETE",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
           }
         );
         if (!res.ok) throw new Error("Lỗi khi xóa quy định");
         // Refresh list
-        const res2 = await fetch("https://localhost:7057/api/RegulationSystem");
+        const res2 = await fetch(
+          "https://localhost:7057/api/RegulationSystem",
+          {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
         const newData = await res2.json();
         setRegulations(Array.isArray(newData) ? newData : []);
-      } catch (err: any) {
-        setError(err.message || "Lỗi không xác định");
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message || "Lỗi không xác định");
+        } else {
+          setError("Lỗi không xác định");
+        }
       }
       setLoading(false);
     }
@@ -245,7 +279,7 @@ const RegulationManager: React.FC = () => {
                   {paginatedRegulations.length > 0 ? (
                     paginatedRegulations.map((regulation, idx) => (
                       <tr
-                        key={regulation.regulationId}
+                        key={regulation.regulationSystemId ?? `row-${idx}`}
                         className="hover:bg-gray-50"
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -258,10 +292,10 @@ const RegulationManager: React.FC = () => {
                           {regulation.description}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {regulation.createdDate
-                            ? new Date(
-                                regulation.createdDate
-                              ).toLocaleDateString("vi-VN")
+                          {regulation.createAt
+                            ? new Date(regulation.createAt).toLocaleDateString(
+                                "vi-VN"
+                              )
                             : ""}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -281,19 +315,47 @@ const RegulationManager: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() =>
-                                handleEditRegulation(regulation.regulationId)
+                                regulation.regulationSystemId !== undefined &&
+                                regulation.regulationSystemId !== null
+                                  ? handleEditRegulation(
+                                      regulation.regulationSystemId
+                                    )
+                                  : undefined
                               }
-                              className="text-green-600 hover:text-green-800 p-1"
+                              className={`text-green-600 hover:text-green-800 p-1${
+                                regulation.regulationSystemId === undefined ||
+                                regulation.regulationSystemId === null
+                                  ? " opacity-50 cursor-not-allowed"
+                                  : ""
+                              }`}
                               title="Chỉnh sửa"
+                              disabled={
+                                regulation.regulationSystemId === undefined ||
+                                regulation.regulationSystemId === null
+                              }
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() =>
-                                handleDeleteRegulation(regulation.regulationId)
+                                regulation.regulationSystemId !== undefined &&
+                                regulation.regulationSystemId !== null
+                                  ? handleDeleteRegulation(
+                                      regulation.regulationSystemId
+                                    )
+                                  : undefined
                               }
-                              className="text-red-600 hover:text-red-800 p-1"
+                              className={`text-red-600 hover:text-red-800 p-1${
+                                regulation.regulationSystemId === undefined ||
+                                regulation.regulationSystemId === null
+                                  ? " opacity-50 cursor-not-allowed"
+                                  : ""
+                              }`}
                               title="Xóa"
+                              disabled={
+                                regulation.regulationSystemId === undefined ||
+                                regulation.regulationSystemId === null
+                              }
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -376,7 +438,7 @@ const RegulationManager: React.FC = () => {
             editRegulationId !== null
               ? (() => {
                   const r = regulations.find(
-                    (r) => r.regulationId === editRegulationId
+                    (r) => r.regulationSystemId === editRegulationId
                   );
                   return r
                     ? {
@@ -400,8 +462,9 @@ const RegulationManager: React.FC = () => {
           onConfirm={handleConfirmDelete}
           regulationName={
             deleteRegulationId !== null
-              ? regulations.find((r) => r.regulationId === deleteRegulationId)
-                  ?.title
+              ? regulations.find(
+                  (r) => r.regulationSystemId === deleteRegulationId
+                )?.title
               : ""
           }
         />

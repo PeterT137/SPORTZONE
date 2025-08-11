@@ -93,6 +93,30 @@ const SignInForm: React.FC = () => {
 
       const { token, user, facilityInfo } = response.data;
 
+      let name = user.name || "";
+      let phone = user.phone || "";
+      if (!name || !phone) {
+        if (user.Admin) {
+          name = name || user.Admin.name || "";
+          phone = phone || user.Admin.phone || "";
+        }
+        if (user.Customer) {
+          name = name || user.Customer.name || "";
+          phone = phone || user.Customer.phone || "";
+        }
+        if (user.Customers && user.Customers.length > 0) {
+          name = name || user.Customers[0].name || "";
+          phone = phone || user.Customers[0].phone || "";
+        }
+        if (user.FieldOwner) {
+          name = name || user.FieldOwner.name || "";
+          phone = phone || user.FieldOwner.phone || "";
+        }
+        if (user.Staff) {
+          name = name || user.Staff.name || "";
+          phone = phone || user.Staff.phone || "";
+        }
+      }
       const userToStore = {
         UId: user.uId || user.UId,
         RoleId: user.roleId || 0,
@@ -116,8 +140,11 @@ const SignInForm: React.FC = () => {
         Bookings: user.bookings ?? [],
         Orders: user.orders ?? [],
         Payments: user.payments ?? [],
+        name,
+        phone,
       };
 
+      console.log("User to store:", userToStore);
       localStorage.clear();
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(userToStore));
