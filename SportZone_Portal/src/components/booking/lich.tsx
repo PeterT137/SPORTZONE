@@ -1563,26 +1563,49 @@ const PricingManagementModal: React.FC<{
                         />
                       </div>
                       <div className="col-span-3 flex justify-center items-center gap-2">
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdatePricing(index)}
-                            disabled={isProcessing}
-                            className="p-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
-                            title="Cập nhật"
-                          >
-                            <FiEdit className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePricing(index)}
-                            disabled={isProcessing}
-                            className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 disabled:bg-red-300"
-                            title="Xóa"
-                          >
-                            <FiTrash2 className="w-4 h-4" />
-                          </button>
-                        </>
+                        {slot.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdatePricing(index)}
+                              disabled={isProcessing}
+                              className="p-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
+                              title="Cập nhật"
+                            >
+                              <FiEdit className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePricing(index)}
+                              disabled={isProcessing}
+                              className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 disabled:bg-red-300"
+                              title="Xóa"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleCreatePricing(index)}
+                              disabled={isProcessing}
+                              className="p-2 text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-green-300"
+                              title="Lưu khung giờ mới"
+                            >
+                              <FiSave className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePricing(index)}
+                              disabled={isProcessing}
+                              className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 disabled:bg-red-300"
+                              title="Xóa"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

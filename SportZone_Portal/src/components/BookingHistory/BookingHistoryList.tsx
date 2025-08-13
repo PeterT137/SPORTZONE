@@ -59,6 +59,9 @@ const BookingHistoryList: React.FC = () => {
       },
     })
       .then((res) => {
+        if (res.status === 404) {
+          return { success: true, data: [] };
+        }
         if (!res.ok) throw new Error("Lỗi khi lấy dữ liệu lịch sử đặt sân");
         return res.json();
       })
@@ -66,11 +69,16 @@ const BookingHistoryList: React.FC = () => {
         if (data.success && Array.isArray(data.data)) {
           setBookings(data.data);
           setCurrentPage(1); // reset page if data changes
+          setError("");
         } else {
-          setError("Không có dữ liệu lịch sử đặt sân.");
+          setBookings([]);
+          setError("");
         }
       })
-      .catch(() => setError("Không thể kết nối đến máy chủ."))
+      .catch((err) => {
+        setBookings([]);
+        setError("");
+      })
       .finally(() => setLoading(false));
   }, []);
 
