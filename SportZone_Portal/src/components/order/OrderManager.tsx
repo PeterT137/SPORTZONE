@@ -54,7 +54,6 @@ export function OrderManagement() {
     loadData();
   }, []);
 
-  // ===== Backend API helpers =====
   const api = useMemo(
     () => ({
       async getOrderById(orderId: number) {
@@ -66,18 +65,17 @@ export function OrderManagement() {
         const json = await res.json();
         return json.data ?? json;
       },
-      async updateOrderContentPayment(orderId: number, content: string) {
-        const res = await fetch(
-          `${API_URL}/api/Order/Order/${orderId}/Update/ContentPayment`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              ...getAuthHeaders(),
-            },
-            body: JSON.stringify({ contentPayment: content }),
-          }
-        );
+      async updateOrderContentPayment(orderId: number, option: number) {
+        const url = `${API_URL}/api/Order/Order/${orderId}/Update/ContentPayment?option=${encodeURIComponent(
+          option
+        )}`;
+        const res = await fetch(url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+        });
         if (!res.ok) {
           const text = await res.text();
           throw new Error(

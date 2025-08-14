@@ -649,7 +649,6 @@ const FacilityManager: React.FC = () => {
         throw new Error(`Lỗi HTTP: ${response.status}`);
       }
 
-      // ✅ Cập nhật state của facility
       setFacilities((prev) =>
         prev.filter((f) => f.fac_id !== facilityToDelete)
       );
@@ -658,7 +657,6 @@ const FacilityManager: React.FC = () => {
       );
       showToast("Xóa cơ sở thành công!", "success");
 
-      // ✅ Cập nhật localStorage["user"]
       const userStr = localStorage.getItem("user");
       if (userStr) {
         const user = JSON.parse(userStr);
@@ -674,13 +672,11 @@ const FacilityManager: React.FC = () => {
         localStorage.setItem("user", JSON.stringify(user));
       }
 
-      // ✅ Cập nhật pagination nếu cần
       const totalPages = Math.ceil(filteredFacilities.length / pageSize);
       if (currentPage > totalPages && totalPages > 0) {
         setCurrentPage(totalPages);
       }
 
-      // ✅ Đóng modal và reset ID
       setShowDeleteModal(false);
       setFacilityToDelete(null);
     } catch (err) {

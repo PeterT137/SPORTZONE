@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
 import Sidebar from "../../Sidebar";
 
+// Định nghĩa các giao diện (interfaces) để đảm bảo type-safety
 interface Order {
   orderId: number;
   bookingId: number;
@@ -19,6 +19,8 @@ interface Order {
   createAt: string;
   action: string;
 }
+
+// Removed unused BookingDetail interface
 
 interface OrderDetail {
   orderId: number;
@@ -55,11 +57,31 @@ interface OrderServiceDetail {
   imageUrl?: string;
 }
 
+// Hàm chuyển đổi trạng thái thanh toán
+const mapPaymentStatus = (status?: string): string => {
+  if (!status) return "";
+  const s = status.toLowerCase();
+  if (s.includes("paid") || s.includes("completed") || s === "đã thanh toán")
+    return "Đã thanh toán";
+  if (s.includes("pending") || s.includes("unpaid") || s === "chưa thanh toán")
+    return "Chưa thanh toán";
+  if (
+    s.includes("deposit") ||
+    s.includes("deposited") ||
+    s.includes("coc") ||
+    s === "đã cọc"
+  )
+    return "Đã cọc";
+  return status;
+};
+
+// Component chính
 const OrdersTable: React.FC = () => {
   const [ordersPerPage, setOrdersPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState<boolean>(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -75,22 +97,17 @@ const OrdersTable: React.FC = () => {
   // Dropdown states
   const [showDropdowns, setShowDropdowns] = useState<{
     [key: string]: boolean;
-  }>({
-    facility: false,
-    customer: false,
-    price: false,
-    paymentStatus: false,
-    date: false,
-  });
+  }>({});
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
-  // Lấy tham số từ query string
-  const fieldName = searchParams.get("fieldName") || "";
-  const fieldIdParam = Number(searchParams.get("fieldId") || 0);
-  const facIdParam = Number(searchParams.get("facId") || 0);
+  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
+  const [modalLoading, setModalLoading] = useState<boolean>(false);
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState<
+    number | null
+  >(null);
+  const [savingPayment, setSavingPayment] = useState<boolean>(false);
 
   const API_URL = "https://localhost:7057";
   const getAuthHeaders = useCallback((): Record<string, string> => {
@@ -98,231 +115,364 @@ const OrdersTable: React.FC = () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
-  const mapPaymentStatus = (status?: string): string => {
-    if (!status) return "";
-    const s = status.toLowerCase();
-    if (s.includes("paid") || s.includes("completed") || s === "đã thanh toán")
-      return "Đã thanh toán";
-    if (
-      s.includes("pending") ||
-      s.includes("unpaid") ||
-      s === "chưa thanh toán"
-    )
-      return "Chưa thanh toán";
-    if (
-      s.includes("deposit") ||
-      s.includes("deposited") ||
-      s.includes("coc") ||
-      s === "đã cọc"
-    )
-      return "Đã cọc";
-    return status;
-  };
+  // Helper: fetch booking detail (without affecting modal loading state)
+  const fetchBookingDetailForTable = useCallback(
+    async (bookingId: number): Promise<Record<string, unknown> | null> => {
+      try {
+        const response = await fetch(
+          `${API_URL}/api/Booking/GetBookingById/${bookingId}`,
+          {
+            method: "GET",
+            headers: getAuthHeaders(),
+          }
+        );
+        if (!response.ok) return null;
+        const data = (await response.json()) as Record<string, unknown>;
+        const container = data || {};
+        const payload =
+          (container["data"] as Record<string, unknown>) || container;
+        return payload;
+      } catch {
+        return null;
+      }
+    },
+    [API_URL, getAuthHeaders]
+  );
 
-  // Dữ liệu lấy từ API
-  const [orders, setOrders] = useState<Order[]>([]);
+  const enrichOrdersWithBookingDetails = useCallback(
+    async (ordersList: Order[]): Promise<Order[]> => {
+      if (!Array.isArray(ordersList) || ordersList.length === 0)
+        return ordersList;
+      const uniqueBookingIds = Array.from(
+        new Set(
+          ordersList.map((o) => o.bookingId).filter((id) => Number.isFinite(id))
+        )
+      ) as number[];
 
+      const getString = (v: unknown, fb = ""): string =>
+        typeof v === "string" ? v : v == null ? fb : String(v);
+
+      const detailsArray = await Promise.all(
+        uniqueBookingIds.map(async (bid) => ({
+          bid,
+          detail: await fetchBookingDetailForTable(bid),
+        }))
+      );
+      const idToDetail = new Map<number, Record<string, unknown>>();
+      detailsArray.forEach(({ bid, detail }) => {
+        if (detail) idToDetail.set(bid, detail);
+      });
+
+      return ordersList.map((o) => {
+        const d = idToDetail.get(o.bookingId);
+        if (!d) return o;
+
+        const bookedSlots = ((d["bookedSlots"] as unknown) || []) as Array<
+          Record<string, unknown>
+        >;
+        const firstSlot = bookedSlots[0] || {};
+
+        const bookingDate = getString(
+          d["date"] ?? d["Date"] ?? firstSlot["date"] ?? firstSlot["Date"],
+          o.bookingDate
+        );
+        const startTime = getString(
+          d["startTime"] ??
+            d["StartTime"] ??
+            firstSlot["startTime"] ??
+            firstSlot["StartTime"],
+          o.startTime
+        ).slice(0, 5);
+        const endTime = getString(
+          d["endTime"] ??
+            d["EndTime"] ??
+            firstSlot["endTime"] ??
+            firstSlot["EndTime"],
+          o.endTime
+        ).slice(0, 5);
+
+        const fieldObj =
+          (d["field"] as Record<string, unknown> | undefined) || undefined;
+        const fieldName = getString(
+          fieldObj?.["fieldName"] ??
+            fieldObj?.["FieldName"] ??
+            firstSlot["fieldName"] ??
+            firstSlot["FieldName"],
+          o.fieldName
+        );
+
+        return {
+          ...o,
+          bookingDate,
+          startTime,
+          endTime,
+          fieldName,
+        };
+      });
+    },
+    [fetchBookingDetailForTable]
+  );
+
+  // Lấy danh sách orders từ API
   useEffect(() => {
     const loadOrdersFromApi = async () => {
       setLoading(true);
+      setError(null);
+      const userRaw = localStorage.getItem("user");
+      if (!userRaw) {
+        setOrders([]);
+        setLoading(false);
+        setError("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập.");
+        return;
+      }
+      const user = JSON.parse(userRaw);
+      const userId = user?.UId;
+
+      if (!userId) {
+        setOrders([]);
+        setLoading(false);
+        setError("ID người dùng không hợp lệ.");
+        return;
+      }
+
       try {
-        // 1) Thu thập danh sách scheduleId
-        let scheduleIds: number[] = [];
-        const collectScheduleIdsByField = async (fieldId: number) => {
-          const res = await fetch(`${API_URL}/api/Field/${fieldId}/schedule`, {
+        const [allFacilitiesRes, allAccountsRes] = await Promise.all([
+          fetch(`${API_URL}/api/Facility/with-details`, {
+            method: "GET",
+            headers: getAuthHeaders(),
+          }),
+          fetch(`${API_URL}/get-all-account`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
               ...getAuthHeaders(),
             },
-          });
-          if (!res.ok) return;
-          const result: unknown = await res.json();
-          const container = result as Record<string, unknown>;
-          const dataArray: unknown = container.success
-            ? container.data
-            : result;
-          const schedules: Array<Record<string, unknown>> = Array.isArray(
-            dataArray
-          )
-            ? (dataArray as Array<Record<string, unknown>>)
-            : [];
-          const ids = schedules
-            .map((s: Record<string, unknown>) => {
-              const idLower = s["scheduleId"];
-              const idUpper = (s as Record<string, unknown>)["ScheduleId"];
-              return typeof idLower === "number"
-                ? idLower
-                : typeof idUpper === "number"
-                ? idUpper
-                : undefined;
-            })
-            .filter((id): id is number => typeof id === "number");
-          scheduleIds = scheduleIds.concat(ids);
+          }),
+        ]);
+
+        if (!allFacilitiesRes.ok || !allAccountsRes.ok) {
+          throw new Error("Failed to fetch necessary data.");
+        }
+
+        const [allFacilitiesJson, accountsJson] = await Promise.all([
+          allFacilitiesRes.json(),
+          allAccountsRes.json(),
+        ]);
+
+        // Helpers for safe extraction
+        const getStr = (v: unknown, fb = ""): string =>
+          typeof v === "string" ? v : v == null ? fb : String(v);
+        const getNum = (v: unknown, fb = 0): number => {
+          if (typeof v === "number") return v;
+          const n = Number(v as unknown as string);
+          return Number.isFinite(n) ? n : fb;
         };
 
-        if (fieldIdParam) {
-          await collectScheduleIdsByField(fieldIdParam);
-        } else if (facIdParam) {
-          // Nếu không có fieldId, lấy tất cả sân trong cơ sở rồi tổng hợp schedule
-          const fieldsRes = await fetch(
-            `${API_URL}/api/Field/facility/${facIdParam}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                ...getAuthHeaders(),
-              },
+        const facilitiesMap = new Map<number, Record<string, unknown>>();
+        if (Array.isArray(allFacilitiesJson)) {
+          (allFacilitiesJson as Array<Record<string, unknown>>).forEach((f) => {
+            const facId = getNum(f["facId"] ?? f["FacId"], NaN);
+            if (Number.isFinite(facId)) {
+              facilitiesMap.set(facId, f);
             }
-          );
-          if (fieldsRes.ok) {
-            const fj: unknown = await fieldsRes.json();
-            const fContainer = fj as Record<string, unknown>;
-            const fArray: unknown = fContainer.data ?? fj;
-            const fields: Array<Record<string, unknown>> = Array.isArray(fArray)
-              ? (fArray as Array<Record<string, unknown>>)
-              : [];
-            const fieldIds = fields
-              .map((f) =>
-                typeof f["fieldId"] === "number"
-                  ? (f["fieldId"] as number)
-                  : typeof f["FieldId"] === "number"
-                  ? (f["FieldId"] as number)
-                  : undefined
-              )
-              .filter((id): id is number => typeof id === "number");
-            for (const fid of fieldIds) {
-              await collectScheduleIdsByField(fid);
-            }
-          }
-        } else {
+          });
+        }
+
+        const accountsContainer =
+          (accountsJson as Record<string, unknown>) || {};
+        const accountsDataRaw = accountsContainer["data"] ?? accountsJson;
+        const accountsData: Array<Record<string, unknown>> = Array.isArray(
+          accountsDataRaw
+        )
+          ? (accountsDataRaw as Array<Record<string, unknown>>)
+          : [];
+        const userIdToInfo = new Map<number, { name: string; phone: string }>();
+        if (accountsData.length > 0) {
+          accountsData.forEach((u) => {
+            const uId = getNum(u["uId"] ?? u["UId"], NaN);
+            if (!Number.isFinite(uId)) return;
+            const customer = (u["customer"] ?? u["Customer"]) as
+              | Record<string, unknown>
+              | undefined;
+            const fieldOwner = (u["fieldOwner"] ?? u["FieldOwner"]) as
+              | Record<string, unknown>
+              | undefined;
+            const staff = (u["staff"] ?? u["Staff"]) as
+              | Record<string, unknown>
+              | undefined;
+            const name = getStr(
+              customer?.["name"] ??
+                customer?.["Name"] ??
+                fieldOwner?.["name"] ??
+                fieldOwner?.["Name"] ??
+                staff?.["name"] ??
+                staff?.["Name"],
+              ""
+            );
+            const phone = getStr(
+              customer?.["phone"] ??
+                customer?.["Phone"] ??
+                fieldOwner?.["phone"] ??
+                fieldOwner?.["Phone"] ??
+                staff?.["phone"] ??
+                staff?.["Phone"],
+              ""
+            );
+            userIdToInfo.set(uId, { name, phone });
+          });
+        }
+
+        const userFacilities: Array<Record<string, unknown>> = [
+          ...facilitiesMap.values(),
+        ].filter(
+          (f) =>
+            getNum(f["userId"] ?? f["UserId"] ?? f["UId"], NaN) ===
+            Number(userId)
+        );
+
+        if (userFacilities.length === 0) {
           setOrders([]);
           setLoading(false);
           return;
         }
 
-        // 2) Với mỗi scheduleId, lấy chi tiết Order
-        const orderPromises = scheduleIds.map(async (sid) => {
-          try {
-            const r = await fetch(`${API_URL}/api/Order/schedule/${sid}`, {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                ...getAuthHeaders(),
-              },
-            });
-            if (!r.ok) return null;
-            const j: unknown = await r.json();
-            const container = j as Record<string, unknown>;
-            const dRaw: unknown = container["data"] ?? j;
-            const dObj: Record<string, unknown> =
-              (dRaw as Record<string, unknown>) || {};
-
-            const orderIdVal =
-              typeof dObj["orderId"] === "number"
-                ? (dObj["orderId"] as number)
-                : typeof dObj["OrderId"] === "number"
-                ? (dObj["OrderId"] as number)
-                : undefined;
-            if (orderIdVal == null) return null;
-
-            const bookedSlotsRaw: unknown =
-              dObj["bookedSlots"] ?? dObj["BookedSlots"];
-            const bookedSlots: Array<Record<string, unknown>> = Array.isArray(
-              bookedSlotsRaw
-            )
-              ? (bookedSlotsRaw as Array<Record<string, unknown>>)
-              : [];
-            const firstSlot: Record<string, unknown> =
-              bookedSlots.length > 0 ? bookedSlots[0] : {};
-            const bookingDate = (firstSlot["date"] ??
-              firstSlot["Date"] ??
-              "") as string;
-            const startTime = String(
-              firstSlot["startTime"] ?? firstSlot["StartTime"] ?? ""
-            )
-              .toString()
-              .slice(0, 5);
-            const endTime = String(
-              firstSlot["endTime"] ?? firstSlot["EndTime"] ?? ""
-            )
-              .toString()
-              .slice(0, 5);
-
-            const customerInfo: Record<string, unknown> =
-              (dObj["customerInfo"] as Record<string, unknown>) || {};
-            const customerName =
-              (customerInfo["name"] as string) ||
-              (dObj["guestName"] as string) ||
-              "";
-            const customerPhone =
-              (customerInfo["phone"] as string) ||
-              (dObj["guestPhone"] as string) ||
-              "";
-            const facilityName = (dObj["facilityName"] as string) || "";
-            const fieldNameResolved =
-              (firstSlot["fieldName"] as string) || fieldName || "";
-
-            const totalPrice =
-              typeof dObj["totalPrice"] === "number"
-                ? (dObj["totalPrice"] as number)
-                : Number(dObj["TotalPrice"] ?? 0);
-            const totalServicePrice =
-              typeof dObj["totalServicePrice"] === "number"
-                ? (dObj["totalServicePrice"] as number)
-                : Number(dObj["TotalServicePrice"] ?? 0);
-            const statusPaymentRaw =
-              (dObj["statusPayment"] as string) ??
-              (dObj["StatusPayment"] as string) ??
-              "";
-            const contentPayment =
-              (dObj["contentPayment"] as string) ??
-              (dObj["ContentPayment"] as string) ??
-              "";
-            const createAt =
-              (dObj["createAt"] as string) ??
-              (dObj["CreateAt"] as string) ??
-              "";
-            const bookingIdVal =
-              typeof dObj["bookingId"] === "number"
-                ? (dObj["bookingId"] as number)
-                : typeof dObj["BookingId"] === "number"
-                ? (dObj["BookingId"] as number)
-                : 0;
-
-            const mapped: Order = {
-              orderId: orderIdVal,
-              bookingId: bookingIdVal,
-              facilityName,
-              fieldName: fieldNameResolved,
-              customerName,
-              customerPhone,
-              totalPrice: Number(totalPrice || 0),
-              totalServicePrice: Number(totalServicePrice || 0),
-              contentPayment,
-              statusPayment: mapPaymentStatus(statusPaymentRaw),
-              bookingDate,
-              startTime,
-              endTime,
-              createAt,
-              action: "Chi tiết",
-            };
-            return mapped;
-          } catch {
-            return null;
-          }
-        });
-
-        const ordersList = (await Promise.all(orderPromises)).filter(
-          (x): x is Order => !!x
+        const facilityIds: number[] = userFacilities.map((f) =>
+          getNum(f["facId"] ?? f["FacId"], NaN)
         );
-        // Sắp xếp theo ngày tạo mới nhất
-        ordersList.sort(
+        const allOrders: Order[] = [];
+
+        const orderPromises: Array<Promise<Order[]>> = facilityIds.map(
+          async (facId) => {
+            const ordersRes = await fetch(
+              `${API_URL}/api/Order/facility/${facId}`,
+              {
+                method: "GET",
+                headers: getAuthHeaders(),
+              }
+            );
+            if (!ordersRes.ok) {
+              console.error(`Failed to fetch orders for facilityId ${facId}`);
+              return [];
+            }
+
+            const ordersJson = await ordersRes.json();
+            const ordersContainer =
+              (ordersJson as Record<string, unknown>) || {};
+            let ordersDataRaw: unknown = ordersJson;
+            if (ordersContainer && ordersContainer["data"] !== undefined) {
+              ordersDataRaw = ordersContainer["data"] as unknown;
+            }
+            if (
+              ordersDataRaw &&
+              typeof ordersDataRaw === "object" &&
+              !Array.isArray(ordersDataRaw) &&
+              (ordersDataRaw as Record<string, unknown>)["orders"]
+            ) {
+              ordersDataRaw = (ordersDataRaw as Record<string, unknown>)[
+                "orders"
+              ];
+            }
+            if (!Array.isArray(ordersDataRaw)) {
+              return [];
+            }
+
+            const currentFacility = facilitiesMap.get(facId) as
+              | Record<string, unknown>
+              | undefined;
+            const facilityName = getStr(
+              currentFacility?.["name"] ?? currentFacility?.["Name"],
+              "N/A"
+            );
+
+            const ordersData = ordersDataRaw as Array<Record<string, unknown>>;
+            return ordersData.map((o: Record<string, unknown>) => {
+              const bookedSlots = (o["bookedSlots"] ??
+                o["BookedSlots"] ??
+                []) as Array<Record<string, unknown>>;
+              const firstSlot = bookedSlots.length > 0 ? bookedSlots[0] : {};
+
+              const bookingDate = getStr(
+                firstSlot["date"] ?? firstSlot["Date"],
+                ""
+              );
+              const startTime = getStr(
+                firstSlot["startTime"] ?? firstSlot["StartTime"],
+                ""
+              ).slice(0, 5);
+              const endTime = getStr(
+                firstSlot["endTime"] ?? firstSlot["EndTime"],
+                ""
+              ).slice(0, 5);
+              const fieldName = getStr(
+                firstSlot["fieldName"] ?? firstSlot["FieldName"],
+                "N/A"
+              );
+
+              const guestName = o["guestName"] ?? o["GuestName"];
+              const guestPhone = o["guestPhone"] ?? o["GuestPhone"];
+              const userIdFromOrder = getNum(o["uId"] ?? o["UId"], NaN);
+
+              let customerName = getStr(guestName, "");
+              let customerPhone = getStr(guestPhone, "");
+
+              if (
+                !customerName &&
+                !customerPhone &&
+                Number.isFinite(userIdFromOrder)
+              ) {
+                const fallbackUserInfo = userIdToInfo.get(userIdFromOrder);
+                if (fallbackUserInfo) {
+                  customerName = fallbackUserInfo.name;
+                  customerPhone = fallbackUserInfo.phone;
+                }
+              }
+
+              const statusPaymentRaw = getStr(
+                o["statusPayment"] ?? o["StatusPayment"],
+                ""
+              );
+
+              return {
+                orderId: getNum(o["orderId"] ?? o["OrderId"], 0),
+                bookingId: getNum(o["bookingId"] ?? o["BookingId"], 0),
+                facilityName: facilityName,
+                fieldName: fieldName,
+                customerName: customerName || "Khách hàng",
+                customerPhone: customerPhone || "N/A",
+                totalPrice: getNum(o["totalPrice"] ?? o["TotalPrice"], 0),
+                totalServicePrice: getNum(
+                  o["totalServicePrice"] ?? o["TotalServicePrice"],
+                  0
+                ),
+                contentPayment: getStr(
+                  o["contentPayment"] ?? o["ContentPayment"],
+                  ""
+                ),
+                statusPayment: mapPaymentStatus(statusPaymentRaw),
+                bookingDate,
+                startTime,
+                endTime,
+                createAt: getStr(o["createAt"] ?? o["CreateAt"], ""),
+                action: "Chi tiết",
+              } as Order;
+            });
+          }
+        );
+
+        const results: Order[][] = await Promise.all(orderPromises);
+        results.forEach((list: Order[]) => allOrders.push(...list));
+
+        allOrders.sort(
           (a, b) =>
             new Date(b.createAt).getTime() - new Date(a.createAt).getTime()
         );
-        setOrders(ordersList);
-      } catch {
+
+        // Enrich with booking detail for accurate time and field name
+        const enriched = await enrichOrdersWithBookingDetails(allOrders);
+        setOrders(enriched);
+      } catch (error) {
+        console.error("Error loading orders:", error);
+        setError("Không thể tải danh sách đơn hàng. Vui lòng thử lại sau.");
         setOrders([]);
       } finally {
         setLoading(false);
@@ -330,9 +480,294 @@ const OrdersTable: React.FC = () => {
     };
 
     loadOrdersFromApi();
-  }, [API_URL, fieldIdParam, facIdParam, fieldName, getAuthHeaders]);
+  }, [API_URL, getAuthHeaders, enrichOrdersWithBookingDetails]);
 
-  // Lấy danh sách unique values cho dropdown filters
+  // Lấy chi tiết đơn hàng từ API booking
+  const fetchBookingDetail = async (bookingId: number) => {
+    setModalLoading(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/Booking/GetBookingById/${bookingId}`,
+        {
+          method: "GET",
+          headers: getAuthHeaders(),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch booking details");
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+      return null;
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const openOrderDetail = async (order: Order) => {
+    setSelectedOrder(order);
+    setOrderDetail(null);
+    setShowModal(true);
+    setSelectedPaymentOption(null);
+
+    const fetchedBookingDetail = await fetchBookingDetail(order.bookingId);
+
+    // Nếu lấy được dữ liệu từ API booking, map các trường theo cấu trúc OrderDetail
+    if (fetchedBookingDetail) {
+      const container = (fetchedBookingDetail as Record<string, unknown>) || {};
+      const bookingData =
+        (container["data"] as Record<string, unknown>) || container;
+
+      const bookedSlots = ((bookingData["bookedSlots"] as unknown) ||
+        []) as Array<Record<string, unknown>>;
+      const firstSlot: Record<string, unknown> = bookedSlots[0] || {};
+
+      const getString = (v: unknown, fb = ""): string =>
+        typeof v === "string" ? v : v == null ? fb : String(v);
+      const getNumber = (v: unknown, fb = 0): number => {
+        if (typeof v === "number") return v;
+        const n = Number(v as unknown as string);
+        return Number.isFinite(n) ? n : fb;
+      };
+
+      const bookingId = getNumber(
+        bookingData["bookingId"] ?? bookingData["BookingId"],
+        order.bookingId
+      );
+      const orderObj = (bookingData["order"] || bookingData["Order"]) as
+        | Record<string, unknown>
+        | undefined;
+
+      const totalAmount = getNumber(
+        orderObj?.["totalAmount"] ?? orderObj?.["TotalAmount"],
+        order.totalPrice
+      );
+      const statusPaymentRaw = getString(
+        orderObj?.["statusPayment"] ??
+          orderObj?.["StatusPayment"] ??
+          order.statusPayment
+      );
+
+      const servicesRaw = (orderObj?.["services"] ??
+        orderObj?.["Services"] ??
+        []) as Array<Record<string, unknown>>;
+      const mappedServices = servicesRaw.map((s) => ({
+        serviceId: getNumber(s["serviceId"] ?? s["ServiceId"], 0),
+        serviceName: getString(s["serviceName"] ?? s["ServiceName"], "Dịch vụ"),
+        price: getNumber(s["price"] ?? s["Price"], 0),
+        quantity: getNumber(s["quantity"] ?? s["Quantity"], 1),
+        imageUrl: undefined,
+      }));
+
+      const totalServicePrice = mappedServices.reduce(
+        (sum, s) => sum + s.price * (s.quantity || 1),
+        0
+      );
+
+      const facilityName = getString(
+        (bookingData["facility"] as Record<string, unknown> | undefined)?.[
+          "facilityName"
+        ] ??
+          (bookingData["facility"] as Record<string, unknown> | undefined)?.[
+            "FacilityName"
+          ] ??
+          bookingData["facilityName"] ??
+          bookingData["FacilityName"] ??
+          order.facilityName,
+        order.facilityName
+      );
+
+      const fieldName = getString(
+        (bookingData["field"] as Record<string, unknown> | undefined)?.[
+          "fieldName"
+        ] ??
+          (bookingData["field"] as Record<string, unknown> | undefined)?.[
+            "FieldName"
+          ] ??
+          firstSlot["fieldName"] ??
+          firstSlot["FieldName"] ??
+          order.fieldName,
+        order.fieldName
+      );
+
+      const bookingDate = getString(
+        bookingData["date"] ??
+          bookingData["Date"] ??
+          firstSlot["date"] ??
+          firstSlot["Date"] ??
+          order.bookingDate,
+        order.bookingDate
+      );
+      const startTime = getString(
+        bookingData["startTime"] ??
+          bookingData["StartTime"] ??
+          firstSlot["startTime"] ??
+          firstSlot["StartTime"] ??
+          order.startTime,
+        order.startTime
+      ).slice(0, 5);
+      const endTime = getString(
+        bookingData["endTime"] ??
+          bookingData["EndTime"] ??
+          firstSlot["endTime"] ??
+          firstSlot["EndTime"] ??
+          order.endTime,
+        order.endTime
+      ).slice(0, 5);
+
+      const bookingCreateAt = getString(
+        bookingData["createAt"] ?? bookingData["CreateAt"] ?? order.createAt,
+        order.createAt
+      );
+
+      const detail: OrderDetail = {
+        orderId: getNumber(
+          orderObj?.["orderId"] ?? orderObj?.["OrderId"],
+          order.orderId
+        ),
+        bookingId: bookingId,
+        facilityName,
+        fieldName,
+        categoryFieldName: getString(
+          bookingData["categoryName"] ?? bookingData["CategoryName"],
+          "N/A"
+        ),
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        customerEmail: `${order.customerName
+          .toLowerCase()
+          .replace(/\s+/g, "")}@email.com`,
+        totalPrice: totalAmount,
+        totalServicePrice,
+        fieldRentalPrice: Math.max(totalAmount - totalServicePrice, 0),
+        discountAmount: 0,
+        deposit: Math.round(totalAmount * 0.3),
+        contentPayment: getString(
+          orderObj?.["contentPayment"] ?? order.contentPayment,
+          ""
+        ),
+        statusPayment: mapPaymentStatus(statusPaymentRaw),
+        paymentMethod: "Chuyển khoản ngân hàng",
+        bookingDate,
+        startTime,
+        endTime,
+        bookingTitle: getString(
+          bookingData["title"] ?? bookingData["Title"],
+          ""
+        ),
+        bookingStatus: getString(
+          bookingData["status"] ?? bookingData["Status"],
+          ""
+        ),
+        services: mappedServices.map((s) => ({
+          serviceId: s.serviceId,
+          serviceName: s.serviceName,
+          price: s.price,
+          quantity: s.quantity,
+          imageUrl: s.imageUrl,
+        })),
+        createAt: new Date(order.createAt).toLocaleString("vi-VN"),
+        bookingCreateAt: new Date(bookingCreateAt).toLocaleString("vi-VN"),
+      };
+      setOrderDetail(detail);
+      // Map current contentPayment to option for UI selection
+      const cp = (
+        detail.contentPayment ||
+        detail.paymentMethod ||
+        ""
+      ).toLowerCase();
+      if (cp.includes("tiền mặt")) setSelectedPaymentOption(1);
+      else if (
+        cp.includes("ví điện tử") ||
+        cp.includes("ví") ||
+        cp.includes("vnpay") ||
+        cp.includes("momo")
+      )
+        setSelectedPaymentOption(2);
+      else setSelectedPaymentOption(null);
+    } else {
+      // Nếu không lấy được data từ API, vẫn hiển thị thông tin cơ bản
+      setOrderDetail({
+        orderId: order.orderId,
+        bookingId: order.bookingId,
+        facilityName: order.facilityName,
+        fieldName: order.fieldName,
+        categoryFieldName: "N/A",
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        customerEmail: "N/A",
+        totalPrice: order.totalPrice,
+        totalServicePrice: order.totalServicePrice,
+        fieldRentalPrice: order.totalPrice - order.totalServicePrice,
+        discountAmount: 0,
+        deposit: Math.round(order.totalPrice * 0.3),
+        contentPayment: order.contentPayment,
+        statusPayment: order.statusPayment,
+        paymentMethod: "N/A",
+        bookingDate: order.bookingDate,
+        startTime: order.startTime,
+        endTime: order.endTime,
+        bookingTitle: "N/A",
+        bookingStatus: "N/A",
+        services: [],
+        createAt: new Date(order.createAt).toLocaleString("vi-VN"),
+        bookingCreateAt: "N/A",
+      });
+    }
+  };
+
+  const savePaymentMethod = async () => {
+    if (!orderDetail || !selectedPaymentOption) return;
+    setSavingPayment(true);
+    try {
+      const url = `${API_URL}/api/Order/Order/${
+        orderDetail.orderId
+      }/Update/ContentPayment?option=${encodeURIComponent(
+        selectedPaymentOption
+      )}`;
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: {
+          ...getAuthHeaders(),
+        },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Update content payment failed: ${res.status}`);
+      }
+      // Optimistic: update local detail and table state
+      const newMethod =
+        selectedPaymentOption === 1
+          ? "Thanh toán tiền mặt"
+          : "Thanh toán qua ví điện tử";
+      setOrderDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              contentPayment: newMethod,
+              paymentMethod: newMethod,
+            }
+          : prev
+      );
+      if (selectedOrder) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.orderId === selectedOrder.orderId
+              ? { ...o, contentPayment: newMethod }
+              : o
+          )
+        );
+      }
+    } catch (e) {
+      console.error("Save payment method failed", e);
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  // Các hàm và logic còn lại không thay đổi
   const uniqueFacilities = [
     ...new Set(orders.map((order) => order.facilityName)),
   ];
@@ -341,7 +776,6 @@ const OrdersTable: React.FC = () => {
   ];
   const paymentStatuses = ["Đã thanh toán", "Chưa thanh toán", "Đã cọc"];
 
-  // Apply filters
   const filteredOrders = orders.filter((order) => {
     const matchesFacility =
       !filters.facility || order.facilityName.includes(filters.facility);
@@ -349,26 +783,34 @@ const OrdersTable: React.FC = () => {
       !filters.customer || order.customerName.includes(filters.customer);
     const matchesPaymentStatus =
       !filters.paymentStatus || order.statusPayment === filters.paymentStatus;
-    const matchesFieldName =
-      !fieldName || order.facilityName.includes(fieldName);
 
-    // Price range filter
     let matchesPrice = true;
     if (filters.priceFrom && order.totalPrice < parseInt(filters.priceFrom))
       matchesPrice = false;
     if (filters.priceTo && order.totalPrice > parseInt(filters.priceTo))
       matchesPrice = false;
 
+    let matchesDate = true;
+    if (
+      filters.dateFrom &&
+      new Date(order.bookingDate) < new Date(filters.dateFrom)
+    )
+      matchesDate = false;
+    if (
+      filters.dateTo &&
+      new Date(order.bookingDate) > new Date(filters.dateTo)
+    )
+      matchesDate = false;
+
     return (
       matchesFacility &&
       matchesCustomer &&
       matchesPaymentStatus &&
-      matchesFieldName &&
-      matchesPrice
+      matchesPrice &&
+      matchesDate
     );
   });
 
-  // Tính phân trang
   const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
   const paginatedOrders = filteredOrders.slice(
     (currentPage - 1) * ordersPerPage,
@@ -388,7 +830,6 @@ const OrdersTable: React.FC = () => {
     }
   };
 
-  // Toggle dropdown visibility
   const toggleDropdown = (dropdownName: string) => {
     setShowDropdowns((prev) => ({
       ...prev,
@@ -396,7 +837,6 @@ const OrdersTable: React.FC = () => {
     }));
   };
 
-  // Update payment status
   const updatePaymentStatus = (orderId: number, newStatus: string) => {
     setOrders((prev) =>
       prev.map((order) =>
@@ -407,66 +847,12 @@ const OrdersTable: React.FC = () => {
     );
   };
 
-  // Open order detail modal
-  const openOrderDetail = (order: Order) => {
-    setSelectedOrder(order);
-    setShowModal(true);
-  };
-
-  // Close modal
   const closeModal = () => {
     setShowModal(false);
     setSelectedOrder(null);
+    setOrderDetail(null);
   };
 
-  // Get detailed order information (mock data based on real database structure)
-  const getOrderDetail = (order: Order): OrderDetail => {
-    // Mock services data based on real database
-    const mockServices: OrderServiceDetail[] = [
-      { serviceId: 1, serviceName: "Thuê bóng đá", price: 30000, quantity: 1 },
-      { serviceId: 2, serviceName: "Nước uống", price: 15000, quantity: 2 },
-      { serviceId: 3, serviceName: "Khăn lạnh", price: 10000, quantity: 1 },
-    ];
-
-    return {
-      orderId: order.orderId,
-      bookingId: order.bookingId,
-      facilityName: order.facilityName,
-      fieldName: order.fieldName,
-      categoryFieldName: order.facilityName.includes("tennis")
-        ? "Sân Tennis"
-        : order.facilityName.includes("bóng rổ")
-        ? "Sân Bóng rổ"
-        : order.facilityName.includes("cầu lông")
-        ? "Sân Cầu lông"
-        : "Sân Bóng đá",
-      customerName: order.customerName,
-      customerPhone: order.customerPhone,
-      customerEmail: `${order.customerName
-        .toLowerCase()
-        .replace(/\s+/g, "")}@email.com`,
-      totalPrice: order.totalPrice,
-      totalServicePrice: order.totalServicePrice,
-      fieldRentalPrice: order.totalPrice - order.totalServicePrice,
-      discountAmount: 0,
-      deposit: Math.round(order.totalPrice * 0.3), // 30% deposit
-      contentPayment: order.contentPayment,
-      statusPayment: order.statusPayment,
-      paymentMethod: "Chuyển khoản ngân hàng",
-      bookingDate: order.bookingDate,
-      startTime: order.startTime,
-      endTime: order.endTime,
-      bookingTitle: `Đặt ${order.fieldName}`,
-      bookingStatus: "Đã xác nhận",
-      services: mockServices,
-      createAt: new Date(order.createAt).toLocaleString("vi-VN"),
-      bookingCreateAt: new Date(
-        new Date(order.createAt).getTime() - 24 * 60 * 60 * 1000
-      ).toLocaleString("vi-VN"), // 1 day before order
-    };
-  };
-
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
@@ -481,7 +867,6 @@ const OrdersTable: React.FC = () => {
     };
   }, []);
 
-  // Clear all filters
   const clearFilters = () => {
     setFilters({
       facility: "",
@@ -499,15 +884,11 @@ const OrdersTable: React.FC = () => {
       <Sidebar />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pl-64 pt-8 pr-6">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          {/* Header Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
                   Quản lý đơn đặt sân
-                  {fieldName && (
-                    <span className="text-blue-600 ml-2">- {fieldName}</span>
-                  )}
                 </h1>
                 <p className="text-gray-600 text-sm">
                   Quản lý và theo dõi tất cả đơn đặt sân của hệ thống
@@ -523,9 +904,16 @@ const OrdersTable: React.FC = () => {
                 </div>
               </div>
             </div>
+            {error && (
+              <div
+                className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                role="alert"
+              >
+                <span className="block sm:inline">{error}</span>
+              </div>
+            )}
           </div>
 
-          {/* Filters Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -561,7 +949,6 @@ const OrdersTable: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {/* Facility Filter */}
               <div className="relative dropdown-container">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Cơ sở
@@ -630,7 +1017,6 @@ const OrdersTable: React.FC = () => {
                 )}
               </div>
 
-              {/* Customer Filter */}
               <div className="relative dropdown-container">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Khách hàng
@@ -699,7 +1085,6 @@ const OrdersTable: React.FC = () => {
                 )}
               </div>
 
-              {/* Price Filter */}
               <div className="relative dropdown-container">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Khoảng giá
@@ -781,7 +1166,6 @@ const OrdersTable: React.FC = () => {
                 )}
               </div>
 
-              {/* Payment Status Filter */}
               <div className="relative dropdown-container">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Trạng thái thanh toán
@@ -847,7 +1231,6 @@ const OrdersTable: React.FC = () => {
                 )}
               </div>
 
-              {/* Date Filter */}
               <div className="relative dropdown-container">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Khoảng thời gian
@@ -929,7 +1312,6 @@ const OrdersTable: React.FC = () => {
             </div>
           </div>
 
-          {/* Table Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -937,185 +1319,209 @@ const OrdersTable: React.FC = () => {
               </h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-green-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                      STT
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                      Mã đơn
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                      Cơ sở / Sân
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                      Khách hàng
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                      Thời gian đặt
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                      Tổng tiền
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                      Trạng thái thanh toán
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                      Thao tác
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedOrders.map((order, index) => (
-                    <tr
-                      key={order.orderId}
-                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{order.orderId}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
-                        #{order.bookingId}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <div>
-                          <div className="font-medium">
-                            {order.facilityName}
-                          </div>
-                          <div className="text-gray-500 text-xs">
-                            {order.fieldName}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div>
-                          <div className="font-medium">
-                            {order.customerName}
-                          </div>
-                          <div className="text-gray-500 text-xs">
-                            {order.customerPhone}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div>
-                          <div className="font-medium">
-                            {new Date(order.bookingDate).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </div>
-                          <div className="text-gray-500 text-xs">
-                            {order.startTime} - {order.endTime}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <div>
-                          <div className="text-blue-600">
-                            {order.totalPrice.toLocaleString()}đ
-                          </div>
-                          <div className="text-gray-500 text-xs">
-                            DV: {order.totalServicePrice.toLocaleString()}đ
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="relative dropdown-container">
-                          <button
-                            onClick={() =>
-                              toggleDropdown(`paymentStatus_${order.orderId}`)
-                            }
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
-                              order.statusPayment
-                            )}`}
-                          >
-                            {order.statusPayment}
-                            <svg
-                              className="w-3 h-3 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                          {showDropdowns[`paymentStatus_${order.orderId}`] && (
-                            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
-                              <div className="py-1">
-                                {paymentStatuses.map((status, statusIndex) => (
-                                  <div
-                                    key={statusIndex}
-                                    onClick={() => {
-                                      updatePaymentStatus(
-                                        order.orderId,
-                                        status
-                                      );
-                                      toggleDropdown(
-                                        `paymentStatus_${order.orderId}`
-                                      );
-                                    }}
-                                    className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 ${
-                                      status === order.statusPayment
-                                        ? "bg-blue-50 text-blue-700"
-                                        : "text-gray-700 hover:text-blue-600"
-                                    }`}
-                                  >
-                                    <span
-                                      className={`inline-block w-2 h-2 rounded-full mr-3 ${
-                                        getPaymentStatusColor(status).split(
-                                          " "
-                                        )[0]
-                                      }`}
-                                    ></span>
-                                    {status}
-                                  </div>
-                                ))}
+              {loading ? (
+                <div className="p-6 text-center text-gray-500">
+                  Đang tải đơn hàng...
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-green-200">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                        STT
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                        Mã đơn
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                        Cơ sở / Sân
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                        Khách hàng
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                        Thời gian đặt
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                        Tổng tiền
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                        Trạng thái thanh toán
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                        Thao tác
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedOrders.length > 0 ? (
+                      paginatedOrders.map((order, index) => (
+                        <tr
+                          key={order.orderId}
+                          className={
+                            index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                          }
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-black-600 font-bold">
+                            {index + 1}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
+                            #{order.orderId}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            <div>
+                              <div className="font-medium">
+                                {order.facilityName}
+                              </div>
+                              <div className="text-gray-500 text-xs">
+                                {order.fieldName}
                               </div>
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => openOrderDetail(order)}
-                          className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div>
+                              <div className="font-medium">
+                                {order.customerName}
+                              </div>
+                              <div className="text-gray-500 text-xs">
+                                {order.customerPhone}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div>
+                              <div className="font-medium">
+                                {new Date(order.bookingDate).toLocaleDateString(
+                                  "vi-VN"
+                                )}
+                              </div>
+                              <div className="text-gray-500 text-xs">
+                                {order.startTime} - {order.endTime}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <div>
+                              <div className="text-blue-600">
+                                {order.totalPrice.toLocaleString()}đ
+                              </div>
+                              <div className="text-gray-500 text-xs">
+                                DV: {order.totalServicePrice.toLocaleString()}đ
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="relative dropdown-container">
+                              <button
+                                onClick={() =>
+                                  toggleDropdown(
+                                    `paymentStatus_${order.orderId}`
+                                  )
+                                }
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
+                                  order.statusPayment
+                                )}`}
+                              >
+                                {order.statusPayment}
+                                <svg
+                                  className="w-3 h-3 ml-1"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </button>
+                              {showDropdowns[
+                                `paymentStatus_${order.orderId}`
+                              ] && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
+                                  <div className="py-1">
+                                    {paymentStatuses.map(
+                                      (status, statusIndex) => (
+                                        <div
+                                          key={statusIndex}
+                                          onClick={() => {
+                                            updatePaymentStatus(
+                                              order.orderId,
+                                              status
+                                            );
+                                            toggleDropdown(
+                                              `paymentStatus_${order.orderId}`
+                                            );
+                                          }}
+                                          className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 ${
+                                            status === order.statusPayment
+                                              ? "bg-blue-50 text-blue-700"
+                                              : "text-gray-700 hover:text-blue-600"
+                                          }`}
+                                        >
+                                          <span
+                                            className={`inline-block w-2 h-2 rounded-full mr-3 ${
+                                              getPaymentStatusColor(
+                                                status
+                                              ).split(" ")[0]
+                                            }`}
+                                          ></span>
+                                          {status}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => openOrderDetail(order)}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                            >
+                              <svg
+                                className="w-3 h-3 mr-1"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                              </svg>
+                              {order.action}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-6 py-4 text-center text-gray-500"
                         >
-                          <svg
-                            className="w-3 h-3 mr-1"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                            />
-                          </svg>
-                          {order.action}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          Không tìm thấy đơn hàng nào.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
 
-          {/* Pagination Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4 mt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -1138,7 +1544,6 @@ const OrdersTable: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-4">
-                {/* Items per page selector */}
                 <div className="flex items-center space-x-2">
                   <label
                     htmlFor="ordersPerPage"
@@ -1162,7 +1567,6 @@ const OrdersTable: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Pagination controls */}
                 <div className="flex items-center space-x-1">
                   <button
                     onClick={() => setCurrentPage(1)}
@@ -1216,7 +1620,6 @@ const OrdersTable: React.FC = () => {
                     </svg>
                   </button>
 
-                  {/* Page numbers */}
                   <div className="flex items-center space-x-1">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNumber;
@@ -1305,16 +1708,15 @@ const OrdersTable: React.FC = () => {
       </div>
 
       {/* Order Detail Modal */}
-      {showModal && selectedOrder && (
+      {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-xl">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold">Chi tiết đơn đặt sân</h2>
                   <p className="text-blue-100 text-sm">
-                    Đơn hàng #{selectedOrder.orderId}
+                    Đơn hàng #{selectedOrder?.orderId}
                   </p>
                 </div>
                 <button
@@ -1339,249 +1741,157 @@ const OrdersTable: React.FC = () => {
               </div>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6">
-              {(() => {
-                const orderDetail = getOrderDetail(selectedOrder);
-                return (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Left Column - Order Information */}
-                    <div className="space-y-6">
-                      {/* Basic Info */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg
-                            className="w-5 h-5 mr-2 text-blue-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                          </svg>
-                          Thông tin đơn hàng
-                        </h3>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Mã đơn hàng:</span>
-                            <span className="font-medium">
-                              #{orderDetail.orderId}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Mã booking:</span>
-                            <span className="font-medium">
-                              #{orderDetail.bookingId}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Ngày tạo đơn:</span>
-                            <span className="font-medium">
-                              {orderDetail.createAt}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">
-                              Ngày tạo booking:
-                            </span>
-                            <span className="font-medium">
-                              {orderDetail.bookingCreateAt}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Ngày đặt sân:</span>
-                            <span className="font-medium">
-                              {new Date(
-                                orderDetail.bookingDate
-                              ).toLocaleDateString("vi-VN")}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">
-                              Thời gian sân:
-                            </span>
-                            <span className="font-medium">
-                              {orderDetail.startTime} - {orderDetail.endTime}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">
-                              Trạng thái booking:
-                            </span>
-                            <span className="font-medium text-green-600">
-                              {orderDetail.bookingStatus}
-                            </span>
-                          </div>
+              {modalLoading ? (
+                <div className="text-center p-10 text-gray-500">
+                  Đang tải chi tiết đơn hàng...
+                </div>
+              ) : orderDetail ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Thông tin đơn hàng
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Ngày đặt sân:</span>
+                          <span className="font-medium">
+                            {new Date(
+                              orderDetail.bookingDate
+                            ).toLocaleDateString("vi-VN")}
+                          </span>
                         </div>
-                      </div>
-
-                      {/* Customer Info */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg
-                            className="w-5 h-5 mr-2 text-green-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                            />
-                          </svg>
-                          Thông tin khách hàng
-                        </h3>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Họ tên:</span>
-                            <span className="font-medium">
-                              {orderDetail.customerName}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">
-                              Số điện thoại:
-                            </span>
-                            <span className="font-medium">
-                              {orderDetail.customerPhone}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Email:</span>
-                            <span className="font-medium">
-                              {orderDetail.customerEmail}
-                            </span>
-                          </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Thời gian sân:</span>
+                          <span className="font-medium">
+                            {orderDetail.startTime} - {orderDetail.endTime}
+                          </span>
                         </div>
-                      </div>
-
-                      {/* Booking Info */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg
-                            className="w-5 h-5 mr-2 text-blue-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v1a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 21h14a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2z"
-                            />
-                          </svg>
-                          Thông tin booking
-                        </h3>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Mã booking:</span>
-                            <span className="font-medium text-blue-600">
-                              #{orderDetail.bookingId}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">
-                              Tiêu đề booking:
-                            </span>
-                            <span className="font-medium">
-                              {orderDetail.bookingTitle}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">
-                              Ngày tạo booking:
-                            </span>
-                            <span className="font-medium">
-                              {orderDetail.bookingCreateAt}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">
-                              Trạng thái booking:
-                            </span>
-                            <span className="font-medium text-green-600">
-                              {orderDetail.bookingStatus}
-                            </span>
-                          </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">
+                            Trạng thái booking:
+                          </span>
+                          <span className="font-medium text-green-600">
+                            {orderDetail.bookingStatus}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Right Column - Facility & Payment Info */}
-                    <div className="space-y-6">
-                      {/* Facility Info */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg
-                            className="w-5 h-5 mr-2 text-purple-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                            />
-                          </svg>
-                          Thông tin sân
-                        </h3>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Cơ sở:</span>
-                            <span className="font-medium">
-                              {orderDetail.facilityName}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tên sân:</span>
-                            <span className="font-medium">
-                              {orderDetail.fieldName}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Loại sân:</span>
-                            <span className="font-medium">
-                              {orderDetail.categoryFieldName}
-                            </span>
-                          </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-green-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                        Thông tin khách hàng
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Họ tên:</span>
+                          <span className="font-medium">
+                            {orderDetail.customerName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Số điện thoại:</span>
+                          <span className="font-medium">
+                            {orderDetail.customerPhone}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Email:</span>
+                          <span className="font-medium">
+                            {orderDetail.customerEmail}
+                          </span>
                         </div>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Services */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg
-                            className="w-5 h-5 mr-2 text-indigo-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h2m0-13v13m0-13c.789 0 1.456.602 1.52 1.359l.05.641H18m-.08 13.879C17.856 21.398 17.189 22 16.4 22H9m7-13c-.041-.789-.607-1.456-1.359-1.52L14 7.5H9.6m7.4 0c.789 0 1.456.602 1.52 1.359l.05.641H21m-2 13.879C18.856 21.398 18.189 22 17.4 22h-2"
-                            />
-                          </svg>
-                          Dịch vụ đi kèm
-                        </h3>
-                        <div className="space-y-2">
-                          {orderDetail.services.map((service, index) => (
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-purple-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                          />
+                        </svg>
+                        Thông tin sân
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Cơ sở:</span>
+                          <span className="font-medium">
+                            {orderDetail.facilityName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tên sân:</span>
+                          <span className="font-medium">
+                            {orderDetail.fieldName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Loại sân:</span>
+                          <span className="font-medium">
+                            {orderDetail.categoryFieldName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-indigo-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h2m0-13v13m0-13c.789 0 1.456.602 1.52 1.359l.05.641H18m-.08 13.879C17.856 21.398 17.189 22 16.4 22H9m7-13c-.041-.789-.607-1.456-1.359-1.52L14 7.5H9.6m7.4 0c.789 0 1.456.602 1.52 1.359l.05.641H21m-2 13.879C18.856 21.398 18.189 22 17.4 22h-2"
+                          />
+                        </svg>
+                        Dịch vụ đi kèm
+                      </h3>
+                      <div className="space-y-2">
+                        {orderDetail.services.length > 0 ? (
+                          orderDetail.services.map((service, index) => (
                             <div
                               key={index}
                               className="flex items-center justify-between"
@@ -1609,92 +1919,125 @@ const OrdersTable: React.FC = () => {
                                 {service.price.toLocaleString()}đ
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-500 italic">
+                            Không có dịch vụ đi kèm.
+                          </div>
+                        )}
                       </div>
+                    </div>
 
-                      {/* Payment Info */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                          <svg
-                            className="w-5 h-5 mr-2 text-orange-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-orange-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                          />
+                        </svg>
+                        Thông tin thanh toán
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Giá thuê sân:</span>
+                          <span className="font-medium">
+                            {orderDetail.fieldRentalPrice.toLocaleString()}đ
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tiền dịch vụ:</span>
+                          <span className="font-medium">
+                            {orderDetail.totalServicePrice.toLocaleString()}đ
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Giảm giá:</span>
+                          <span className="font-medium text-red-600">
+                            -{orderDetail.discountAmount.toLocaleString()}đ
+                          </span>
+                        </div>
+                        <div className="border-t pt-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Tổng tiền:</span>
+                            <span className="font-bold text-lg text-blue-600">
+                              {orderDetail.totalPrice.toLocaleString()}đ
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Đã cọc:</span>
+                          <span className="font-medium text-green-600">
+                            {orderDetail.deposit.toLocaleString()}đ
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Trạng thái:</span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                              orderDetail.statusPayment
+                            )}`}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                            />
-                          </svg>
-                          Thông tin thanh toán
-                        </h3>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Giá thuê sân:</span>
-                            <span className="font-medium">
-                              {orderDetail.fieldRentalPrice.toLocaleString()}đ
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tiền dịch vụ:</span>
-                            <span className="font-medium">
-                              {orderDetail.totalServicePrice.toLocaleString()}đ
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Giảm giá:</span>
-                            <span className="font-medium text-red-600">
-                              -{orderDetail.discountAmount.toLocaleString()}đ
-                            </span>
-                          </div>
-                          <div className="border-t pt-2">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Tổng tiền:</span>
-                              <span className="font-bold text-lg text-blue-600">
-                                {orderDetail.totalPrice.toLocaleString()}đ
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Đã cọc:</span>
-                            <span className="font-medium text-green-600">
-                              {orderDetail.deposit.toLocaleString()}đ
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Trạng thái:</span>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                                orderDetail.statusPayment
-                              )}`}
+                            {orderDetail.statusPayment}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Phương thức:</span>
+                          <div className="flex items-center gap-3">
+                            <label className="inline-flex items-center gap-2 text-sm">
+                              <input
+                                type="radio"
+                                name="paymentOption"
+                                className="form-radio"
+                                checked={selectedPaymentOption === 1}
+                                onChange={() => setSelectedPaymentOption(1)}
+                              />
+                              <span>Tiền mặt</span>
+                            </label>
+                            <label className="inline-flex items-center gap-2 text-sm">
+                              <input
+                                type="radio"
+                                name="paymentOption"
+                                className="form-radio"
+                                checked={selectedPaymentOption === 2}
+                                onChange={() => setSelectedPaymentOption(2)}
+                              />
+                              <span>Ví điện tử</span>
+                            </label>
+                            <button
+                              onClick={savePaymentMethod}
+                              disabled={!selectedPaymentOption || savingPayment}
+                              className="ml-2 px-3 py-1 bg-blue-600 text-white text-xs rounded disabled:opacity-60"
+                              title="Lưu phương thức thanh toán"
                             >
-                              {orderDetail.statusPayment}
-                            </span>
+                              {savingPayment ? "Đang lưu..." : "Lưu"}
+                            </button>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Phương thức:</span>
-                            <span className="font-medium">
-                              {orderDetail.paymentMethod}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Nội dung:</span>
-                            <span className="font-medium text-sm">
-                              {orderDetail.contentPayment}
-                            </span>
-                          </div>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Nội dung:</span>
+                          <span className="font-medium text-sm">
+                            {orderDetail.contentPayment}
+                          </span>
                         </div>
                       </div>
                     </div>
                   </div>
-                );
-              })()}
+                </div>
+              ) : (
+                <div className="text-center p-10 text-gray-500">
+                  Không thể tải chi tiết đơn hàng.
+                </div>
+              )}
             </div>
 
-            {/* Modal Footer */}
             <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end space-x-3">
               <button
                 onClick={closeModal}
