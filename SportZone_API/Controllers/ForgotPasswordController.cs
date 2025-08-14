@@ -25,7 +25,16 @@ namespace SportZone_API.Controllers
         }
 
         [HttpPost("verify-code")]
-        public async Task<IActionResult> VerifyCodeAndResetPassword([FromBody] VerifyCodeDto dto)
+        public async Task<IActionResult> VerifyCode([FromBody] VerifyCodeDto dto)
+        {
+            var result = await _forgotPasswordService.VerifyCodeAsync(dto);
+            if (result.Success)
+                return Ok(new { message = result.Message });
+            return BadRequest(new { error = result.Message });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
             var result = await _forgotPasswordService.ResetPasswordAsync(dto);
             if (result.Success)

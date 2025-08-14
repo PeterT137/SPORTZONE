@@ -86,7 +86,6 @@ namespace SportZone_API.Services
             var result = await _fieldPricingRepository.DeletePricingConfigAsync(id);
             if (result)
             {
-                // Cập nhật giá lịch và gửi thông báo
                 await UpdateFieldBookingSchedulesPrice(configToDelete.FieldId);
             }
             return result;
@@ -95,7 +94,9 @@ namespace SportZone_API.Services
         private async Task UpdateFieldBookingSchedulesPrice(int fieldId)
         {
             var allPricingConfigsForField = (await _fieldPricingRepository.GetPricingConfigsByFieldIdAsync(fieldId)).ToList();
-            var schedulesToUpdate = await _fieldBookingScheduleRepository.GetSchedulesByFieldIdAsync(fieldId);
+            var schedulesToUpdate = (await _fieldBookingScheduleRepository.GetSchedulesByFieldIdAsync(fieldId))
+                                                                            .Where(s => s.Status == "Available")
+                                                                            .ToList();
             var updatedSchedules = new List<FieldBookingSchedule>();
 
             foreach (var schedule in schedulesToUpdate)
@@ -114,8 +115,6 @@ namespace SportZone_API.Services
             if (updatedSchedules.Any())
             {
                 await _fieldBookingScheduleRepository.UpdateRangeSchedulesAsync(updatedSchedules);
-
-                // Gửi thông báo SignalR tới group của sân
                 await _hubContext.Clients.Group($"field-{fieldId}").SendAsync(
                     "Cập nhật giá thành công",
                     _mapper.Map<IEnumerable<FieldBookingScheduleDto>>(updatedSchedules)
