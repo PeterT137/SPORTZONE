@@ -148,7 +148,7 @@ namespace SportZone_API.Services
                     throw new Exception($"Không tìm thấy slot nào cho booking ID {booking.BookingId}");
                 }
                 var totalAfterFirstDivision = bookedSlots.Sum(slot => (slot.Price ?? 0) / 2);
-                var fieldPrice = totalAfterFirstDivision / 2;
+                var fieldPrice = totalAfterFirstDivision;
 
                 return fieldPrice;
             }
