@@ -82,6 +82,41 @@ interface ApiFieldPricing {
   price: number;
 }
 
+interface ApiRegulationFacility {
+  regulationFacilityId?: number;
+  RegulationFacilityId?: number;
+  id?: number;
+  Id?: number;
+  facId?: number;
+  FacId?: number;
+  title?: string;
+  Title?: string;
+  description?: string;
+  Description?: string;
+  status?: string;
+  Status?: string;
+}
+
+interface ApiDiscount {
+  discountId: number;
+  facId: number;
+  discountPercentage: number;
+  startDate: string;
+  endDate: string;
+  description: string;
+  isActive: boolean;
+  quantity: number;
+  code?: string;
+}
+
+interface RegulationItem {
+  id: number;
+  facId: number;
+  title: string;
+  description: string;
+  status: "Active" | "Inactive";
+}
+
 interface BookingFormData {
   fieldId: number;
   date: string;
@@ -185,6 +220,50 @@ const fetchFieldPricing = async (
     const result = await response.json();
     if (Array.isArray(result)) return result;
     if (result && Array.isArray(result.data)) return result.data;
+    return [];
+  }
+};
+
+const fetchFacilityDiscounts = async (
+  facilityId: number
+): Promise<ApiDiscount[]> => {
+  const token = localStorage.getItem("token");
+  const headers: Record<string, string> = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+
+  try {
+    const res = await fetch(
+      `https://localhost:7057/api/Discount/facility/${facilityId}`,
+      { headers }
+    );
+    if (!res.ok) return [];
+    const result = await res.json();
+    const raw: any[] = Array.isArray(result)
+      ? result
+      : Array.isArray(result?.data)
+      ? result.data
+      : [];
+    const toBool = (v: any): boolean => {
+      if (typeof v === "boolean") return v;
+      if (v === 1 || v === "1") return true;
+      if (v === 0 || v === "0") return false;
+      return String(v).toLowerCase() === "true";
+    };
+    return raw.map((d: any) => ({
+      discountId:
+        d.discountId ?? d.discount_id ?? d.Id ?? d.id ?? d.DiscountId ?? 0,
+      facId: d.facId ?? d.fac_id ?? d.FacId ?? 0,
+      discountPercentage:
+        d.discountPercentage ?? d.discount_percentage ?? d.percent ?? 0,
+      startDate: d.startDate ?? d.start_date ?? "",
+      endDate: d.endDate ?? d.end_date ?? "",
+      description: d.description ?? "",
+      isActive: toBool(d.isActive ?? d.is_active ?? true),
+      quantity: d.quantity ?? 0,
+      code: d.code ?? d.Code ?? d.couponCode ?? undefined,
+    }));
+  } catch {
     return [];
   }
 };
@@ -544,9 +623,17 @@ const TimeSlotsGrid = React.memo(
                         textColor = "text-white";
                         isClickable = true;
                       } else if (slot.status === "Available") {
-                        bgColor = "bg-green-400";
-                        textColor = "text-white";
-                        isClickable = true;
+                        // If current time is past the slot start, mark as expired and disable
+                        if (isPastSlot) {
+                          bgColor = "bg-gray-300";
+                          textColor = "text-gray-500";
+                          isClickable = false;
+                          title += " - Hết hạn";
+                        } else {
+                          bgColor = "bg-green-400";
+                          textColor = "text-white";
+                          isClickable = true;
+                        }
                       } else if (slot.status === "Booked") {
                         bgColor = "bg-red-500";
                         textColor = "text-white";
@@ -609,6 +696,18 @@ const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const { facId } = useParams<{ facId: string }>();
 
+  const isAdmin = useMemo(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (!userStr) return false;
+      const user = JSON.parse(userStr);
+      const roleId = user?.RoleId ?? user?.roleId;
+      return roleId === 3;
+    } catch {
+      return false;
+    }
+  }, []);
+
   // State management
   const [fields, setFields] = useState<ApiFieldResponse[]>([]);
   const [selectedField, setSelectedField] = useState<ApiFieldResponse | null>(
@@ -626,10 +725,17 @@ const BookingPage: React.FC = () => {
   const [fieldPricingData, setFieldPricingData] = useState<ApiFieldPricing[]>(
     []
   );
+  const [regulations, setRegulations] = useState<RegulationItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string>("");
   const [isLoadingUserInfo, setIsLoadingUserInfo] = useState<boolean>(false);
+  const [availableDiscounts, setAvailableDiscounts] = useState<ApiDiscount[]>(
+    []
+  );
+  const [selectedDiscountId, setSelectedDiscountId] = useState<number | null>(
+    null
+  );
   const [formData, setFormData] = useState<BookingFormData>({
     fieldId: 0,
     date: "",
@@ -685,6 +791,10 @@ const BookingPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (isAdmin) {
+      setIsLoadingUserInfo(false);
+      return;
+    }
     const loadUserInfo = async () => {
       setIsLoadingUserInfo(true);
       try {
@@ -709,10 +819,14 @@ const BookingPage: React.FC = () => {
     };
 
     loadUserInfo();
-  }, [getUserInfoFromStorage, getUserInfoFromToken]);
+  }, [getUserInfoFromStorage, getUserInfoFromToken, isAdmin]);
 
   // Initial data loading effect
   useEffect(() => {
+    if (isAdmin) {
+      setLoading(false);
+      return;
+    }
     const facilityIdNum = parseInt(facId || "", 10);
     if (isNaN(facilityIdNum)) {
       navigate("/field_list");
@@ -740,6 +854,56 @@ const BookingPage: React.FC = () => {
             .catch((err) =>
               console.warn("Could not load facility details:", err)
             );
+
+          // Fetch regulations for facility
+          fetch(
+            `https://localhost:7057/api/RegulationFacility/facility/${firstField.facId}`
+          )
+            .then(async (res) => {
+              if (!res.ok) return [] as RegulationItem[];
+              const data: ApiRegulationFacility[] = await res.json();
+              const normalizeStatus = (v?: string): "Active" | "Inactive" => {
+                const s = (v || "").toLowerCase().trim();
+                if (s === "inactive" || s === "tạm dừng" || s === "tam dung")
+                  return "Inactive";
+                return "Active";
+              };
+              const mapped = (Array.isArray(data) ? data : []).map((r) => ({
+                id:
+                  r.regulationFacilityId ||
+                  r.RegulationFacilityId ||
+                  r.id ||
+                  r.Id ||
+                  0,
+                facId:
+                  (r.facId as number) ||
+                  (r.FacId as number) ||
+                  firstField.facId,
+                title: (r.title as string) || (r.Title as string) || "",
+                description:
+                  (r.description as string) || (r.Description as string) || "",
+                status: normalizeStatus(
+                  (r.status as string) || (r.Status as string)
+                ),
+              }));
+              return mapped.filter((m) => m.id && m.title);
+            })
+            .then((list) => {
+              if (isMounted) setRegulations(list);
+            })
+            .catch(() => {
+              if (isMounted) setRegulations([]);
+            });
+
+          // Fetch discounts for facility
+          fetchFacilityDiscounts(firstField.facId)
+            .then((discounts) => {
+              if (!isMounted) return;
+              // Chỉ lọc theo trạng thái isActive như yêu cầu
+              const activeDiscounts = discounts.filter((d) => d.isActive);
+              setAvailableDiscounts(activeDiscounts);
+            })
+            .catch(() => isMounted && setAvailableDiscounts([]));
         }
       } catch (err) {
         if (isMounted)
@@ -755,10 +919,11 @@ const BookingPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [facId, navigate]);
+  }, [facId, navigate, isAdmin]);
 
   // Schedules loading effect
   useEffect(() => {
+    if (isAdmin) return;
     if (!selectedDate) return;
 
     let isMounted = true;
@@ -788,7 +953,7 @@ const BookingPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [selectedDate]);
+  }, [selectedDate, isAdmin]);
 
   // Update form data when selected slots change
   useEffect(() => {
@@ -959,6 +1124,10 @@ const BookingPage: React.FC = () => {
     phoneError,
   ]);
 
+  const handleToggleDiscount = useCallback((discountId: number) => {
+    setSelectedDiscountId((prev) => (prev === discountId ? null : discountId));
+  }, []);
+
   const handleOpenPricingModal = useCallback(async () => {
     try {
       // Lấy danh sách fieldId của cơ sở hiện tại
@@ -970,45 +1139,10 @@ const BookingPage: React.FC = () => {
       console.error("Error loading pricing data:", error);
       alert("Không thể tải thông tin giá. Vui lòng thử lại.");
     }
-  }, []);
+  }, [fields]);
 
-  const handleConfirmBooking = useCallback(() => {
-    navigate("/payment", {
-      state: {
-        booking: {
-          field: selectedField
-            ? {
-                ...selectedField,
-                facilityName:
-                  facilityDetails?.facilityName || "SportZone Facility",
-                image:
-                  facilityDetails?.images?.[0] || "/api/placeholder/400/300",
-                openTime: facilityDetails?.openTime || "05:30:00",
-                closeTime: facilityDetails?.closeTime || "22:30:00",
-                pricing: [],
-              }
-            : null,
-          slots: selectedSlots,
-          guestInfo: {
-            name: formData.guestName,
-            phone: formData.guestPhone,
-            notes: formData.notes,
-          },
-          services: [],
-          totalPrice: (totalPrice * 0.5).toFixed(0),
-          date: selectedDate,
-        },
-      },
-    });
-  }, [
-    navigate,
-    selectedField,
-    facilityDetails,
-    selectedSlots,
-    formData,
-    totalPrice,
-    selectedDate,
-  ]);
+  // No-op; kept for potential future use
+  const handleConfirmBooking = useCallback(() => {}, []);
 
   const fieldsForGrid = useMemo(() => {
     if (selectedSlots.length > 0) {
@@ -1019,6 +1153,32 @@ const BookingPage: React.FC = () => {
     // Otherwise, show all fields for the facility
     return fields;
   }, [fields, selectedSlots]);
+
+  if (isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-3xl mx-auto px-4 py-10">
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-6 text-center">
+            <h1 className="text-2xl font-bold">
+              Admin không thể tiến hành đặt vé
+            </h1>
+            <p className="mt-2 text-sm">
+              Vui lòng sử dụng tài khoản khách hàng để đặt sân.
+            </p>
+            <div className="mt-6">
+              <button
+                onClick={() => navigate("/homepage")}
+                className="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Về trang chủ
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1108,6 +1268,47 @@ const BookingPage: React.FC = () => {
                   totalPrice={totalPrice}
                   facilityDetails={facilityDetails}
                 />
+
+                <div className="bg-white rounded-lg p-6 shadow-md">
+                  <h3 className="text-lg font-semibold mb-4">Quy định sân</h3>
+                  {regulations.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      Chưa có quy định nào cho cơ sở này.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {regulations.map((r) => (
+                        <div
+                          key={r.id}
+                          className="border border-gray-200 rounded-lg p-4"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="font-semibold text-gray-900">
+                              {r.title}
+                            </h4>
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                r.status === "Active"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                              title={`Trạng thái: ${
+                                r.status === "Active" ? "Hoạt động" : "Tạm dừng"
+                              }`}
+                            >
+                              {r.status === "Active" ? "Hoạt động" : "Tạm dừng"}
+                            </span>
+                          </div>
+                          {r.description && (
+                            <p className="text-sm text-gray-700 whitespace-pre-line">
+                              {r.description}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Sidebar */}
@@ -1187,6 +1388,53 @@ const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Discount Codes */}
+                <div className="bg-white rounded-lg p-6 shadow-md">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-green-600" />
+                    Mã giảm giá
+                  </h3>
+                  {availableDiscounts.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      Hiện chưa có mã giảm giá khả dụng.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {availableDiscounts.map((d) => (
+                        <label
+                          key={d.discountId}
+                          className="flex items-start gap-3 p-3 border rounded-lg hover:bg-green-50 cursor-pointer"
+                        >
+                          <input
+                            type="radio"
+                            name="discount"
+                            className="mt-1"
+                            checked={selectedDiscountId === d.discountId}
+                            onChange={() => handleToggleDiscount(d.discountId)}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-green-700 font-semibold">
+                                {d.discountPercentage}%
+                              </span>
+                              {d.code && (
+                                <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">
+                                  {d.code}
+                                </span>
+                              )}
+                            </div>
+                            {d.description && (
+                              <p className="text-sm text-gray-600">
+                                {d.description}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="bg-white rounded-lg p-6 shadow-md">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-green-600" />
@@ -1219,9 +1467,49 @@ const BookingPage: React.FC = () => {
                         </span>
                       </div>
                       <hr className="my-3" />
-                      <div className="flex justify-between items-center text-lg font-bold text-green-600">
-                        <span>Tổng tiền:</span>
-                        <span>{totalPrice.toLocaleString()}đ</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-green-700">
+                          <span>Tạm tính:</span>
+                          <span>{totalPrice.toLocaleString()}đ</span>
+                        </div>
+                        {selectedDiscountId && (
+                          <div className="flex justify-between items-center text-red-600">
+                            <span>Giảm giá:</span>
+                            <span>
+                              -
+                              {(() => {
+                                const d = availableDiscounts.find(
+                                  (x) => x.discountId === selectedDiscountId
+                                );
+                                const pct = d ? d.discountPercentage : 0;
+                                const amount = Math.floor(
+                                  (totalPrice * pct) / 100
+                                );
+                                return amount.toLocaleString();
+                              })()}
+                              đ
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center text-lg font-bold text-green-600">
+                          <span>Thành tiền:</span>
+                          <span>
+                            {(() => {
+                              const d = availableDiscounts.find(
+                                (x) => x.discountId === selectedDiscountId
+                              );
+                              const pct = d ? d.discountPercentage : 0;
+                              const discounted = Math.max(
+                                0,
+                                Math.floor(
+                                  totalPrice - (totalPrice * pct) / 100
+                                )
+                              );
+                              return discounted.toLocaleString();
+                            })()}
+                            đ
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -1252,7 +1540,7 @@ const BookingPage: React.FC = () => {
       <BookingConfirmModal
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleConfirmBooking}
+        selectedDiscountId={selectedDiscountId}
         booking={{
           field: selectedField
             ? {
@@ -1273,7 +1561,16 @@ const BookingPage: React.FC = () => {
             notes: formData.notes,
           },
           services: [],
-          totalPrice: totalPrice,
+          totalPrice: (() => {
+            const d = availableDiscounts.find(
+              (x) => x.discountId === selectedDiscountId
+            );
+            const pct = d ? d.discountPercentage : 0;
+            return Math.max(
+              0,
+              Math.floor(totalPrice - (totalPrice * pct) / 100)
+            );
+          })(),
           date: selectedDate,
         }}
       />

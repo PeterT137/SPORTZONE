@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import Sidebar from "../../Sidebar";
 
@@ -59,6 +59,7 @@ const OrdersTable: React.FC = () => {
   const [ordersPerPage, setOrdersPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchParams] = useSearchParams();
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -88,180 +89,248 @@ const OrdersTable: React.FC = () => {
 
   // Lấy tham số từ query string
   const fieldName = searchParams.get("fieldName") || "";
+  const fieldIdParam = Number(searchParams.get("fieldId") || 0);
+  const facIdParam = Number(searchParams.get("facId") || 0);
 
-  // Dữ liệu mẫu theo cấu trúc database thực (Order liên kết với Booking)
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      orderId: 1,
-      bookingId: 101,
-      facilityName: "Sân bóng đá Central Park",
-      fieldName: "Sân bóng đá số 1",
-      customerName: "Nguyễn Văn Minh",
-      customerPhone: "0912345678",
-      totalPrice: 450000,
-      totalServicePrice: 55000,
-      contentPayment: "Thanh toán đặt sân bóng đá 11 người",
-      statusPayment: "Đã cọc",
-      bookingDate: "2025-07-15",
-      startTime: "14:00",
-      endTime: "16:00",
-      createAt: "2025-07-12T09:30:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 2,
-      bookingId: 102,
-      facilityName: "Sân bóng đá Central Park",
-      fieldName: "Sân bóng đá số 2",
-      customerName: "Trần Thị Hương",
-      customerPhone: "0987654321",
-      totalPrice: 520000,
-      totalServicePrice: 70000,
-      contentPayment: "Thanh toán đặt sân bóng đá 7 người + dịch vụ",
-      statusPayment: "Đã thanh toán",
-      bookingDate: "2025-07-20",
-      startTime: "16:00",
-      endTime: "18:00",
-      createAt: "2025-07-18T14:20:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 3,
-      bookingId: 103,
-      facilityName: "Sân tennis Quận 1",
-      fieldName: "Sân tennis số 1",
-      customerName: "Lê Hoàng Nam",
-      customerPhone: "0901234567",
-      totalPrice: 380000,
-      totalServicePrice: 30000,
-      contentPayment: "Thanh toán đặt sân tennis đơn",
-      statusPayment: "Đã thanh toán",
-      bookingDate: "2025-07-16",
-      startTime: "09:00",
-      endTime: "10:30",
-      createAt: "2025-07-14T16:45:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 4,
-      bookingId: 104,
-      facilityName: "Sân bóng rổ Downtown",
-      fieldName: "Sân bóng rổ số 1",
-      customerName: "Phạm Minh Tuấn",
-      customerPhone: "0934567890",
-      totalPrice: 320000,
-      totalServicePrice: 40000,
-      contentPayment: "Thanh toán đặt sân bóng rổ",
-      statusPayment: "Chưa thanh toán",
-      bookingDate: "2025-07-22",
-      startTime: "19:00",
-      endTime: "21:00",
-      createAt: "2025-07-20T11:15:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 5,
-      bookingId: 105,
-      facilityName: "Sân cầu lông Sport Center",
-      fieldName: "Sân cầu lông số 3",
-      customerName: "Hoàng Thị Lan",
-      customerPhone: "0945678901",
-      totalPrice: 280000,
-      totalServicePrice: 25000,
-      contentPayment: "Thanh toán đặt sân cầu lông đôi",
-      statusPayment: "Đã cọc",
-      bookingDate: "2025-07-25",
-      startTime: "18:00",
-      endTime: "19:30",
-      createAt: "2025-07-23T08:30:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 6,
-      bookingId: 106,
-      facilityName: "Sân bóng đá Central Park",
-      fieldName: "Sân bóng đá mini số 1",
-      customerName: "Đặng Văn Hùng",
-      customerPhone: "0967890123",
-      totalPrice: 480000,
-      totalServicePrice: 60000,
-      contentPayment: "Thanh toán đặt sân bóng đá mini",
-      statusPayment: "Chưa thanh toán",
-      bookingDate: "2025-07-18",
-      startTime: "20:00",
-      endTime: "22:00",
-      createAt: "2025-07-16T13:20:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 7,
-      bookingId: 107,
-      facilityName: "Sân tennis Quận 1",
-      fieldName: "Sân tennis số 2",
-      customerName: "Vũ Thị Mai",
-      customerPhone: "0978901234",
-      totalPrice: 420000,
-      totalServicePrice: 45000,
-      contentPayment: "Thanh toán đặt sân tennis đôi",
-      statusPayment: "Đã thanh toán",
-      bookingDate: "2025-07-21",
-      startTime: "15:00",
-      endTime: "17:00",
-      createAt: "2025-07-19T10:45:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 8,
-      bookingId: 108,
-      facilityName: "Sân bóng rổ Downtown",
-      fieldName: "Sân bóng rổ số 2",
-      customerName: "Ngô Minh Đức",
-      customerPhone: "0989012345",
-      totalPrice: 360000,
-      totalServicePrice: 50000,
-      contentPayment: "Thanh toán đặt sân bóng rổ + thiết bị",
-      statusPayment: "Đã cọc",
-      bookingDate: "2025-07-17",
-      startTime: "17:00",
-      endTime: "19:00",
-      createAt: "2025-07-15T15:30:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 9,
-      bookingId: 109,
-      facilityName: "Sân cầu lông Sport Center",
-      fieldName: "Sân cầu lông số 1",
-      customerName: "Trịnh Văn Khoa",
-      customerPhone: "0990123456",
-      totalPrice: 300000,
-      totalServicePrice: 35000,
-      contentPayment: "Thanh toán đặt sân cầu lông đơn",
-      statusPayment: "Chưa thanh toán",
-      bookingDate: "2025-07-24",
-      startTime: "07:00",
-      endTime: "09:00",
-      createAt: "2025-07-22T09:15:00",
-      action: "Chi tiết",
-    },
-    {
-      orderId: 10,
-      bookingId: 110,
-      facilityName: "Sân bóng đá Central Park",
-      fieldName: "Sân bóng đá số 3",
-      customerName: "Phan Thị Ngọc",
-      customerPhone: "0901345678",
-      totalPrice: 550000,
-      totalServicePrice: 80000,
-      contentPayment: "Thanh toán đặt sân bóng đá 11 người premium",
-      statusPayment: "Đã thanh toán",
-      bookingDate: "2025-07-26",
-      startTime: "10:00",
-      endTime: "12:00",
-      createAt: "2025-07-24T12:00:00",
-      action: "Chi tiết",
-    },
-  ]);
+  const API_URL = "https://localhost:7057";
+  const getAuthHeaders = useCallback((): Record<string, string> => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
+
+  const mapPaymentStatus = (status?: string): string => {
+    if (!status) return "";
+    const s = status.toLowerCase();
+    if (s.includes("paid") || s.includes("completed") || s === "đã thanh toán")
+      return "Đã thanh toán";
+    if (
+      s.includes("pending") ||
+      s.includes("unpaid") ||
+      s === "chưa thanh toán"
+    )
+      return "Chưa thanh toán";
+    if (
+      s.includes("deposit") ||
+      s.includes("deposited") ||
+      s.includes("coc") ||
+      s === "đã cọc"
+    )
+      return "Đã cọc";
+    return status;
+  };
+
+  // Dữ liệu lấy từ API
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    const loadOrdersFromApi = async () => {
+      setLoading(true);
+      try {
+        // 1) Thu thập danh sách scheduleId
+        let scheduleIds: number[] = [];
+        const collectScheduleIdsByField = async (fieldId: number) => {
+          const res = await fetch(`${API_URL}/api/Field/${fieldId}/schedule`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeaders(),
+            },
+          });
+          if (!res.ok) return;
+          const result: unknown = await res.json();
+          const container = result as Record<string, unknown>;
+          const dataArray: unknown = container.success
+            ? container.data
+            : result;
+          const schedules: Array<Record<string, unknown>> = Array.isArray(
+            dataArray
+          )
+            ? (dataArray as Array<Record<string, unknown>>)
+            : [];
+          const ids = schedules
+            .map((s: Record<string, unknown>) => {
+              const idLower = s["scheduleId"];
+              const idUpper = (s as Record<string, unknown>)["ScheduleId"];
+              return typeof idLower === "number"
+                ? idLower
+                : typeof idUpper === "number"
+                ? idUpper
+                : undefined;
+            })
+            .filter((id): id is number => typeof id === "number");
+          scheduleIds = scheduleIds.concat(ids);
+        };
+
+        if (fieldIdParam) {
+          await collectScheduleIdsByField(fieldIdParam);
+        } else if (facIdParam) {
+          // Nếu không có fieldId, lấy tất cả sân trong cơ sở rồi tổng hợp schedule
+          const fieldsRes = await fetch(
+            `${API_URL}/api/Field/facility/${facIdParam}`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+              },
+            }
+          );
+          if (fieldsRes.ok) {
+            const fj: unknown = await fieldsRes.json();
+            const fContainer = fj as Record<string, unknown>;
+            const fArray: unknown = fContainer.data ?? fj;
+            const fields: Array<Record<string, unknown>> = Array.isArray(fArray)
+              ? (fArray as Array<Record<string, unknown>>)
+              : [];
+            const fieldIds = fields
+              .map((f) =>
+                typeof f["fieldId"] === "number"
+                  ? (f["fieldId"] as number)
+                  : typeof f["FieldId"] === "number"
+                  ? (f["FieldId"] as number)
+                  : undefined
+              )
+              .filter((id): id is number => typeof id === "number");
+            for (const fid of fieldIds) {
+              await collectScheduleIdsByField(fid);
+            }
+          }
+        } else {
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+
+        // 2) Với mỗi scheduleId, lấy chi tiết Order
+        const orderPromises = scheduleIds.map(async (sid) => {
+          try {
+            const r = await fetch(`${API_URL}/api/Order/schedule/${sid}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+              },
+            });
+            if (!r.ok) return null;
+            const j: unknown = await r.json();
+            const container = j as Record<string, unknown>;
+            const dRaw: unknown = container["data"] ?? j;
+            const dObj: Record<string, unknown> =
+              (dRaw as Record<string, unknown>) || {};
+
+            const orderIdVal =
+              typeof dObj["orderId"] === "number"
+                ? (dObj["orderId"] as number)
+                : typeof dObj["OrderId"] === "number"
+                ? (dObj["OrderId"] as number)
+                : undefined;
+            if (orderIdVal == null) return null;
+
+            const bookedSlotsRaw: unknown =
+              dObj["bookedSlots"] ?? dObj["BookedSlots"];
+            const bookedSlots: Array<Record<string, unknown>> = Array.isArray(
+              bookedSlotsRaw
+            )
+              ? (bookedSlotsRaw as Array<Record<string, unknown>>)
+              : [];
+            const firstSlot: Record<string, unknown> =
+              bookedSlots.length > 0 ? bookedSlots[0] : {};
+            const bookingDate = (firstSlot["date"] ??
+              firstSlot["Date"] ??
+              "") as string;
+            const startTime = String(
+              firstSlot["startTime"] ?? firstSlot["StartTime"] ?? ""
+            )
+              .toString()
+              .slice(0, 5);
+            const endTime = String(
+              firstSlot["endTime"] ?? firstSlot["EndTime"] ?? ""
+            )
+              .toString()
+              .slice(0, 5);
+
+            const customerInfo: Record<string, unknown> =
+              (dObj["customerInfo"] as Record<string, unknown>) || {};
+            const customerName =
+              (customerInfo["name"] as string) ||
+              (dObj["guestName"] as string) ||
+              "";
+            const customerPhone =
+              (customerInfo["phone"] as string) ||
+              (dObj["guestPhone"] as string) ||
+              "";
+            const facilityName = (dObj["facilityName"] as string) || "";
+            const fieldNameResolved =
+              (firstSlot["fieldName"] as string) || fieldName || "";
+
+            const totalPrice =
+              typeof dObj["totalPrice"] === "number"
+                ? (dObj["totalPrice"] as number)
+                : Number(dObj["TotalPrice"] ?? 0);
+            const totalServicePrice =
+              typeof dObj["totalServicePrice"] === "number"
+                ? (dObj["totalServicePrice"] as number)
+                : Number(dObj["TotalServicePrice"] ?? 0);
+            const statusPaymentRaw =
+              (dObj["statusPayment"] as string) ??
+              (dObj["StatusPayment"] as string) ??
+              "";
+            const contentPayment =
+              (dObj["contentPayment"] as string) ??
+              (dObj["ContentPayment"] as string) ??
+              "";
+            const createAt =
+              (dObj["createAt"] as string) ??
+              (dObj["CreateAt"] as string) ??
+              "";
+            const bookingIdVal =
+              typeof dObj["bookingId"] === "number"
+                ? (dObj["bookingId"] as number)
+                : typeof dObj["BookingId"] === "number"
+                ? (dObj["BookingId"] as number)
+                : 0;
+
+            const mapped: Order = {
+              orderId: orderIdVal,
+              bookingId: bookingIdVal,
+              facilityName,
+              fieldName: fieldNameResolved,
+              customerName,
+              customerPhone,
+              totalPrice: Number(totalPrice || 0),
+              totalServicePrice: Number(totalServicePrice || 0),
+              contentPayment,
+              statusPayment: mapPaymentStatus(statusPaymentRaw),
+              bookingDate,
+              startTime,
+              endTime,
+              createAt,
+              action: "Chi tiết",
+            };
+            return mapped;
+          } catch {
+            return null;
+          }
+        });
+
+        const ordersList = (await Promise.all(orderPromises)).filter(
+          (x): x is Order => !!x
+        );
+        // Sắp xếp theo ngày tạo mới nhất
+        ordersList.sort(
+          (a, b) =>
+            new Date(b.createAt).getTime() - new Date(a.createAt).getTime()
+        );
+        setOrders(ordersList);
+      } catch {
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOrdersFromApi();
+  }, [API_URL, fieldIdParam, facIdParam, fieldName, getAuthHeaders]);
 
   // Lấy danh sách unique values cho dropdown filters
   const uniqueFacilities = [
@@ -447,7 +516,9 @@ const OrdersTable: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
                   <span className="text-blue-700 font-medium text-sm">
-                    Tổng: {filteredOrders.length} đơn
+                    {loading
+                      ? "Đang tải..."
+                      : `Tổng: ${filteredOrders.length} đơn`}
                   </span>
                 </div>
               </div>

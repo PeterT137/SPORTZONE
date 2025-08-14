@@ -227,8 +227,19 @@ const BookingCell: React.FC<{
   booking: Booking;
   onClick: (booking: Booking) => void;
 }> = ({ booking, onClick }) => {
-  const isEmpty =
-    booking.customerName === "Không có tên" && booking.contact === "Unknown";
+  // Consider a generated available slot (no actual booking yet)
+  const isGeneratedEmptySlot =
+    booking.customerName === "Không có tên" ||
+    booking.bookingId == null ||
+    booking.bookingId === 0;
+  const isEmpty = isGeneratedEmptySlot;
+
+  // Determine expiry for generated empty slots using duration
+  const startTime = booking.date;
+  const endTime = new Date(
+    startTime.getTime() + booking.duration * 60 * 60 * 1000
+  );
+  const isExpired = isEmpty && endTime < new Date();
 
   const statusColors = {
     confirmed:
@@ -258,14 +269,14 @@ const BookingCell: React.FC<{
 
   return (
     <div
-      onClick={() => onClick(booking)}
+      onClick={() => !isEmpty && onClick(booking)}
       className={`relative p-3 rounded-lg border-2 ${
         isEmpty ? emptySlotColor : statusColors[booking.status]
       } ${
         isEmpty ? "cursor-default" : "cursor-pointer"
       } transition-all duration-200 ${
         isEmpty ? "" : "hover:shadow-lg transform hover:-translate-y-1"
-      } group`}
+      } group ${isExpired ? "opacity-70" : ""}`}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
@@ -285,9 +296,11 @@ const BookingCell: React.FC<{
       <div className="space-y-1">
         {isEmpty ? (
           <>
-            <p className="text-xs font-medium text-gray-500">🕐 Có thể đặt</p>
+            <p className="text-xs font-medium text-gray-500">
+              🕐 {isExpired ? "Hết hạn" : "Slot trống"}
+            </p>
             <p className="text-xs opacity-60 font-medium text-gray-500">
-              Chưa có người đặt
+              {isExpired ? "Khung giờ đã qua" : "Chưa có người đặt"}
             </p>
             <div className="text-xs opacity-50 text-gray-500">
               {booking.duration}h - {booking.field}
@@ -1521,6 +1534,8 @@ const PricingManagementModal: React.FC<{
                           }
                           disabled={isProcessing}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                          title="Giờ bắt đầu"
+                          aria-label="Giờ bắt đầu"
                         >
                           {generateTimeOptions().map((time) => (
                             <option key={time} value={time}>
@@ -1537,6 +1552,8 @@ const PricingManagementModal: React.FC<{
                           }
                           disabled={isProcessing}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                          title="Giờ kết thúc"
+                          aria-label="Giờ kết thúc"
                         >
                           {generateTimeOptions().map((time) => (
                             <option key={time} value={time}>
@@ -1558,6 +1575,8 @@ const PricingManagementModal: React.FC<{
                           }
                           disabled={isProcessing}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                          title="Giá mỗi giờ (VNĐ)"
+                          placeholder="Giá (VNĐ)"
                           min="0"
                           step="1000"
                         />
@@ -2360,6 +2379,10 @@ const WeeklySchedule: React.FC = () => {
                       <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded"></div>
                       <span className="text-gray-600">Chưa đặt</span>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-gray-300 border border-gray-400 rounded"></div>
+                      <span className="text-gray-600">Hết hạn</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2411,15 +2434,31 @@ const WeeklySchedule: React.FC = () => {
                               booking.date.getHours() === hour
                           );
                           const isEmpty = dayBookings.length === 0;
+                          const cellStart = new Date(day);
+                          cellStart.setHours(hour, 0, 0, 0);
+                          const cellEnd = new Date(day);
+                          cellEnd.setHours(hour + 1, 0, 0, 0);
+                          const now = new Date();
+                          const isExpired = cellEnd < now;
                           return (
                             <div
                               key={`${day}-${hour}`}
-                              className={`bg-white rounded-lg min-h-[100px] p-2 border ${
+                              className={`rounded-lg min-h-[100px] p-2 border ${
                                 isEmpty ? "border-dashed" : "border-solid"
+                              } ${
+                                isEmpty && isExpired ? "bg-gray-50" : "bg-white"
                               }`}
                             >
                               {isEmpty ? (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400"></div>
+                                <div
+                                  className={`w-full h-full flex items-center justify-center text-sm ${
+                                    isExpired
+                                      ? "text-gray-400"
+                                      : "text-gray-300"
+                                  }`}
+                                >
+                                  {isExpired ? "Hết hạn" : "Chưa đặt"}
+                                </div>
                               ) : (
                                 <div className="space-y-1">
                                   {dayBookings.map((booking) => (

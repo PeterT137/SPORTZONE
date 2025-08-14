@@ -5,6 +5,7 @@ interface DemoField {
   fieldId: number;
   fieldName: string;
   categoryName: string;
+  facId?: number;
   facilityName?: string;
   facilityAddress?: string;
   image: string;
@@ -33,7 +34,7 @@ interface DemoService {
 interface BookingConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  selectedDiscountId?: number | null;
   booking: {
     field: DemoField | null;
     slots: FieldScheduleSlot[];
@@ -51,7 +52,7 @@ interface BookingConfirmModalProps {
 const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
   isOpen,
   onClose,
-  onConfirm, // Không dùng nữa, xử lý payment trực tiếp ở đây
+  selectedDiscountId,
   booking,
 }) => {
   const [loading, setLoading] = React.useState(false);
@@ -151,12 +152,13 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
         guestName: booking.guestInfo?.name || "Khách hàng",
         guestPhone: booking.guestInfo?.phone || "",
         serviceIds: booking.services?.map((s) => s.serviceId) || [],
-        discountId: null,
+        discountId:
+          typeof selectedDiscountId === "number" ? selectedDiscountId : null,
         notes: booking.guestInfo?.notes || "Đặt sân qua hệ thống online",
         depositAmount,
       };
       let apiUrl = "https://localhost:7057/api/Payment/calculate-and-pay";
-      let response;
+      let response: Response;
       try {
         response = await fetch(apiUrl, {
           method: "POST",
@@ -166,7 +168,7 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
           },
           body: JSON.stringify(bookingData),
         });
-      } catch (httpsError) {
+      } catch {
         apiUrl = "http://localhost:7057/api/Payment/calculate-and-pay";
         response = await fetch(apiUrl, {
           method: "POST",
@@ -187,8 +189,10 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
       } else {
         throw new Error(result.message || "Không nhận được paymentUrl từ API");
       }
-    } catch (err: any) {
-      setError(err.message || "Có lỗi xảy ra khi tạo thanh toán");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Có lỗi xảy ra khi tạo thanh toán";
+      setError(message);
     } finally {
       setLoading(false);
     }

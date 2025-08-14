@@ -2,14 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-  FiCheckCircle,
-  FiEdit,
-  FiPlus,
-  FiSlash,
-  FiTrash2,
-  FiX,
-} from "react-icons/fi";
+import { FiEdit, FiPlus, FiTrash2, FiX } from "react-icons/fi";
 import Swal from "sweetalert2";
 import Sidebar from "../../Sidebar";
 
@@ -93,10 +86,13 @@ const StaffManager: React.FC = () => {
     setError(null);
     try {
       const userString = localStorage.getItem("user");
+      const facilityInfoString = localStorage.getItem("facilityInfo");
+      const facilityInfo = facilityInfoString
+        ? JSON.parse(facilityInfoString)
+        : null;
       const user = userString ? JSON.parse(userString) : null;
       const roleId = user?.roleId;
-
-      // Get authentication token
+      console.log("[DEBUG] User facilityInfo:", facilityInfo);
       const token = localStorage.getItem("token");
       const authHeaders: Record<string, string> = {
         "Content-Type": "application/json",
@@ -104,9 +100,8 @@ const StaffManager: React.FC = () => {
       if (token) {
         authHeaders.Authorization = `Bearer ${token}`;
       }
-
       const facilityList =
-        user?.FieldOwner?.facilities?.map((f: any) => ({
+        facilityInfo?.facilities?.map((f: any) => ({
           id: f.facId,
           name: f.name || `Facility ${f.facId}`,
         })) || [];
@@ -115,7 +110,6 @@ const StaffManager: React.FC = () => {
       let allStaffs: any[] = [];
 
       if (roleId === 3) {
-        // Admin lấy toàn bộ staff
         const response = await fetch(
           `https://localhost:7057/api/Staff/GetAll`,
           {
@@ -143,7 +137,6 @@ const StaffManager: React.FC = () => {
         if (apiResponse.success) allStaffs = apiResponse.data || [];
         else throw new Error(apiResponse.message || "Không thể lấy nhân viên.");
       } else {
-        // FieldOwner lấy theo từng facility
         for (const facility of facilityList) {
           try {
             const response = await fetch(

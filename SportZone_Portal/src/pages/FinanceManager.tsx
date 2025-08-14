@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Sidebar from "../Sidebar";
 import RevenueSummary from "../components/finance/RevenueSummary";
 import RevenueFilter from "../components/finance/RevenueFilter";
@@ -53,10 +53,22 @@ const FinanceManager: React.FC = () => {
   });
   const [facilities, setFacilities] = useState<FacilityType[]>([]);
 
+  const getAuthHeaders = useCallback((): Record<string, string> => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+    return {};
+  }, []);
+
   const fetchFacilities = async () => {
     try {
       const res = await fetch(
-        "https://localhost:7057/api/Facility/with-details"
+        "https://localhost:7057/api/Facility/with-details",
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        }
       );
       const data = await res.json();
       setFacilities(data);
@@ -75,7 +87,10 @@ const FinanceManager: React.FC = () => {
       if (filter.endDate) params.push(`endDate=${filter.endDate}`);
       if (filter.facilityId) params.push(`facilityId=${filter.facilityId}`);
       if (params.length > 0) url += `?${params.join("&")}`;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      });
       const data = await res.json();
       if (data.success) {
         console.log("API doanh thu trả về:", data.data);

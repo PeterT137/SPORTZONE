@@ -1,149 +1,233 @@
 // services/orderServices.ts
-import type { Order, OrderServiceType, Service } from "../interface"
+import type { Order, OrderServiceType, Service } from "../interface";
 
-// Mock data
-const mockOrders: Order[] = [
-  {
-    order_id: "1",
-    customer_id: "cust_1",
-    fac_id: "fac_1",
-    booking_id: "book_1",
-    guest_name: "Nguyễn Văn A",
-    guest_phone: "0123456789",
-    total_amount: 500000,
-    content_payment: "Thanh toán dịch vụ",
-    status_payment: "paid",
-    create_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    order_id: "2",
-    customer_id: "cust_2",
-    fac_id: "fac_1",
-    booking_id: "book_2",
-    guest_name: "Trần Thị B",
-    guest_phone: "0987654321",
-    total_amount: 750000,
-    content_payment: "Thanh toán dịch vụ",
-    status_payment: "pending",
-    create_at: "2024-01-16T14:30:00Z",
-  },
-]
+const API_URL = "https://localhost:7057";
 
-const mockOrderServices: OrderServiceType[] = [
-  {
-    order_service_id: "1",
-    order_id: "1",
-    service_id: "srv_1",
-    quantity: 2,
-    price: 100000,
-    service_name: "Bim bim",
-    service_description: "Bim bim lớn",
-  },
-  {
-    order_service_id: "2",
-    order_id: "1",
-    service_id: "srv_2",
-    quantity: 1,
-    price: 10000,
-    service_name: "Nước lọc",
-    service_description: "Nước lọc",
-  },
-]
+const getAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
-const mockServices: Service[] = [
-  {
-    service_id: "srv_1",
-    name: "Bim bim",
-    description: "Bim bim lớn",
-    price: 10000,
-    duration: 60,
-  },
-  {
-    service_id: "srv_2",
-    name: "Nước lọc",
-    description: "Nước lọc",
-    price: 10000,
-    duration: 90,
-  },
-  {
-    service_id: "srv_3",
-    name: "Thuốc lá",
-    description: "Vina",
-    price: 30000,
-    duration: 45,
-  },
-]
+const getString = (v: unknown, fallback = ""): string => {
+  if (typeof v === "string") return v;
+  if (v == null) return fallback;
+  return String(v);
+};
+
+const getNumber = (v: unknown, fallback = 0): number => {
+  if (typeof v === "number") return v;
+  const n = Number(v as unknown as string);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+// NOTE: There is no list-all Orders endpoint on backend. getOrders() remains a mock until API exists.
+const mockOrders: Order[] = [];
 
 export class OrderService {
   static async getOrders(): Promise<Order[]> {
-    console.log("Current mockOrders:", mockOrders) // Debug log
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockOrders), 500)
-    })
+    return mockOrders;
   }
 
-  static async getOrderServices(): Promise<OrderServiceType[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockOrderServices), 500)
-    })
+  static async getOrderServices(orderId: string): Promise<OrderServiceType[]> {
+    const numericId = Number(orderId);
+    if (Number.isNaN(numericId)) return [];
+    const res = await fetch(
+      `${API_URL}/api/Service/order/${numericId}/services`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      }
+    );
+    if (!res.ok) return [];
+    const json: unknown = await res.json();
+    const container = json as Record<string, unknown>;
+    const dataArray: unknown = container.data ?? json;
+    const arr: Array<Record<string, unknown>> = Array.isArray(dataArray)
+      ? (dataArray as Array<Record<string, unknown>>)
+      : [];
+    return arr.map((it: Record<string, unknown>) => ({
+      order_service_id: getString(
+        it["orderServiceId"] ?? it["OrderServiceId"] ?? it["id"],
+        ""
+      ),
+      order_id: getString(
+        it["orderId"] ?? it["OrderId"] ?? orderId,
+        String(orderId)
+      ),
+      service_id: getString(it["serviceId"] ?? it["ServiceId"], ""),
+      quantity: getNumber(it["quantity"] ?? it["Quantity"], 0),
+      price: getNumber(it["price"] ?? it["Price"], 0),
+      service_name: getString(
+        it["serviceName"] ?? it["ServiceName"],
+        undefined as unknown as string
+      ),
+      service_description: undefined,
+    }));
   }
 
   static async getServices(): Promise<Service[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockServices), 500)
-    })
+    const res = await fetch(`${API_URL}/api/Service/GetAllService`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    });
+    if (!res.ok) return [];
+    const json: unknown = await res.json();
+    const container = json as Record<string, unknown>;
+    const dataArray: unknown = container.data ?? json;
+    const arr: Array<Record<string, unknown>> = Array.isArray(dataArray)
+      ? (dataArray as Array<Record<string, unknown>>)
+      : [];
+    const mapped: Service[] = arr.map((s: Record<string, unknown>) => {
+      const name = getString(s["serviceName"] ?? s["ServiceName"], "");
+      return {
+        service_id: getString(s["serviceId"] ?? s["ServiceId"], ""),
+        name,
+        description: getString(s["description"] ?? s["Description"], ""),
+        price: getNumber(s["price"] ?? s["Price"], 0),
+        duration: 60,
+      };
+    });
+    return mapped;
   }
 
-  static async addOrderService(orderService: Omit<OrderServiceType, "order_service_id">): Promise<OrderServiceType> {
-    const newOrderService: OrderServiceType = {
-      ...orderService,
-      order_service_id: `os_${Date.now()}`,
+  static async addOrderService(
+    orderService: Omit<OrderServiceType, "order_service_id">
+  ): Promise<OrderServiceType> {
+    const payload = {
+      orderId: Number(orderService.order_id),
+      serviceId: Number(orderService.service_id),
+      quantity: Number(orderService.quantity ?? 1),
+    };
+    const res = await fetch(`${API_URL}/api/Service/order/add`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Thêm dịch vụ thất bại");
     }
-    mockOrderServices.push(newOrderService)
-    return newOrderService
+    const json: unknown = await res.json();
+    const container: Record<string, unknown> =
+      (json as Record<string, unknown>) || {};
+    const it: Record<string, unknown> =
+      (container.data as Record<string, unknown>) ?? container;
+    return {
+      order_service_id: getString(
+        it["orderServiceId"] ?? it["OrderServiceId"] ?? Date.now().toString(),
+        Date.now().toString()
+      ),
+      order_id: getString(
+        it["orderId"] ?? it["OrderId"] ?? orderService.order_id,
+        orderService.order_id
+      ),
+      service_id: getString(
+        it["serviceId"] ?? it["ServiceId"] ?? orderService.service_id,
+        orderService.service_id
+      ),
+      quantity: getNumber(
+        it["quantity"] ?? it["Quantity"] ?? orderService.quantity ?? 1,
+        1
+      ),
+      price: getNumber(
+        it["price"] ?? it["Price"] ?? orderService.price ?? 0,
+        0
+      ),
+      service_name: getString(
+        it["serviceName"] ?? it["ServiceName"],
+        undefined as unknown as string
+      ),
+      service_description: undefined,
+    };
   }
 
-  static async updateOrderService(orderServiceId: string, updates: Partial<OrderServiceType>): Promise<OrderServiceType> {
-    const index = mockOrderServices.findIndex((os) => os.order_service_id === orderServiceId)
-    if (index !== -1) {
-      mockOrderServices[index] = { ...mockOrderServices[index], ...updates }
-      return mockOrderServices[index]
+  static async updateOrderService(
+    orderServiceId: string,
+    updates: Partial<OrderServiceType>
+  ): Promise<OrderServiceType> {
+    const payload: Record<string, unknown> = {};
+    if (typeof updates.quantity === "number")
+      payload.quantity = updates.quantity;
+    const idNum = Number(orderServiceId);
+    const res = await fetch(
+      `${API_URL}/api/Service/order/${idNum}/update/Service/Quantity`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(payload),
+      }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Cập nhật số lượng thất bại");
     }
-    throw new Error("Order service not found")
+    const json: unknown = await res.json();
+    const container = json as Record<string, unknown>;
+    const it = (container.data ?? json) as Record<string, unknown>;
+    return {
+      order_service_id: getString(
+        it["orderServiceId"] ?? it["OrderServiceId"] ?? orderServiceId,
+        orderServiceId
+      ),
+      order_id: getString(it["orderId"] ?? it["OrderId"] ?? "", ""),
+      service_id: getString(it["serviceId"] ?? it["ServiceId"] ?? "", ""),
+      quantity: getNumber(
+        it["quantity"] ?? it["Quantity"] ?? updates.quantity ?? 1,
+        1
+      ),
+      price: getNumber(it["price"] ?? it["Price"] ?? 0, 0),
+      service_name: getString(
+        it["serviceName"] ?? it["ServiceName"],
+        undefined as unknown as string
+      ),
+      service_description: undefined,
+    };
   }
 
   static async deleteOrderService(orderServiceId: string): Promise<void> {
-    const index = mockOrderServices.findIndex((os) => os.order_service_id === orderServiceId)
-    if (index !== -1) {
-      mockOrderServices.splice(index, 1)
+    const idNum = Number(orderServiceId);
+    const res = await fetch(`${API_URL}/api/Service/order/${idNum}/remove`, {
+      method: "DELETE",
+      headers: { ...getAuthHeaders() },
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Xóa dịch vụ thất bại");
     }
   }
 
   static async updateOrderTotal(orderId: string): Promise<void> {
-    const orderServices = mockOrderServices.filter((os) => os.order_id === orderId)
-    const total = orderServices.reduce((sum, os) => sum + os.price * os.quantity, 0)
-
-    const orderIndex = mockOrders.findIndex((order) => order.order_id === orderId)
-    if (orderIndex !== -1) {
-      mockOrders[orderIndex].total_amount = total
-    }
+    // No-op: backend computes totals; call getOrderById from OrderManager to refresh
+    void orderId;
   }
 
-  static async bookAdditionalHours(orderId: string, hours: number, pricePerHour: number): Promise<void> {
-    const additionalCost = hours * pricePerHour
-    const orderIndex = mockOrders.findIndex((order) => order.order_id === orderId)
-    if (orderIndex !== -1) {
-      mockOrders[orderIndex].total_amount += additionalCost
-    }
+  static async bookAdditionalHours(
+    _orderId: string,
+    _hours: number,
+    _pricePerHour: number
+  ): Promise<void> {
+    // Avoid linter unused warnings until backend endpoint exists
+    void _orderId;
+    void _hours;
+    void _pricePerHour;
   }
 
-  static async updateOrderPaymentStatus(orderId: string, status: "pending" | "paid" | "cancelled"): Promise<Order> {
-    console.log(`Updating order ${orderId} to status ${status}`) // Debug log
-    const orderIndex = mockOrders.findIndex((order) => order.order_id === orderId)
-    if (orderIndex !== -1) {
-      mockOrders[orderIndex].status_payment = status
-      return mockOrders[orderIndex]
-    }
-    throw new Error("Order not found")
+  static async updateOrderPaymentStatus(
+    orderId: string,
+    status: "pending" | "paid" | "cancelled"
+  ): Promise<Order> {
+    // No backend endpoint provided; keep local shape update minimal
+    return {
+      order_id: orderId,
+      customer_id: "",
+      fac_id: "",
+      booking_id: "",
+      guest_name: "",
+      guest_phone: "",
+      total_amount: 0,
+      content_payment: "",
+      status_payment: status,
+      create_at: new Date().toISOString(),
+    };
   }
 }

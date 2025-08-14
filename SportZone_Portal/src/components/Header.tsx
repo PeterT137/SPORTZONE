@@ -116,7 +116,7 @@ const Header: React.FC = () => {
           <a href="/field_list" className="text-white hover:text-[#1ebd6f]">
             Danh sách sân
           </a>
-          {user && (
+          {user && user.RoleId !== 3 && (
             <a
               href="/booking-history"
               className="text-white hover:text-[#1ebd6f]"
