@@ -124,6 +124,7 @@ interface Service {
 
 interface BookingService extends Service {
   bookingId: number;
+  orderServiceId?: number;
 }
 
 interface Schedule {
@@ -197,6 +198,7 @@ interface BookingDetail {
     customerName?: string;
     customerPhone?: string;
     totalAmount?: number;
+    services?: any[];
     [key: string]: any;
   };
   bookedSlots?: any[];
@@ -227,14 +229,12 @@ const BookingCell: React.FC<{
   booking: Booking;
   onClick: (booking: Booking) => void;
 }> = ({ booking, onClick }) => {
-  // Consider a generated available slot (no actual booking yet)
   const isGeneratedEmptySlot =
     booking.customerName === "Không có tên" ||
     booking.bookingId == null ||
     booking.bookingId === 0;
   const isEmpty = isGeneratedEmptySlot;
 
-  // Determine expiry for generated empty slots using duration
   const startTime = booking.date;
   const endTime = new Date(
     startTime.getTime() + booking.duration * 60 * 60 * 1000
@@ -327,6 +327,67 @@ const BookingCell: React.FC<{
   );
 };
 
+// =================================================================
+// === PHẦN CODE ĐÃ ĐƯỢC SỬA LỖI VÀ HOÀN THIỆN: BookingDetailsModal
+// =================================================================
+
+const AddServiceModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  availableServices: Service[];
+  onAddService: (service: Service) => void;
+  selectedServiceIds: number[];
+}> = ({
+  isOpen,
+  onClose,
+  availableServices,
+  onAddService,
+  selectedServiceIds,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+      <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Thêm dịch vụ vào đơn đặt sân
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            title="Đóng modal chọn dịch vụ"
+          >
+            <FiX className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        <div className="space-y-3 max-h-60 overflow-y-auto">
+          {availableServices
+            .filter((service) => !selectedServiceIds.includes(service.id))
+            .map((service) => (
+              <div
+                key={service.id}
+                onClick={() => onAddService(service)}
+                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">{service.icon}</span>
+                  <div>
+                    <p className="font-medium text-gray-700">{service.name}</p>
+                    <p className="text-sm text-gray-500">
+                      {service.price.toLocaleString("vi-VN")}đ/{service.unit}
+                    </p>
+                  </div>
+                </div>
+                <FiPlus className="w-5 h-5 text-blue-500" />
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BookingDetailsModal: React.FC<{
   booking: Booking | null;
   onClose: () => void;
@@ -336,7 +397,9 @@ const BookingDetailsModal: React.FC<{
     paymentMethod: string
   ) => void;
   availableServices: Service[];
-}> = ({ booking, onClose, onConfirm, availableServices }) => {
+  showToast: (message: string, type: "success" | "error") => void;
+  onBookingUpdate: () => void;
+}> = ({ booking, onClose, availableServices, showToast, onBookingUpdate }) => {
   const [selectedServices, setSelectedServices] = useState<BookingService[]>(
     []
   );
@@ -349,13 +412,13 @@ const BookingDetailsModal: React.FC<{
     null
   );
   const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [orderId, setOrderId] = useState<number | null>(null);
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("token");
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-    return {};
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
   const fetchUserInfo = useCallback(
@@ -379,11 +442,7 @@ const BookingDetailsModal: React.FC<{
             if (user) {
               setUserInfo(user);
               return;
-            } else {
-              setUserInfo(null);
             }
-          } else {
-            setUserInfo(null);
           }
         } else if (response.status === 403 || response.status === 401) {
           setUserInfo({
@@ -392,9 +451,8 @@ const BookingDetailsModal: React.FC<{
             error:
               "Bạn không có quyền xem thông tin khách hàng. Vui lòng đăng nhập bằng tài khoản admin!",
           } as any);
-        } else {
-          setUserInfo(null);
         }
+        setUserInfo(null);
       } catch (error) {
         console.error("Error fetching user info:", error);
         setUserInfo(null);
@@ -407,6 +465,7 @@ const BookingDetailsModal: React.FC<{
 
   const fetchBookingDetail = useCallback(
     async (scheduleId: number) => {
+      setIsLoadingDetails(true);
       try {
         const response = await fetch(
           `${API_URL}/api/Order/schedule/${scheduleId}`,
@@ -422,6 +481,20 @@ const BookingDetailsModal: React.FC<{
           const result = await response.json();
           if (result.success && result.data) {
             setBookingDetail(result.data);
+            setOrderId(result.data.order?.orderId || null);
+
+            const bookedServices: BookingService[] =
+              result.data.order?.services?.map((s: any) => ({
+                id: s.serviceId,
+                orderServiceId: s.orderServiceId,
+                name: s.service.serviceName,
+                price: s.service.price,
+                quantity: s.quantity,
+                icon: mapServiceToIconAndUnit(s.service.serviceName).icon,
+                unit: mapServiceToIconAndUnit(s.service.serviceName).unit,
+              })) || [];
+            setSelectedServices(bookedServices);
+
             if (typeof result.data.uId === "number" && result.data.uId > 0) {
               await fetchUserInfo(result.data.uId);
             } else {
@@ -436,6 +509,8 @@ const BookingDetailsModal: React.FC<{
       } catch (error) {
         console.error("Error fetching order detail:", error);
         setBookingDetail(null);
+      } finally {
+        setIsLoadingDetails(false);
       }
     },
     [fetchUserInfo, getAuthHeaders]
@@ -450,15 +525,130 @@ const BookingDetailsModal: React.FC<{
         fetchBookingDetail(booking.id);
       } else {
         setBookingDetail(null);
+        setIsLoadingDetails(false);
       }
     } else {
       setUserInfo(null);
       setBookingDetail(null);
       setIsLoadingUserInfo(false);
+      setIsLoadingDetails(false);
     }
   }, [booking, fetchBookingDetail]);
 
+  const handleAddService = async (service: Service) => {
+    if (!orderId) {
+      showToast("Không có đơn hàng để thêm dịch vụ.", "error");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const newServiceData = {
+        orderId: orderId,
+        serviceId: service.id,
+        quantity: 1,
+      };
+      const response = await fetch(`${API_URL}/api/Service/order/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(newServiceData),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to add service.");
+      }
+      showToast("Đã thêm dịch vụ thành công!", "success");
+      await fetchBookingDetail(booking?.id || 0); // Tải lại chi tiết đơn hàng
+      onBookingUpdate(); // Cập nhật lại lịch
+    } catch (error) {
+      showToast((error as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+    setShowAddService(false);
+  };
+
+  const handleUpdateServiceQuantity = async (
+    orderServiceId: number,
+    quantity: number
+  ) => {
+    if (quantity <= 0) {
+      showToast("Số lượng phải lớn hơn 0.", "error");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/Service/order/${orderServiceId}/update/Service/Quantity`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify({ quantity }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to update service quantity.");
+      }
+      showToast("Cập nhật số lượng thành công!", "success");
+      await fetchBookingDetail(booking?.id || 0); // Tải lại chi tiết đơn hàng
+      onBookingUpdate(); // Cập nhật lại lịch
+    } catch (error) {
+      showToast((error as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRemoveService = async (orderServiceId: number) => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/Service/order/${orderServiceId}/remove`,
+        {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to remove service.");
+      }
+      showToast("Đã xóa dịch vụ thành công!", "success");
+      await fetchBookingDetail(booking?.id || 0); // Tải lại chi tiết đơn hàng
+      onBookingUpdate(); // Cập nhật lại lịch
+    } catch (error) {
+      showToast((error as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!bookingDetail || !bookingDetail.order) {
+      showToast("Không tìm thấy đơn hàng để xác nhận.", "error");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/Order/${bookingDetail.order.orderId}/confirm`,
+        {
+          method: "PUT",
+          headers: getAuthHeaders(),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to confirm booking.");
+      }
+      showToast("Xác nhận đặt sân thành công!", "success");
+      onClose();
+      onBookingUpdate();
+    } catch (error) {
+      showToast((error as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getDisplayName = (): string => {
+    if (isLoadingDetails || isLoadingUserInfo) return "Đang tải...";
     if ((userInfo as any)?.error) return (userInfo as any).error;
     if (userInfo) {
       const name =
@@ -484,6 +674,7 @@ const BookingDetailsModal: React.FC<{
   };
 
   const getDisplayPhone = (): string => {
+    if (isLoadingDetails || isLoadingUserInfo) return "Đang tải...";
     if ((userInfo as any)?.error) return "Không có quyền xem";
     if (userInfo) {
       const phone =
@@ -509,6 +700,7 @@ const BookingDetailsModal: React.FC<{
   };
 
   const getDisplayEmail = (): string => {
+    if (isLoadingDetails || isLoadingUserInfo) return "Đang tải...";
     if ((userInfo as any)?.error) return "Không có quyền xem";
     if (userInfo) {
       const email = userInfo.uEmail || userInfo.customers?.[0]?.email || "";
@@ -522,54 +714,11 @@ const BookingDetailsModal: React.FC<{
     }
     return "Khách vãng lai";
   };
-
   const totalServicePrice = selectedServices.reduce(
     (sum, service) => sum + service.price * service.quantity,
     0
   );
   const totalPrice = (booking?.basePrice || 0) + totalServicePrice;
-
-  const addService = (service: Service) => {
-    const existingService = selectedServices.find((s) => s.id === service.id);
-    if (existingService) {
-      setSelectedServices(
-        selectedServices.map((s) =>
-          s.id === service.id ? { ...s, quantity: s.quantity + 1 } : s
-        )
-      );
-    } else {
-      setSelectedServices([
-        ...selectedServices,
-        { ...service, bookingId: booking?.id || 0 },
-      ]);
-    }
-    setShowAddService(false);
-  };
-
-  const updateServiceQuantity = (serviceId: number, change: number) => {
-    setSelectedServices(
-      selectedServices.map((service) => {
-        if (service.id === serviceId) {
-          const newQuantity = Math.max(1, service.quantity + change);
-          return { ...service, quantity: newQuantity };
-        }
-        return service;
-      })
-    );
-  };
-
-  const removeService = (serviceId: number) => {
-    setSelectedServices(
-      selectedServices.filter((service) => service.id !== serviceId)
-    );
-  };
-
-  const handleConfirm = () => {
-    if (booking) {
-      onConfirm(booking, selectedServices, paymentMethod);
-      onClose();
-    }
-  };
 
   if (!booking) return null;
 
@@ -594,285 +743,287 @@ const BookingDetailsModal: React.FC<{
           </div>
         </div>
         <div className="p-6 mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-gray-50 rounded-xl p-4">
-              <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                Thông tin khách hàng
-                {isLoadingUserInfo && (
-                  <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                )}
-              </h3>
-              <div className="space-y-2 text-sm">
-                <p>
-                  <span className="font-medium">Tên khách hàng:</span>
-                  <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
-                    {getDisplayName()}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-medium">Số điện thoại:</span>
-                  <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
-                    {getDisplayPhone()}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-medium">Email:</span>
-                  <span className={isLoadingUserInfo ? "text-gray-400" : ""}>
-                    {getDisplayEmail()}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-medium">Loại khách hàng:</span>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      userInfo &&
-                      typeof userInfo.uId === "number" &&
-                      userInfo.uId > 0
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {userInfo &&
-                    typeof userInfo.uId === "number" &&
-                    userInfo.uId > 0
-                      ? userInfo.admin
-                        ? "Quản trị viên"
-                        : userInfo.fieldOwner
-                        ? "Chủ sân"
-                        : userInfo.staff
-                        ? "Nhân viên"
-                        : userInfo.customers?.[0]
-                        ? "Khách hàng thành viên"
-                        : "Thành viên"
-                      : "Khách vãng lai"}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-medium">Ngày đặt:</span>
-                  {format(booking.date, "dd/MM/yyyy", { locale: vi })}
-                </p>
-                <p>
-                  <span className="font-medium">Giờ đặt:</span>{" "}
-                  {format(booking.date, "HH:mm", { locale: vi })}
-                </p>
-                <p>
-                  <span className="font-medium">Sân:</span>
-                  {booking.field}
-                </p>
-                <p>
-                  <span className="font-medium">Thời gian:</span>
-                  {booking.duration} giờ
-                </p>
-                <p>
-                  <span className="font-medium">Trạng thái:</span>
-                  <span
-                    className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                      booking.status === "confirmed"
-                        ? "bg-green-100 text-green-800"
-                        : booking.status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {booking.status === "confirmed"
-                      ? "Đã xác nhận"
-                      : booking.status === "pending"
-                      ? "Chờ xác nhận"
-                      : "Đã hủy"}
-                  </span>
-                </p>
-              </div>
+          {isLoadingDetails ? (
+            <div className="flex items-center justify-center py-12">
+              <FiRefreshCw className="animate-spin h-8 w-8 text-blue-500" />
+              <span className="ml-3 text-gray-600">
+                Đang tải chi tiết đơn hàng...
+              </span>
             </div>
-            <div className="space-y-6">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-gray-700 mb-3">
-                  Tổng kết thanh toán
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Tiền thuê sân:</span>
-                    <span>{booking.basePrice.toLocaleString("vi-VN")}đ</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Dịch vụ & cho thuê:</span>
-                    <span>{totalServicePrice.toLocaleString("vi-VN")}đ</span>
-                  </div>
-                  <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
-                    <span>Tổng cộng:</span>
-                    <span className="text-green-600">
-                      {totalPrice.toLocaleString("vi-VN")}đ
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-gray-700 mb-3">
-                  Phương thức thanh toán
-                </h3>
-                <div className="flex space-x-6">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cash"
-                      checked={paymentMethod === "cash"}
-                      onChange={(e) =>
-                        setPaymentMethod(e.target.value as "cash")
-                      }
-                      className="mr-2"
-                    />
-                    <span>Tiền mặt</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="transfer"
-                      checked={paymentMethod === "transfer"}
-                      onChange={(e) =>
-                        setPaymentMethod(e.target.value as "transfer")
-                      }
-                      className="mr-2"
-                    />
-                    <span>Chuyển khoản</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-gray-700">
-                Dịch vụ & đồ cho thuê đã chọn
-              </h3>
-              <button
-                onClick={() => setShowAddService(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                <FiPlus className="w-4 h-4" />
-                <span>Thêm dịch vụ</span>
-              </button>
-            </div>
-            {selectedServices.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
-                Chưa chọn dịch vụ nào
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {selectedServices.map((service) => (
-                  <div
-                    key={service.id}
-                    className="flex items-center justify-between bg-white rounded-lg p-3"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{service.icon}</span>
-                      <div>
-                        <p className="font-medium">{service.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {service.price.toLocaleString("vi-VN")}đ/
-                          {service.unit}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => updateServiceQuantity(service.id, -1)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                          title="Giảm số lượng"
-                        >
-                          <FiMinus className="w-4 h-4" />
-                        </button>
-                        <span className="w-8 text-center">
-                          {service.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateServiceQuantity(service.id, 1)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                          title="Tăng số lượng"
-                        >
-                          <FiPlus className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <span className="font-medium w-20 text-right">
-                        {(service.price * service.quantity).toLocaleString(
-                          "vi-VN"
-                        )}
-                        đ
-                      </span>
-                      <button
-                        onClick={() => removeService(service.id)}
-                        className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        title="Xóa dịch vụ"
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    Thông tin khách hàng
+                    {isLoadingUserInfo && (
+                      <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    )}
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <p>
+                      <span className="font-medium">Tên khách hàng:</span>
+                      <span
+                        className={isLoadingUserInfo ? "text-gray-400" : ""}
                       >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
+                        {getDisplayName()}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-medium">Số điện thoại:</span>
+                      <span
+                        className={isLoadingUserInfo ? "text-gray-400" : ""}
+                      >
+                        {getDisplayPhone()}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-medium">Email:</span>
+                      <span
+                        className={isLoadingUserInfo ? "text-gray-400" : ""}
+                      >
+                        {getDisplayEmail()}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-medium">Loại khách hàng:</span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          userInfo &&
+                          typeof userInfo.uId === "number" &&
+                          userInfo.uId > 0
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {userInfo &&
+                        typeof userInfo.uId === "number" &&
+                        userInfo.uId > 0
+                          ? userInfo.admin
+                            ? "Quản trị viên"
+                            : userInfo.fieldOwner
+                            ? "Chủ sân"
+                            : userInfo.staff
+                            ? "Nhân viên"
+                            : userInfo.customers?.[0]
+                            ? "Khách hàng thành viên"
+                            : "Thành viên"
+                          : "Khách vãng lai"}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-medium">Ngày đặt:</span>
+                      {format(booking.date, "dd/MM/yyyy", { locale: vi })}
+                    </p>
+                    <p>
+                      <span className="font-medium">Giờ đặt:</span>{" "}
+                      {format(booking.date, "HH:mm", { locale: vi })}
+                    </p>
+                    <p>
+                      <span className="font-medium">Sân:</span>
+                      {booking.field}
+                    </p>
+                    <p>
+                      <span className="font-medium">Thời gian:</span>
+                      {booking.duration} giờ
+                    </p>
+                    <p>
+                      <span className="font-medium">Trạng thái:</span>
+                      <span
+                        className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                          booking.status === "confirmed"
+                            ? "bg-green-100 text-green-800"
+                            : booking.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {booking.status === "confirmed"
+                          ? "Đã xác nhận"
+                          : booking.status === "pending"
+                          ? "Chờ xác nhận"
+                          : "Đã hủy"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-700 mb-3">
+                      Tổng kết thanh toán
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Tiền thuê sân:</span>
+                        <span>
+                          {booking.basePrice.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Dịch vụ & cho thuê:</span>
+                        <span>
+                          {totalServicePrice.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                      <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
+                        <span>Tổng cộng:</span>
+                        <span className="text-green-600">
+                          {totalPrice.toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
                     </div>
                   </div>
-                ))}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-700 mb-3">
+                      Phương thức thanh toán
+                    </h3>
+                    <div className="flex space-x-6">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="payment"
+                          value="cash"
+                          checked={paymentMethod === "cash"}
+                          onChange={(e) =>
+                            setPaymentMethod(e.target.value as "cash")
+                          }
+                          className="mr-2"
+                        />
+                        <span>Tiền mặt</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name="payment"
+                          value="transfer"
+                          checked={paymentMethod === "transfer"}
+                          onChange={(e) =>
+                            setPaymentMethod(e.target.value as "transfer")
+                          }
+                          className="mr-2"
+                        />
+                        <span>Chuyển khoản</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-          <div className="flex justify-end space-x-4 pt-4 border-t">
-            <button
-              onClick={onClose}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Hủy bỏ
-            </button>
-            <button
-              onClick={handleConfirm}
-              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-            >
-              Xác nhận đặt sân
-            </button>
-          </div>
+              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold text-gray-700">
+                    Dịch vụ & đồ cho thuê đã chọn
+                  </h3>
+                  <button
+                    onClick={() => setShowAddService(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    disabled={isProcessing || !orderId}
+                  >
+                    <FiPlus className="w-4 h-4" />
+                    <span>Thêm dịch vụ</span>
+                  </button>
+                </div>
+                {selectedServices.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">
+                    Chưa chọn dịch vụ nào
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedServices.map((service) => (
+                      <div
+                        key={service.orderServiceId}
+                        className="flex items-center justify-between bg-white rounded-lg p-3"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl">{service.icon}</span>
+                          <div>
+                            <p className="font-medium">{service.name}</p>
+                            <p className="text-sm text-gray-500">
+                              {service.price.toLocaleString("vi-VN")}đ/
+                              {service.unit}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() =>
+                                handleUpdateServiceQuantity(
+                                  service.orderServiceId!,
+                                  service.quantity - 1
+                                )
+                              }
+                              className="p-1 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Giảm số lượng"
+                              disabled={isProcessing || service.quantity <= 1}
+                            >
+                              <FiMinus className="w-4 h-4" />
+                            </button>
+                            <span className="w-8 text-center">
+                              {service.quantity}
+                            </span>
+                            <button
+                              onClick={() =>
+                                handleUpdateServiceQuantity(
+                                  service.orderServiceId!,
+                                  service.quantity + 1
+                                )
+                              }
+                              className="p-1 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Tăng số lượng"
+                              disabled={isProcessing}
+                            >
+                              <FiPlus className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <span className="font-medium w-20 text-right">
+                            {(service.price * service.quantity).toLocaleString(
+                              "vi-VN"
+                            )}
+                            đ
+                          </span>
+                          <button
+                            onClick={() =>
+                              handleRemoveService(service.orderServiceId!)
+                            }
+                            className="p-1 text-red-500 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Xóa dịch vụ"
+                            disabled={isProcessing}
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end space-x-4 pt-4 border-t">
+                <button
+                  onClick={onClose}
+                  disabled={isProcessing}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  disabled={isProcessing || booking?.status === "confirmed"}
+                  className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {isProcessing ? "Đang xử lý..." : "Xác nhận đặt sân"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
-      {showAddService && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">
-                Thêm dịch vụ vào đơn đặt sân
-              </h3>
-              <button
-                onClick={() => setShowAddService(false)}
-                className="p-1 hover:bg-gray-100 rounded"
-                title="Đóng modal chọn dịch vụ"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-3 max-h-60 overflow-y-auto">
-              {availableServices
-                .filter(
-                  (service) =>
-                    !selectedServices.find((s) => s.id === service.id)
-                )
-                .map((service) => (
-                  <div
-                    key={service.id}
-                    onClick={() => addService(service)}
-                    className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-xl">{service.icon}</span>
-                      <div>
-                        <p className="font-medium">{service.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {service.price.toLocaleString("vi-VN")}đ/
-                          {service.unit}
-                        </p>
-                      </div>
-                    </div>
-                    <FiPlus className="w-5 h-5 text-blue-500" />
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <AddServiceModal
+        isOpen={showAddService}
+        onClose={() => setShowAddService(false)}
+        availableServices={availableServices}
+        onAddService={handleAddService}
+        selectedServiceIds={selectedServices.map((s) => s.id)}
+      />
     </div>
   );
 };
@@ -1221,8 +1372,6 @@ const PricingManagementModal: React.FC<{
       );
 
       if (!response.ok) {
-        // Nếu API trả về 404 hoặc lỗi khác mà không phải lỗi server nghiêm trọng,
-        // có thể sân này chưa có bảng giá. Coi đây là một mảng rỗng.
         setPricingSlots([]);
         return;
       }
@@ -1610,7 +1759,6 @@ const PricingManagementModal: React.FC<{
                               onClick={() => handleCreatePricing(index)}
                               disabled={isProcessing}
                               className="p-2 text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-green-300"
-                              title="Lưu khung giờ mới"
                             >
                               <FiSave className="w-4 h-4" />
                             </button>
@@ -2079,23 +2227,9 @@ const WeeklySchedule: React.FC = () => {
     setCurrentDate((prev) => addWeeks(prev, direction));
   };
 
-  const handleBookingConfirm = (
-    booking: Booking,
-    services: BookingService[],
-    paymentMethod: string
-  ) => {
-    const totalPrice =
-      booking.basePrice +
-      services.reduce((sum, s) => sum + s.price * s.quantity, 0);
-    console.log("Đặt sân đã được xác nhận:", {
-      booking,
-      services,
-      paymentMethod,
-    });
-    showToast(
-      `Đặt sân thành công! Tổng tiền: ${totalPrice.toLocaleString("vi-VN")}đ`,
-      "success"
-    );
+  const handleBookingConfirm = () => {
+    // Logic này không còn được sử dụng trực tiếp, đã được chuyển vào BookingDetailsModal
+    // giữ lại để không làm lỗi các hàm khác.
   };
 
   const handleCreateSlot = async (slotData: CreateSlotData) => {
@@ -2230,7 +2364,7 @@ const WeeklySchedule: React.FC = () => {
   }
 
   return (
-    <>
+    <div>
       <Sidebar />
       <div className="min-h-screen flex flex-col bg-gray-50 pl-4 pt-4">
         <div className="flex-1 ml-[256px] p-4">
@@ -2378,10 +2512,6 @@ const WeeklySchedule: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded"></div>
                       <span className="text-gray-600">Chưa đặt</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-gray-300 border border-gray-400 rounded"></div>
-                      <span className="text-gray-600">Hết hạn</span>
                     </div>
                   </div>
                 </div>
@@ -2536,6 +2666,8 @@ const WeeklySchedule: React.FC = () => {
               onClose={handleCloseDetailModal}
               onConfirm={handleBookingConfirm}
               availableServices={services}
+              showToast={showToast}
+              onBookingUpdate={fetchSchedule}
             />
           )}
           <CreateSlotModal
@@ -2559,7 +2691,7 @@ const WeeklySchedule: React.FC = () => {
           />
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
