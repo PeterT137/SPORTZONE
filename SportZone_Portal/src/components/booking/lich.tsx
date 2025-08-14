@@ -421,6 +421,50 @@ const BookingDetailsModal: React.FC<{
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
+  // Fetch services by orderId to ensure numeric orderServiceId is available for update/remove
+  const reloadOrderServices = useCallback(
+    async (oid: number) => {
+      try {
+        const res = await fetch(
+          `${API_URL}/api/Service/order/${oid}/services`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeaders(),
+            },
+          }
+        );
+        if (!res.ok) return;
+        const json = await res.json();
+        const data = (json as any)?.data ?? json;
+        const arr: any[] = Array.isArray(data) ? data : [];
+        const mapped: BookingService[] = arr.map((s: any) => {
+          const name =
+            s?.serviceName ?? s?.ServiceName ?? s?.service?.serviceName ?? "";
+          const price = s?.price ?? s?.Price ?? s?.service?.price ?? 0;
+          const iconUnit = mapServiceToIconAndUnit(String(name));
+          return {
+            id: s?.serviceId ?? s?.ServiceId ?? 0,
+            orderServiceId:
+              typeof s?.orderServiceId === "number"
+                ? s.orderServiceId
+                : undefined,
+            name: String(name),
+            price: Number(price || 0),
+            quantity: Number(s?.quantity ?? s?.Quantity ?? 1),
+            icon: iconUnit.icon,
+            unit: iconUnit.unit,
+          } as BookingService;
+        });
+        setSelectedServices(mapped);
+      } catch {
+        // ignore
+      }
+    },
+    [getAuthHeaders]
+  );
+
   const fetchUserInfo = useCallback(
     async (userId: number) => {
       setIsLoadingUserInfo(true);
@@ -481,19 +525,79 @@ const BookingDetailsModal: React.FC<{
           const result = await response.json();
           if (result.success && result.data) {
             setBookingDetail(result.data);
-            setOrderId(result.data.order?.orderId || null);
+            const ordContainer: any =
+              result.data.order ?? result.data.Order ?? result.data ?? null;
+            const ordIdRaw = ordContainer
+              ? ordContainer.orderId ??
+                ordContainer.OrderId ??
+                ordContainer.id ??
+                ordContainer.Id ??
+                result.data.orderId ??
+                result.data.OrderId ??
+                null
+              : null;
+            const normalizedOrderId =
+              typeof ordIdRaw === "number"
+                ? ordIdRaw
+                : typeof ordIdRaw === "string"
+                ? Number(ordIdRaw)
+                : null;
+            setOrderId(
+              normalizedOrderId &&
+                Number.isFinite(normalizedOrderId) &&
+                normalizedOrderId > 0
+                ? normalizedOrderId
+                : null
+            );
+            console.log("[BookingDetailsModal] orderId resolved:", {
+              ordIdRaw,
+              normalized: normalizedOrderId,
+            });
+            console.log("[BookingDetailsModal] fetchBookingDetail ok", {
+              scheduleId,
+              hasOrder: !!result.data.order,
+              orderId: result.data.order?.orderId,
+              servicesCount: result.data.order?.services?.length ?? 0,
+            });
 
-            const bookedServices: BookingService[] =
-              result.data.order?.services?.map((s: any) => ({
-                id: s.serviceId,
-                orderServiceId: s.orderServiceId,
-                name: s.service.serviceName,
-                price: s.service.price,
-                quantity: s.quantity,
-                icon: mapServiceToIconAndUnit(s.service.serviceName).icon,
-                unit: mapServiceToIconAndUnit(s.service.serviceName).unit,
-              })) || [];
-            setSelectedServices(bookedServices);
+            const rawServices: any[] = Array.isArray(
+              result.data?.order?.services
+            )
+              ? (result.data.order.services as any[])
+              : Array.isArray(result.data?.services)
+              ? (result.data.services as any[])
+              : [];
+
+            const mappedServices: BookingService[] = rawServices.map(
+              (s: any) => {
+                const name = s?.service?.serviceName ?? s?.serviceName ?? "";
+                const price = s?.service?.price ?? s?.price ?? 0;
+                const iconUnit = mapServiceToIconAndUnit(String(name));
+                return {
+                  id: s?.serviceId ?? 0,
+                  orderServiceId:
+                    typeof s?.orderServiceId === "number"
+                      ? s?.orderServiceId
+                      : undefined,
+                  name: String(name),
+                  price: Number(price || 0),
+                  quantity: Number(s?.quantity ?? 1),
+                  icon: iconUnit.icon,
+                  unit: iconUnit.unit,
+                } as BookingService;
+              }
+            );
+            setSelectedServices(mappedServices);
+
+            const resolvedId =
+              normalizedOrderId &&
+              Number.isFinite(normalizedOrderId) &&
+              normalizedOrderId > 0
+                ? normalizedOrderId
+                : null;
+            if (resolvedId) {
+              void reloadOrderServices(resolvedId);
+            }
 
             if (typeof result.data.uId === "number" && result.data.uId > 0) {
               await fetchUserInfo(result.data.uId);
@@ -502,9 +606,20 @@ const BookingDetailsModal: React.FC<{
             }
           } else {
             setBookingDetail(null);
+            console.warn(
+              "[BookingDetailsModal] fetchBookingDetail: result has no data",
+              { scheduleId }
+            );
           }
         } else {
           setBookingDetail(null);
+          console.warn(
+            "[BookingDetailsModal] fetchBookingDetail: response not ok",
+            {
+              scheduleId,
+              status: response.status,
+            }
+          );
         }
       } catch (error) {
         console.error("Error fetching order detail:", error);
@@ -537,6 +652,9 @@ const BookingDetailsModal: React.FC<{
 
   const handleAddService = async (service: Service) => {
     if (!orderId) {
+      console.warn("[BookingDetailsModal] Không có orderId để thêm dịch vụ", {
+        bookingDetail,
+      });
       showToast("Không có đơn hàng để thêm dịch vụ.", "error");
       return;
     }
@@ -556,7 +674,8 @@ const BookingDetailsModal: React.FC<{
         throw new Error("Failed to add service.");
       }
       showToast("Đã thêm dịch vụ thành công!", "success");
-      await fetchBookingDetail(booking?.id || 0); // Tải lại chi tiết đơn hàng
+      // Reload services to get real orderServiceId from backend
+      await reloadOrderServices(orderId);
       onBookingUpdate(); // Cập nhật lại lịch
     } catch (error) {
       showToast((error as Error).message, "error");
@@ -914,9 +1033,23 @@ const BookingDetailsModal: React.FC<{
                     Dịch vụ & đồ cho thuê đã chọn
                   </h3>
                   <button
-                    onClick={() => setShowAddService(true)}
+                    onClick={() => {
+                      console.log("[BookingDetailsModal] Click Thêm dịch vụ", {
+                        isProcessing,
+                        orderId,
+                        servicesCount: availableServices.length,
+                      });
+                      if (isProcessing) {
+                        console.warn(
+                          "[BookingDetailsModal] Không mở modal: đang xử lý",
+                          { isProcessing }
+                        );
+                        return;
+                      }
+                      setShowAddService(true);
+                    }}
                     className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    disabled={isProcessing || !orderId}
+                    disabled={isProcessing}
                   >
                     <FiPlus className="w-4 h-4" />
                     <span>Thêm dịch vụ</span>
@@ -928,9 +1061,9 @@ const BookingDetailsModal: React.FC<{
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {selectedServices.map((service) => (
+                    {selectedServices.map((service, idx) => (
                       <div
-                        key={service.orderServiceId}
+                        key={service.orderServiceId ?? `${service.id}-${idx}`}
                         className="flex items-center justify-between bg-white rounded-lg p-3"
                       >
                         <div className="flex items-center space-x-3">
@@ -946,15 +1079,25 @@ const BookingDetailsModal: React.FC<{
                         <div className="flex items-center space-x-3">
                           <div className="flex items-center space-x-2">
                             <button
-                              onClick={() =>
+                              onClick={() => {
+                                if (!service.orderServiceId) {
+                                  console.warn(
+                                    "Missing orderServiceId; cannot decrease quantity"
+                                  );
+                                  return;
+                                }
                                 handleUpdateServiceQuantity(
-                                  service.orderServiceId!,
+                                  service.orderServiceId,
                                   service.quantity - 1
-                                )
-                              }
+                                );
+                              }}
                               className="p-1 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Giảm số lượng"
-                              disabled={isProcessing || service.quantity <= 1}
+                              disabled={
+                                isProcessing ||
+                                service.quantity <= 1 ||
+                                !service.orderServiceId
+                              }
                             >
                               <FiMinus className="w-4 h-4" />
                             </button>
@@ -962,15 +1105,21 @@ const BookingDetailsModal: React.FC<{
                               {service.quantity}
                             </span>
                             <button
-                              onClick={() =>
+                              onClick={() => {
+                                if (!service.orderServiceId) {
+                                  console.warn(
+                                    "Missing orderServiceId; cannot increase quantity"
+                                  );
+                                  return;
+                                }
                                 handleUpdateServiceQuantity(
-                                  service.orderServiceId!,
+                                  service.orderServiceId,
                                   service.quantity + 1
-                                )
-                              }
+                                );
+                              }}
                               className="p-1 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Tăng số lượng"
-                              disabled={isProcessing}
+                              disabled={isProcessing || !service.orderServiceId}
                             >
                               <FiPlus className="w-4 h-4" />
                             </button>
@@ -982,12 +1131,18 @@ const BookingDetailsModal: React.FC<{
                             đ
                           </span>
                           <button
-                            onClick={() =>
-                              handleRemoveService(service.orderServiceId!)
-                            }
+                            onClick={() => {
+                              if (!service.orderServiceId) {
+                                console.warn(
+                                  "Missing orderServiceId; cannot remove service"
+                                );
+                                return;
+                              }
+                              handleRemoveService(service.orderServiceId);
+                            }}
                             className="p-1 text-red-500 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Xóa dịch vụ"
-                            disabled={isProcessing}
+                            disabled={isProcessing || !service.orderServiceId}
                           >
                             <FiTrash2 className="w-4 h-4" />
                           </button>
@@ -1759,6 +1914,8 @@ const PricingManagementModal: React.FC<{
                               onClick={() => handleCreatePricing(index)}
                               disabled={isProcessing}
                               className="p-2 text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-green-300"
+                              title="Lưu khung giá"
+                              aria-label="Lưu khung giá"
                             >
                               <FiSave className="w-4 h-4" />
                             </button>
@@ -2610,86 +2767,86 @@ const WeeklySchedule: React.FC = () => {
               </div>
             </div>
           </div>
-          {showQuickModal && selectedBooking && (
-            <div
-              style={{ marginTop: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
-            >
-              <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg">
-                <h3 className="text-lg font-bold mb-2">Thông tin đặt sân</h3>
-                <div className="space-y-2">
-                  <p>
-                    <span className="font-medium">Tên khách hàng:</span>
-                    {quickLoading ? "Đang tải..." : quickCustomerName}
-                  </p>
-                  <p>
-                    <span className="font-medium">Số điện thoại:</span>
-                    {quickLoading ? "Đang tải..." : quickCustomerPhone}
-                  </p>
-                  <p>
-                    <span className="font-medium">Sân:</span>
-                    {selectedBooking.field}
-                  </p>
-                  <p>
-                    <span className="font-medium">Thời gian:</span>
-                    {selectedBooking.duration} giờ
-                  </p>
-                  <p>
-                    <span className="font-medium">Trạng thái:</span>
-                    {selectedBooking.status === "confirmed"
-                      ? "Đã xác nhận"
-                      : selectedBooking.status === "pending"
-                      ? "Chờ xác nhận"
-                      : "Đã hủy"}
-                  </p>
-                </div>
-                <div className="flex justify-end gap-2 mt-4">
-                  <button
-                    onClick={handleCloseQuickModal}
-                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                  >
-                    Đóng
-                  </button>
-                  <button
-                    onClick={handleOpenDetailModal}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    Hóa đơn tổng
-                  </button>
-                </div>
+        </div>
+        {showQuickModal && selectedBooking && (
+          <div
+            style={{ marginTop: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+          >
+            <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-lg">
+              <h3 className="text-lg font-bold mb-2">Thông tin đặt sân</h3>
+              <div className="space-y-2">
+                <p>
+                  <span className="font-medium">Tên khách hàng:</span>
+                  {quickLoading ? "Đang tải..." : quickCustomerName}
+                </p>
+                <p>
+                  <span className="font-medium">Số điện thoại:</span>
+                  {quickLoading ? "Đang tải..." : quickCustomerPhone}
+                </p>
+                <p>
+                  <span className="font-medium">Sân:</span>
+                  {selectedBooking.field}
+                </p>
+                <p>
+                  <span className="font-medium">Thời gian:</span>
+                  {selectedBooking.duration} giờ
+                </p>
+                <p>
+                  <span className="font-medium">Trạng thái:</span>
+                  {selectedBooking.status === "confirmed"
+                    ? "Đã xác nhận"
+                    : selectedBooking.status === "pending"
+                    ? "Chờ xác nhận"
+                    : "Đã hủy"}
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={handleCloseQuickModal}
+                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={handleOpenDetailModal}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Hóa đơn tổng
+                </button>
               </div>
             </div>
-          )}
-          {showDetailModal && selectedBooking && (
-            <BookingDetailsModal
-              booking={selectedBooking}
-              onClose={handleCloseDetailModal}
-              onConfirm={handleBookingConfirm}
-              availableServices={services}
-              showToast={showToast}
-              onBookingUpdate={fetchSchedule}
-            />
-          )}
-          <CreateSlotModal
-            isOpen={showCreateSlotModal}
-            onClose={() => setShowCreateSlotModal(false)}
-            onSubmit={handleCreateSlot}
-            onUpdate={handleUpdateSlot}
-            onDelete={handleDeleteSlot}
-            fieldId={fieldId}
-            fieldName={fieldName}
-            facility={facility}
-          />
-          <PricingManagementModal
-            isOpen={showPricingModal}
-            onClose={() => setShowPricingModal(false)}
-            fieldId={fieldId}
-            fieldName={fieldName}
+          </div>
+        )}
+        {showDetailModal && selectedBooking && (
+          <BookingDetailsModal
+            booking={selectedBooking}
+            onClose={handleCloseDetailModal}
+            onConfirm={handleBookingConfirm}
+            availableServices={services}
             showToast={showToast}
-            fetchSchedule={fetchSchedule}
-            onPricingUpdate={checkPricingConfiguration}
+            onBookingUpdate={fetchSchedule}
           />
-        </div>
+        )}
+        <CreateSlotModal
+          isOpen={showCreateSlotModal}
+          onClose={() => setShowCreateSlotModal(false)}
+          onSubmit={handleCreateSlot}
+          onUpdate={handleUpdateSlot}
+          onDelete={handleDeleteSlot}
+          fieldId={fieldId}
+          fieldName={fieldName}
+          facility={facility}
+        />
+        <PricingManagementModal
+          isOpen={showPricingModal}
+          onClose={() => setShowPricingModal(false)}
+          fieldId={fieldId}
+          fieldName={fieldName}
+          showToast={showToast}
+          fetchSchedule={fetchSchedule}
+          onPricingUpdate={checkPricingConfiguration}
+        />
       </div>
     </div>
   );
