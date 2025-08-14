@@ -113,26 +113,26 @@ namespace SportZone_API.Repositories
             }
         }
 
-        //public async Task<OrderDTO> UpdateOrderStatusPayment(int orderId)
-        //{
-        //    try
-        //    {
-        //        var order = await _context.Orders
-        //            .FirstOrDefaultAsync(o => o.OrderId == orderId);
-        //        if (order == null)
-        //        {
-        //            throw new Exception("Order không tồn tại");
-        //        }
-        //        order.StatusPayment = "Success";
-        //        _context.Orders.Update(order);
-        //        await _context.SaveChangesAsync();
-        //        return _mapper.Map<OrderDTO>(order);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new Exception($"Lỗi khi cập nhật trạng thái thanh toán của Order: {ex.Message}", ex);
-        //    }
-        //}
+        public async Task<OrderDTO> UpdateOrderStatusPaymentAsync(int orderId)
+        {
+            try
+            {
+                var order = await _context.Orders
+                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                if (order == null)
+                {
+                    throw new Exception("Order không tồn tại");
+                }
+                order.StatusPayment = "Success";
+                _context.Orders.Update(order);
+                await _context.SaveChangesAsync();
+                return _mapper.Map<OrderDTO>(order);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật trạng thái thanh toán của Order: {ex.Message}", ex);
+            }
+        }
 
         public async Task<OwnerRevenueDTO> GetOwnerTotalRevenueAsync(int ownerId,
                                                                      DateTime? startDate = null,
