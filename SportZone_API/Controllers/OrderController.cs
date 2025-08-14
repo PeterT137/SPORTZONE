@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Threading.Tasks; 
 
 namespace SportZone_API.Controllers
@@ -308,6 +309,7 @@ namespace SportZone_API.Controllers
 
         [HttpGet("facility/{facilityId}")]
         [RoleAuthorize("2,4")]
+        [SwaggerOperation(Summary = "Lấy Order theo facility: FO, Staff")]
         public async Task<IActionResult> GetOrdersByFacilityId(int facilityId)
         {
             try
