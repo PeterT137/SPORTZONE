@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
-type ForgotStep = "email" | "otp" | "new-password";
+type ForgotStep = "email" | "verify-otp" | "new-password";
 
 const showToast = (message: string, type: "success" | "error" = "success") => {
   Swal.fire({
@@ -53,7 +52,7 @@ const SignInForm: React.FC = () => {
 
     if (!formData.email) {
       newErrors.email = "Email không được để trống";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S/.test(formData.email)) {
       newErrors.email = "Định dạng email không hợp lệ";
     }
 
@@ -192,7 +191,8 @@ const SignInForm: React.FC = () => {
         email: forgotEmail,
       });
       showToast("Mã OTP đã được gửi về email!");
-      setForgotStep("otp");
+      // setForgotStep("otp");
+      setForgotStep("verify-otp");
     } catch (err: any) {
       showToast(err?.response?.data?.message || "Gửi mã thất bại", "error");
     } finally {
@@ -200,22 +200,70 @@ const SignInForm: React.FC = () => {
     }
   };
 
-  const handleNewPasswordSubmit = async () => {
+
+   // Hàm mới để xác nhận OTP
+
+  const handleVerifyOtpSubmit = async () => {
+
     setLoading(true);
-    if (newPassword !== confirmPassword) {
-      showToast("Mật khẩu không khớp!", "error");
-      setLoading(false);
-      return;
-    }
+
     try {
-      await axios.post(
-        "https://localhost:7057/api/ForgotPassword/verify-code",
-        {
-          code: otp,
-          newPassword,
-          confirmPassword,
-        }
-      );
+
+      await axios.post("https://localhost:7057/api/ForgotPassword/verify-code", {
+
+        email: forgotEmail,
+
+        code: otp,
+
+      });
+
+      showToast("Mã OTP chính xác!");
+
+      // Chuyển sang bước nhập mật khẩu mới
+
+      setForgotStep("new-password");
+
+    } catch (err: any) {
+
+      showToast(err?.response?.data?.message || "Mã OTP không đúng", "error");
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+
+
+  // Hàm mới để đặt lại mật khẩu
+
+  const handleResetPasswordSubmit = async () => {
+
+    setLoading(true);
+
+    if (newPassword !== confirmPassword) {
+
+      showToast("Mật khẩu không khớp!", "error");
+
+      setLoading(false);
+
+      return;
+
+    }
+
+    try {
+
+      await axios.post("https://localhost:7057/api/ForgotPassword/reset-password", {
+
+        email: forgotEmail,
+
+        newPassword,
+
+        confirmPassword,
+
+      });
       showToast("Đặt lại mật khẩu thành công!");
       setShowForgotModal(false);
       setForgotStep("email");
@@ -370,19 +418,38 @@ const SignInForm: React.FC = () => {
               </>
             )}
 
-            {forgotStep === "otp" && (
+{forgotStep === "verify-otp" && (
               <>
-                <h2 className="text-lg font-semibold mb-4">
-                  Nhập OTP và mật khẩu mới
-                </h2>
+                <h2 className="text-lg font-semibold mb-4">Xác nhận mã OTP</h2>
                 <input
                   type="text"
                   placeholder="Nhập mã OTP 6 số"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full mb-4 px-3 py-2 border border-gray-300 rounded-md text-sm"
                   maxLength={6}
                 />
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={() => setForgotStep("email")}
+                    className="text-sm px-4 py-2 bg-gray-200 rounded"
+                  >
+                    Trở lại
+                  </button>
+                  <button
+                    onClick={handleVerifyOtpSubmit}
+                    disabled={loading}
+                    className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
+                  >
+                    {loading ? "Đang xác nhận..." : "Xác nhận"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {forgotStep === "new-password" && (
+              <>
+                <h2 className="text-lg font-semibold mb-4">Nhập mật khẩu mới</h2>
                 <input
                   type="password"
                   placeholder="Mật khẩu mới"
@@ -399,17 +466,17 @@ const SignInForm: React.FC = () => {
                 />
                 <div className="flex justify-end space-x-2">
                   <button
-                    onClick={() => setForgotStep("email")}
+                    onClick={() => setForgotStep("verify-otp")}
                     className="text-sm px-4 py-2 bg-gray-200 rounded"
                   >
                     Trở lại
                   </button>
                   <button
-                    onClick={handleNewPasswordSubmit}
+                    onClick={handleResetPasswordSubmit}
                     disabled={loading}
                     className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
                   >
-                    {loading ? "Đang xác nhận..." : "Xác nhận & Lưu"}
+                    {loading ? "Đang lưu..." : "Lưu"}
                   </button>
                 </div>
               </>

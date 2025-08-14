@@ -57,30 +57,38 @@ namespace SportZone_API.Services
             return new ServiceResponse<string> { Success = true, Message = "Mã xác nhận đã được gửi đến email." }; 
         }
 
-        public async Task<ServiceResponse<string>> ResetPasswordAsync(VerifyCodeDto dto)
+        public async Task<ServiceResponse<string>> VerifyCodeAsync(VerifyCodeDto dto)
         {
             var cacheKey = $"ResetCode:{dto.Code}";
+            if (!_cache.TryGetValue(cacheKey, out string emailInCache))
+                return Fail("Mã xác nhận không tìm thấy hoặc đã hết hạn.");
+            if (emailInCache != dto.Email)
+                return Fail("Mã xác nhận không khớp với email.");
+            return new ServiceResponse<string> { Success = true, Message = "Mã xác nhận chính xác." };
+        }
 
-            if (!_cache.TryGetValue(cacheKey, out string email))
-                return Fail("Mã xác nhận không tìm thấy hoặc đã hết hạn."); 
-
-            if (!RegisterService.IsValidPassword(dto.NewPassword))
-                return Fail("Mật khẩu phải có ít nhất 10 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt."); 
-
-            if (dto.NewPassword != dto.ConfirmPassword)
-                return Fail("Mật khẩu xác nhận không khớp."); 
-
-            var user = await _repository.GetUserByEmailAsync(email);
+        public async Task<ServiceResponse<string>> ResetPasswordAsync(ResetPasswordDto dto)
+        {
+            var user = await _repository.GetUserByEmailAsync(dto.Email);
             if (user == null)
-                return Fail("Không tìm thấy người dùng."); 
+                return Fail("Không tìm thấy người dùng.");
+            
+            if (!RegisterService.IsValidPassword(dto.NewPassword))
+                return Fail("Mật khẩu phải có ít nhất 10 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.");
+            
+            if (dto.NewPassword != dto.ConfirmPassword)
+                return Fail("Mật khẩu xác nhận không khớp.");
 
             user.UPassword = _passwordHasher.HashPassword(user, dto.NewPassword);
             await _repository.SaveUserAsync();
-            _cache.Remove(cacheKey);
 
-            return new ServiceResponse<string> { Success = true, Message = "Mật khẩu đã được thay đổi thành công." }; 
+            var otp = _cache.Get<string>($"ResetCode:{user.UEmail}");
+            if (!string.IsNullOrEmpty(otp))
+            {
+                _cache.Remove($"ResetCode:{otp}");
+            }
+            return new ServiceResponse<string> { Success = true, Message = "Mật khẩu đã được thay đổi thành công." };
         }
-
         private static ServiceResponse<string> Fail(string msg) => new() { Success = false, Message = msg };
     }
 }
