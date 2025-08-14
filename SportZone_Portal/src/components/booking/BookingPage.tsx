@@ -147,10 +147,46 @@ const fetchFieldBookingSchedules = async (
   return schedules.filter((schedule) => schedule.date === date);
 };
 
-const fetchFieldPricing = async (): Promise<ApiFieldPricing[]> => {
-  const response = await fetch("https://localhost:7057/api/FieldPricing");
-  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-  return await response.json();
+const fetchFieldPricing = async (
+  facilityFieldIds?: number[]
+): Promise<ApiFieldPricing[]> => {
+  if (Array.isArray(facilityFieldIds) && facilityFieldIds.length > 0) {
+    const allPricing: ApiFieldPricing[] = [];
+    for (const fieldId of facilityFieldIds) {
+      try {
+        const response = await fetch(
+          `https://localhost:7057/api/FieldPricing/byField/${fieldId}`
+        );
+        if (!response.ok) {
+          console.warn(
+            `[DEBUG] Không lấy được giá cho fieldId`,
+            fieldId,
+            response.status
+          );
+          continue;
+        }
+        const result = await response.json();
+        console.log(`[DEBUG] Giá trả về cho fieldId`, fieldId, result);
+        // Nếu API trả về { success, data }, lấy data, nếu trả về array thì lấy luôn
+        if (Array.isArray(result)) {
+          allPricing.push(...result);
+        } else if (result && Array.isArray(result.data)) {
+          allPricing.push(...result.data);
+        }
+      } catch (err) {
+        console.error(`[DEBUG] Lỗi lấy giá cho fieldId`, fieldId, err);
+        continue;
+      }
+    }
+    return allPricing;
+  } else {
+    const response = await fetch("https://localhost:7057/api/FieldPricing");
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const result = await response.json();
+    if (Array.isArray(result)) return result;
+    if (result && Array.isArray(result.data)) return result.data;
+    return [];
+  }
 };
 
 interface UserProfile {
@@ -187,7 +223,8 @@ const PricingModal = React.memo(
   }) => {
     const groupedPricing = useMemo(() => {
       const facilityFieldIds = new Set(fields.map((field) => field.fieldId));
-      return pricingData
+      const safePricingData = Array.isArray(pricingData) ? pricingData : [];
+      return safePricingData
         .filter((pricing) => facilityFieldIds.has(pricing.fieldId))
         .reduce((acc, pricing) => {
           if (!acc[pricing.fieldId]) {
@@ -924,7 +961,9 @@ const BookingPage: React.FC = () => {
 
   const handleOpenPricingModal = useCallback(async () => {
     try {
-      const pricingData = await fetchFieldPricing();
+      // Lấy danh sách fieldId của cơ sở hiện tại
+      const fieldIds = fields.map((f) => f.fieldId);
+      const pricingData = await fetchFieldPricing(fieldIds);
       setFieldPricingData(pricingData);
       setShowPricingModal(true);
     } catch (error) {
