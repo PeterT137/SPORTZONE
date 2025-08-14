@@ -185,6 +185,8 @@ namespace SportZone_API.Services
 
                 // Gửi thông báo tới Admin khi có cơ sở mới được tạo
                 await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Cơ sở mới '{facility.Name}' đã được tạo.");
+                var newFacilityDto = _mapper.Map<FacilityDetailDto>(createdFacility);
+                await _hubContext.Clients.All.SendAsync("ReceiveNewFacility", newFacilityDto);
 
                 return new ServiceResponse<FacilityDto>
                 {

@@ -9,7 +9,6 @@ namespace SportZone_API.Mappings
         public FieldBookingScheduleProfile()
         {
             CreateMap<FieldBookingSchedule, FieldBookingScheduleDto>().ReverseMap();
-            //CreateMap<FieldBookingScheduleUpdateDto, FieldBookingSchedule>();
             CreateMap<FieldBookingScheduleUpdateGenerateDto, FieldBookingSchedule>();
 
             CreateMap<FieldPricingDto, FieldPricing>().ReverseMap();

@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.36105.23 d17.13
+VisualStudioVersion = 17.13.36105.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SportZone_API", "SportZone_API.csproj", "{916C24C9-C62F-F76E-8FB5-C741FB5DA529}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SportZone_API.Tests", "SportZone_API.Tests", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControllerTests", "..\ControllerTests\ControllerTests.csproj", "{BC770634-4115-4EC7-BF89-B7B2BD95256D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,9 +19,16 @@ Global
 		{916C24C9-C62F-F76E-8FB5-C741FB5DA529}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{916C24C9-C62F-F76E-8FB5-C741FB5DA529}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{916C24C9-C62F-F76E-8FB5-C741FB5DA529}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC770634-4115-4EC7-BF89-B7B2BD95256D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC770634-4115-4EC7-BF89-B7B2BD95256D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC770634-4115-4EC7-BF89-B7B2BD95256D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC770634-4115-4EC7-BF89-B7B2BD95256D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BC770634-4115-4EC7-BF89-B7B2BD95256D} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {83618174-682A-4A01-9FF8-7F97F6870263}
