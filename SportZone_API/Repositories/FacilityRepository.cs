@@ -18,7 +18,6 @@ namespace SportZone_API.Repositories
         public async Task<List<Facility>> GetAllAsync(string? searchText = null)
         {
             var query = _context.Facilities.Include(f => f.Images).AsQueryable();
-
             if (!string.IsNullOrWhiteSpace(searchText))
             {
                 query = query.Where(f => (f.Name ?? "").Contains(searchText) ||
@@ -26,7 +25,6 @@ namespace SportZone_API.Repositories
                                          (f.Description ?? "").Contains(searchText) ||
                                          (f.Subdescription ?? "").Contains(searchText));
             }
-
             return await query.ToListAsync();
         }
 
