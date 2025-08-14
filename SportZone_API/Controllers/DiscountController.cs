@@ -42,7 +42,7 @@ namespace SportZone_API.Controllers
 
         // GET: api/Discount/facility/{facId}
         [HttpGet("facility/{facId}")]
-        [RoleAuthorize("2")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetByFacilityId(int facId)
         {
             var result = await _discountService.GetDiscountsByFacilityId(facId);
