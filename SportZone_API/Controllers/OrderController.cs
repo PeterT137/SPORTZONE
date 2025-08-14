@@ -60,6 +60,30 @@ namespace SportZone_API.Controllers
             }
         }
 
+        [HttpPut("Order/{orderId}/Update/StatusPayment")]
+        [RoleAuthorize("2,4")]
+        public async Task<IActionResult> UpdateOrderStatusPayment(int orderId)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid data",
+                        errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                    });
+                }
+                var response = await _orderService.UpdateOrderStatusPaymentAsync(orderId);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error updating order status payment: {ex.Message}");
+            }
+        }
+
         [HttpGet("Owner/{ownerId}/TotalRevenue")]
         [RoleAuthorize("2,4")]
         public async Task<IActionResult> GetOwnerTotalRevenue(

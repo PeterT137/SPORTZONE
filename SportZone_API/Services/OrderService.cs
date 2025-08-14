@@ -121,6 +121,22 @@ namespace SportZone_API.Services
             }
         }
 
+        public async Task<OrderDTO?> UpdateOrderStatusPaymentAsync(int orderId)
+        {
+            try
+            {
+                if (orderId <= 0)
+                {
+                    throw new ArgumentException("OrderId không hợp lệ", nameof(orderId));
+                }
+                return await _orderRepository.UpdateOrderStatusPaymentAsync(orderId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật trạng thái thanh toán của Order: {ex.Message}", ex);
+            }
+        }
+
         private async Task<decimal> CalculateBookingFieldPriceAsync(Booking booking)
         {
             try
