@@ -407,5 +407,32 @@ namespace SportZone_API.Repositories
                 throw new Exception($"Lỗi khi lấy chi tiết Order theo ScheduleId: {ex.Message}", ex);
             }
         }
+
+        public async Task<List<OrderDTO>> GetOrdersByFacilityIdAsync(int facilityId)
+        {
+            try
+            {
+                var orders = await _context.Orders
+                    .Include(o => o.Booking)
+                    .Include(o => o.Fac)
+                    .Include(o => o.Discount)
+                    .Include(o => o.OrderServices)
+                        .ThenInclude(os => os.Service)
+                    .Where(o => o.FacId == facilityId)
+                    .OrderByDescending(o => o.CreateAt)
+                    .ToListAsync();
+
+                if (!orders.Any())
+                {
+                    return new List<OrderDTO>();
+                }
+
+                return _mapper.Map<List<OrderDTO>>(orders);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách Order theo FacilityId: {ex.Message}", ex);
+            }
+        }
     }
 }

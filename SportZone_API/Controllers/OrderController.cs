@@ -305,5 +305,53 @@ namespace SportZone_API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "Có lỗi xảy ra", error = ex.Message });
             }
         }
+
+        [HttpGet("facility/{facilityId}")]
+        [RoleAuthorize("2,4")]
+        public async Task<IActionResult> GetOrdersByFacilityId(int facilityId)
+        {
+            try
+            {
+                if (facilityId <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "FacilityId không hợp lệ"
+                    });
+                }
+
+                var orders = await _orderService.GetOrdersByFacilityIdAsync(facilityId);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy danh sách Order theo Facility thành công",
+                    data = new
+                    {
+                        facilityId = facilityId,
+                        totalOrders = orders.Count,
+                        orders = orders
+                    }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy danh sách Order theo Facility",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }
