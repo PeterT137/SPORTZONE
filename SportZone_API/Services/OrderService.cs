@@ -208,5 +208,22 @@ namespace SportZone_API.Services
                 throw new Exception($"Lỗi khi lấy thông tin slot theo ScheduleId: {ex.Message}", ex);
             }
         }
+
+        public async Task<List<OrderDTO>> GetOrdersByFacilityIdAsync(int facilityId)
+        {
+            try
+            {
+                if (facilityId <= 0)
+                {
+                    throw new ArgumentException("FacilityId không hợp lệ", nameof(facilityId));
+                }
+
+                return await _orderRepository.GetOrdersByFacilityIdAsync(facilityId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách Order theo FacilityId: {ex.Message}", ex);
+            }
+        }
     }
 }

@@ -37,5 +37,10 @@ namespace SportZone_API.Services.Interfaces
         /// Lấy thông tin đơn giản (khách + giờ/ ngày) theo ScheduleId
         /// </summary>
         Task<OrderSlotDetailDTO?> GetOrderSlotDetailByScheduleIdAsync(int scheduleId);
+
+        /// <summary>
+        /// Lấy danh sách Order theo FacilityId
+        /// </summary>
+        Task<List<OrderDTO>> GetOrdersByFacilityIdAsync(int facilityId);
     }
 }

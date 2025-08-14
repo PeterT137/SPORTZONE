@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportZone_API.Attributes;
 using SportZone_API.DTOs;
 using SportZone_API.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Threading.Tasks; 
 
 namespace SportZone_API.Controllers
@@ -327,6 +328,55 @@ namespace SportZone_API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "Có lỗi xảy ra", error = ex.Message });
+            }
+        }
+
+        [HttpGet("facility/{facilityId}")]
+        [RoleAuthorize("2,4")]
+        [SwaggerOperation(Summary = "Lấy Order theo facility: FO, Staff")]
+        public async Task<IActionResult> GetOrdersByFacilityId(int facilityId)
+        {
+            try
+            {
+                if (facilityId <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "FacilityId không hợp lệ"
+                    });
+                }
+
+                var orders = await _orderService.GetOrdersByFacilityIdAsync(facilityId);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy danh sách Order theo Facility thành công",
+                    data = new
+                    {
+                        facilityId = facilityId,
+                        totalOrders = orders.Count,
+                        orders = orders
+                    }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy danh sách Order theo Facility",
+                    error = ex.Message
+                });
             }
         }
     }
