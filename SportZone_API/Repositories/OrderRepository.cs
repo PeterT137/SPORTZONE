@@ -151,8 +151,8 @@ namespace SportZone_API.Repositories
 
                 var ordersQuery = _context.Orders
                     .Include(o => o.Fac)
-                    .Where(o => o.Fac.UId == ownerId);
-                //(o.StatusPayment == "Comleted" || o.StatusPayment == "Paid")
+                    .Where(o => o.Fac.UId == ownerId && o.StatusPayment == "Success");
+                //(o.StatusPayment == "Success")
                 if (startDate.HasValue)
                 {
                     ordersQuery = ordersQuery.Where(o => o.CreateAt >= startDate.Value);
