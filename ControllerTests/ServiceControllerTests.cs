@@ -533,5 +533,277 @@ namespace SportZone_API.Tests.Controllers
             Assert.Equal("Không thể xóa dịch vụ đang được sử dụng", doc.RootElement.GetProperty("message").GetString());
         }
 
+        // TC_Service_16
+        [Fact]
+        public async Task GetOrderServices_ValidOrderId_ReturnsOk()
+        {
+            // Arrange
+            int orderId = 1;
+            var mockOrderServices = new List<OrderServiceDTO>
+            {
+                new OrderServiceDTO
+                {
+                    OrderServiceId = 1,
+                    OrderId = 1,
+                    ServiceId = 1,
+                    ServiceName = "Bóng đá",
+                    Price = 50000,
+                    Quantity = 2,
+                    TotalPrice = 100000
+                },
+                new OrderServiceDTO
+                {
+                    OrderServiceId = 2,
+                    OrderId = 1,
+                    ServiceId = 2,
+                    ServiceName = "Nước uống",
+                    Price = 25000,
+                    Quantity = 1,
+                    TotalPrice = 25000
+                }
+            };
+
+            _orderServiceServiceMock.Setup(s => s.GetOrderServicesByOrderIdAsync(orderId))
+                .ReturnsAsync(mockOrderServices);
+
+            // Act
+            var result = await _controller.GetOrderServices(orderId);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Lấy danh sách dịch vụ trong order thành công", doc.RootElement.GetProperty("message").GetString());
+            Assert.Equal(2, doc.RootElement.GetProperty("count").GetInt32());
+
+            var data = doc.RootElement.GetProperty("data");
+            Assert.Equal(2, data.GetArrayLength());
+
+            var firstService = data[0];
+            Assert.Equal(1, firstService.GetProperty("OrderServiceId").GetInt32());
+            Assert.Equal("Bóng đá", firstService.GetProperty("ServiceName").GetString());
+            Assert.Equal(50000, firstService.GetProperty("Price").GetDecimal());
+            Assert.Equal(2, firstService.GetProperty("Quantity").GetInt32());
+            Assert.Equal(100000, firstService.GetProperty("TotalPrice").GetDecimal());
+        }
+
+        // TC_Service_17
+        [Fact]
+        public async Task GetOrderServices_InvalidOrderId_ReturnsBadRequest()
+        {
+            // Arrange
+            int orderId = 999;
+
+            _orderServiceServiceMock.Setup(s => s.GetOrderServicesByOrderIdAsync(orderId))
+                .ThrowsAsync(new ArgumentException("Order ID không tồn tại"));
+
+            // Act
+            var result = await _controller.GetOrderServices(orderId);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Order ID không tồn tại", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Service_18
+        [Fact]
+        public async Task GetOrderServices_NegativeOrderId_ReturnsBadRequest()
+        {
+            // Arrange
+            int orderId = -1;
+
+            _orderServiceServiceMock.Setup(s => s.GetOrderServicesByOrderIdAsync(orderId))
+                .ThrowsAsync(new ArgumentException("Order ID không hợp lệ"));
+
+            // Act
+            var result = await _controller.GetOrderServices(orderId);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Order ID không hợp lệ", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Service_19
+        [Fact]
+        public async Task GetOrderServices_OrderWithNoServices_ReturnsOk()
+        {
+            // Arrange
+            int orderId = 2;
+            var emptyServices = new List<OrderServiceDTO>();
+
+            _orderServiceServiceMock.Setup(s => s.GetOrderServicesByOrderIdAsync(orderId))
+                .ReturnsAsync(emptyServices);
+
+            // Act
+            var result = await _controller.GetOrderServices(orderId);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Lấy danh sách dịch vụ trong order thành công", doc.RootElement.GetProperty("message").GetString());
+            Assert.Equal(0, doc.RootElement.GetProperty("count").GetInt32());
+
+            var data = doc.RootElement.GetProperty("data");
+            Assert.Equal(0, data.GetArrayLength());
+        }
+
+        // TC_Service_20
+        [Fact]
+        public async Task UpdateOrderService_ValidData_ReturnsOk()
+        {
+            // Arrange
+            int orderServiceId = 1;
+            var updateDTO = new OrderServiceUpdateDTO
+            {
+                Quantity = 3
+            };
+
+            var mockUpdatedService = new OrderServiceDTO
+            {
+                OrderServiceId = 1,
+                OrderId = 1,
+                ServiceId = 1,
+                ServiceName = "Bóng đá",
+                Price = 50000,
+                Quantity = 3
+            };
+
+            _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
+                .ReturnsAsync(mockUpdatedService);
+
+            // Act
+            var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Cập nhật dịch vụ trong order thành công", doc.RootElement.GetProperty("message").GetString());
+
+            var data = doc.RootElement.GetProperty("data");
+            Assert.Equal(1, data.GetProperty("OrderServiceId").GetInt32());
+            Assert.Equal(3, data.GetProperty("Quantity").GetInt32());
+            Assert.Equal(150000, data.GetProperty("TotalPrice").GetDecimal());
+        }
+
+        // TC_Service_21
+        [Fact]
+        public async Task UpdateOrderService_InvalidOrderServiceId_ReturnsBadRequest()
+        {
+            // Arrange
+            int orderServiceId = 999;
+            var updateDTO = new OrderServiceUpdateDTO
+            {
+                Quantity = 3
+            };
+
+            _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
+                .ThrowsAsync(new ArgumentException("OrderService ID không tồn tại"));
+
+            // Act
+            var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("OrderService ID không tồn tại", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Service_22
+        [Fact]
+        public async Task UpdateOrderService_NegativeQuantity_ReturnsBadRequest()
+        {
+            // Arrange
+            int orderServiceId = 1;
+            var updateDTO = new OrderServiceUpdateDTO
+            {
+                Quantity = -1
+            };
+
+            _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
+                .ThrowsAsync(new ArgumentException("Số lượng phải lớn hơn 0"));
+
+            // Act
+            var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Số lượng phải lớn hơn 0", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Service_23
+        [Fact]
+        public async Task UpdateOrderService_ZeroQuantity_ReturnsBadRequest()
+        {
+            // Arrange
+            int orderServiceId = 1;
+            var updateDTO = new OrderServiceUpdateDTO
+            {
+                Quantity = 0
+            };
+
+            _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
+                .ThrowsAsync(new ArgumentException("Số lượng phải lớn hơn 0"));
+
+            // Act
+            var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Số lượng phải lớn hơn 0", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Service_24
+        [Fact]
+        public async Task UpdateOrderService_ServiceException_ReturnsInternalServerError()
+        {
+            // Arrange
+            int orderServiceId = 1;
+            var updateDTO = new OrderServiceUpdateDTO
+            {
+                Quantity = 3
+            };
+
+            _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(500, statusCodeResult.StatusCode);
+
+            var json = JsonSerializer.Serialize(statusCodeResult.Value);
+            using var doc = JsonDocument.Parse(json);
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Có lỗi xảy ra khi cập nhật dịch vụ trong OrderService", doc.RootElement.GetProperty("message").GetString());
+        }
     }
 }

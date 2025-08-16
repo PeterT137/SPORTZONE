@@ -1309,6 +1309,398 @@ namespace SportZone_API.Tests.Controllers
             Assert.Equal("20:00:00", secondSlot.GetProperty("StartTime").GetString());
             Assert.Equal("22:00:00", secondSlot.GetProperty("EndTime").GetString());
         }
+
+        // TC_Booking_18
+        [Fact]
+        public async Task GetUserBookings_ValidUserIdWithMultipleBookings_ReturnsOk()
+        {
+            // Arrange
+            int userId = 1;
+            var mockBookings = new List<BookingResponseDTO>
+            {
+                new BookingResponseDTO
+                {
+                    BookingId = 1,
+                    FieldId = 1,
+                    FieldName = "Sân A",
+                    FacilityName = "SportZone Center",
+                    FacilityAddress = "123 Đường ABC, Quận 1, TP.HCM",
+                    UserId = 1,
+                    CustomerName = "Nguyễn Văn A",
+                    Title = "Đặt sân A",
+                    Date = new DateOnly(2025, 8, 5),
+                    StartTime = new TimeOnly(8, 0),
+                    EndTime = new TimeOnly(9, 0),
+                    Status = "Confirmed",
+                    StatusPayment = "Paid",
+                    CreateAt = DateTime.Now.AddDays(-1),
+                    FieldPrice = 200000,
+                    TotalAmount = 200000,
+                    Notes = "Booking đầu tiên"
+                },
+                new BookingResponseDTO
+                {
+                    BookingId = 2,
+                    FieldId = 2,
+                    FieldName = "Sân B",
+                    FacilityName = "SportZone Center",
+                    FacilityAddress = "123 Đường ABC, Quận 1, TP.HCM",
+                    UserId = 1,
+                    CustomerName = "Nguyễn Văn A",
+                    Title = "Đặt sân B",
+                    Date = new DateOnly(2025, 8, 6),
+                    StartTime = new TimeOnly(14, 0),
+                    EndTime = new TimeOnly(16, 0),
+                    Status = "Pending",
+                    StatusPayment = "Pending",
+                    CreateAt = DateTime.Now,
+                    FieldPrice = 300000,
+                    TotalAmount = 300000,
+                    Notes = "Booking thứ hai"
+                }
+            };
+
+            _bookingServiceMock.Setup(s => s.GetUserBookingsAsync(userId))
+                .ReturnsAsync(mockBookings);
+
+            // Act
+            var result = await _controller.GetUserBookings(userId);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            // Verify success response
+            Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Lấy danh sách booking thành công", doc.RootElement.GetProperty("message").GetString());
+            Assert.Equal(1, doc.RootElement.GetProperty("usersId").GetInt32());
+            Assert.Equal(2, doc.RootElement.GetProperty("count").GetInt32());
+
+            // Verify bookings data
+            var data = doc.RootElement.GetProperty("data");
+            Assert.Equal(2, data.GetArrayLength());
+
+            // Verify first booking
+            var firstBooking = data[0];
+            Assert.Equal(1, firstBooking.GetProperty("BookingId").GetInt32());
+            Assert.Equal("Sân A", firstBooking.GetProperty("FieldName").GetString());
+            Assert.Equal("SportZone Center", firstBooking.GetProperty("FacilityName").GetString());
+            Assert.Equal("Nguyễn Văn A", firstBooking.GetProperty("CustomerName").GetString());
+            Assert.Equal("Confirmed", firstBooking.GetProperty("Status").GetString());
+            Assert.Equal("Paid", firstBooking.GetProperty("StatusPayment").GetString());
+
+            // Verify second booking
+            var secondBooking = data[1];
+            Assert.Equal(2, secondBooking.GetProperty("BookingId").GetInt32());
+            Assert.Equal("Sân B", secondBooking.GetProperty("FieldName").GetString());
+            Assert.Equal("Pending", secondBooking.GetProperty("Status").GetString());
+            Assert.Equal("Pending", secondBooking.GetProperty("StatusPayment").GetString());
+        }
+
+        // TC_Booking_19
+        [Fact]
+        public async Task GetUserBookings_ValidUserIdNoBookings_ReturnsNotFound()
+        {
+            // Arrange
+            int userId = 2;
+            var emptyBookings = new List<BookingResponseDTO>();
+
+            _bookingServiceMock.Setup(s => s.GetUserBookingsAsync(userId))
+                .ReturnsAsync(emptyBookings);
+
+            // Act
+            var result = await _controller.GetUserBookings(userId);
+
+            // Assert
+            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+            var json = JsonSerializer.Serialize(notFoundResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Không tìm thấy booking cho khách hàng này", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking_20
+        [Fact]
+        public async Task GetUserBookings_ValidUserIdNullBookings_ReturnsNotFound()
+        {
+            // Arrange
+            int userId = 3;
+
+            _bookingServiceMock.Setup(s => s.GetUserBookingsAsync(userId))
+                .ReturnsAsync((IEnumerable<BookingResponseDTO>)null);
+
+            // Act
+            var result = await _controller.GetUserBookings(userId);
+
+            // Assert
+            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+            var json = JsonSerializer.Serialize(notFoundResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Không tìm thấy booking cho khách hàng này", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking(BE)
+        [Fact]
+        public async Task GetUserBookings_NegativeUserId_ReturnsBadRequest()
+        {
+            // Arrange
+            int userId = -1;
+
+            _bookingServiceMock.Setup(s => s.GetUserBookingsAsync(userId))
+                .ThrowsAsync(new ArgumentException("User ID không hợp lệ"));
+
+            // Act
+            var result = await _controller.GetUserBookings(userId);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("User ID không hợp lệ", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking(BE)
+        [Fact]
+        public async Task GetUserBookings_ZeroUserId_ReturnsBadRequest()
+        {
+            // Arrange
+            int userId = 0;
+
+            _bookingServiceMock.Setup(s => s.GetUserBookingsAsync(userId))
+                .ThrowsAsync(new ArgumentException("User ID không hợp lệ"));
+
+            // Act
+            var result = await _controller.GetUserBookings(userId);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("User ID không hợp lệ", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking_21
+        [Fact]
+        public async Task GetUserBookings_SingleBookingWithServices_ReturnsOk()
+        {
+            // Arrange
+            int userId = 4;
+            var mockBookings = new List<BookingResponseDTO>
+            {
+                new BookingResponseDTO
+                {
+                    BookingId = 3,
+                    FieldId = 3,
+                    FieldName = "Sân C",
+                    FacilityName = "SportZone Premium",
+                    FacilityAddress = "456 Đường XYZ, Quận 2, TP.HCM",
+                    UserId = 4,
+                    CustomerName = "Trần Thị B",
+                    Title = "Đặt sân C với dịch vụ",
+                    Date = new DateOnly(2025, 8, 7),
+                    StartTime = new TimeOnly(18, 0),
+                    EndTime = new TimeOnly(20, 0),
+                    Status = "Confirmed",
+                    StatusPayment = "Paid",
+                    CreateAt = DateTime.Now.AddHours(-2),
+                    FieldPrice = 250000,
+                    TotalAmount = 325000, // 250000 + 75000 (services)
+                    Notes = "Cần chuẩn bị dụng cụ bóng đá",
+                    Services = new List<BookingServiceDTO>
+                    {
+                        new BookingServiceDTO { ServiceId = 1, ServiceName = "Bóng đá", Price = 50000, Quantity = 1, TotalPrice = 50000 },
+                        new BookingServiceDTO { ServiceId = 2, ServiceName = "Nước uống", Price = 25000, Quantity = 1, TotalPrice = 25000 }
+                    }
+                }
+            };
+
+            _bookingServiceMock.Setup(s => s.GetUserBookingsAsync(userId))
+                .ReturnsAsync(mockBookings);
+
+            // Act
+            var result = await _controller.GetUserBookings(userId);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            // Verify success response
+            Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Lấy danh sách booking thành công", doc.RootElement.GetProperty("message").GetString());
+            Assert.Equal(4, doc.RootElement.GetProperty("usersId").GetInt32());
+            Assert.Equal(1, doc.RootElement.GetProperty("count").GetInt32());
+
+            // Verify booking data
+            var data = doc.RootElement.GetProperty("data");
+            Assert.Equal(1, data.GetArrayLength());
+
+            var booking = data[0];
+            Assert.Equal(3, booking.GetProperty("BookingId").GetInt32());
+            Assert.Equal("Sân C", booking.GetProperty("FieldName").GetString());
+            Assert.Equal("SportZone Premium", booking.GetProperty("FacilityName").GetString());
+            Assert.Equal("Trần Thị B", booking.GetProperty("CustomerName").GetString());
+            Assert.Equal("Confirmed", booking.GetProperty("Status").GetString());
+            Assert.Equal("Paid", booking.GetProperty("StatusPayment").GetString());
+            Assert.Equal(250000, booking.GetProperty("FieldPrice").GetDecimal());
+            Assert.Equal(325000, booking.GetProperty("TotalAmount").GetDecimal());
+            Assert.Equal("Cần chuẩn bị dụng cụ bóng đá", booking.GetProperty("Notes").GetString());
+
+            // Verify services
+            var services = booking.GetProperty("Services");
+            Assert.Equal(2, services.GetArrayLength());
+
+            var firstService = services[0];
+            Assert.Equal(1, firstService.GetProperty("ServiceId").GetInt32());
+            Assert.Equal("Bóng đá", firstService.GetProperty("ServiceName").GetString());
+            Assert.Equal(50000, firstService.GetProperty("Price").GetDecimal());
+
+            var secondService = services[1];
+            Assert.Equal(2, secondService.GetProperty("ServiceId").GetInt32());
+            Assert.Equal("Nước uống", secondService.GetProperty("ServiceName").GetString());
+            Assert.Equal(25000, secondService.GetProperty("Price").GetDecimal());
+        }
+
+        // TC_Booking_22
+        [Fact]
+        public async Task CancelBooking_ValidId_ReturnsOk()
+        {
+            // Arrange
+            int bookingId = 1;
+
+            _bookingServiceMock.Setup(s => s.CancelBookingAsync(bookingId))
+                .ReturnsAsync(true);
+
+            // Act
+            var result = await _controller.CancelBooking(bookingId);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Hủy booking thành công", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking_23
+        [Fact]
+        public async Task CancelBooking_InvalidId_ReturnsNotFound()
+        {
+            // Arrange
+            int bookingId = 999; // Non-existent booking ID
+
+            _bookingServiceMock.Setup(s => s.CancelBookingAsync(bookingId))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _controller.CancelBooking(bookingId);
+
+            // Assert
+            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+            var json = JsonSerializer.Serialize(notFoundResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Không tìm thấy booking hoặc không thể hủy", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking(BE)
+        [Fact]
+        public async Task CancelBooking_NegativeId_ReturnsBadRequest()
+        {
+            // Arrange
+            int bookingId = -1;
+
+            _bookingServiceMock.Setup(s => s.CancelBookingAsync(bookingId))
+                .ThrowsAsync(new ArgumentException("Booking ID không hợp lệ"));
+
+            // Act
+            var result = await _controller.CancelBooking(bookingId);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Booking ID không hợp lệ", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking(BE)
+        [Fact]
+        public async Task CancelBooking_ZeroId_ReturnsBadRequest()
+        {
+            // Arrange
+            int bookingId = 0;
+
+            _bookingServiceMock.Setup(s => s.CancelBookingAsync(bookingId))
+                .ThrowsAsync(new ArgumentException("Booking ID không hợp lệ"));
+
+            // Act
+            var result = await _controller.CancelBooking(bookingId);    
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Booking ID không hợp lệ", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking_24
+        [Fact]
+        public async Task CancelBooking_TooLateToCancel_ReturnsBadRequest()
+        {
+            // Arrange
+            int bookingId = 1;
+
+            _bookingServiceMock.Setup(s => s.CancelBookingAsync(bookingId))
+                .ThrowsAsync(new InvalidOperationException("Không thể hủy booking trong vòng 2 giờ trước giờ bắt đầu"));
+
+            // Act
+            var result = await _controller.CancelBooking(bookingId);
+
+            // Assert
+            var badRequestResult = Assert.IsType<ObjectResult>(result);
+            var json = JsonSerializer.Serialize(badRequestResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Không thể hủy booking trong vòng 2 giờ trước giờ bắt đầu", doc.RootElement.GetProperty("message").GetString());
+        }
+
+        // TC_Booking_25
+        [Fact]
+        public async Task CancelBooking_RepositoryException_ReturnsInternalServerError()
+        {
+            // Arrange
+            int bookingId = 1;
+
+            _bookingServiceMock.Setup(s => s.CancelBookingAsync(bookingId))
+                .ThrowsAsync(new Exception("Lỗi khi hủy booking: Transaction failed"));
+
+            // Act
+            var result = await _controller.CancelBooking(bookingId);
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(500, statusCodeResult.StatusCode);
+
+            var json = JsonSerializer.Serialize(statusCodeResult.Value);
+            using var doc = JsonDocument.Parse(json);
+            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Lỗi server: Lỗi khi hủy booking: Transaction failed", doc.RootElement.GetProperty("message").GetString());
+        }
     }
 }
 
