@@ -12,7 +12,7 @@ using SportZone_API.Models;
 using SportZone_API.Services.Interfaces;
 using Xunit;
 
-namespace ControllerTests
+namespace SportZone_API.Tests.Controllers
 {
     public class ServiceControllerTests
     {
