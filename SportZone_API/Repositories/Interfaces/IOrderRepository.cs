@@ -16,7 +16,7 @@ namespace SportZone_API.Repositories.Interfaces
 
         Task<OrderDTO?> UpdateOrderContentPaymentAsync(int orderId, int option);
 
-        Task<OrderDTO?> UpdateOrderStatusPaymentAsync(int orderId);
+        Task<OrderDTO> UpdateOrderStatusPaymentAsync(int orderId, int option);
         Task<OrderDTO?> GetOrderByIdAsync(int orderId);
 
         /// <summary>

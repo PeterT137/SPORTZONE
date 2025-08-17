@@ -113,7 +113,7 @@ namespace SportZone_API.Repositories
             }
         }
 
-        public async Task<OrderDTO> UpdateOrderStatusPaymentAsync(int orderId)
+        public async Task<OrderDTO> UpdateOrderStatusPaymentAsync(int orderId, int option)
         {
             try
             {
@@ -121,9 +121,20 @@ namespace SportZone_API.Repositories
                     .FirstOrDefaultAsync(o => o.OrderId == orderId);
                 if (order == null)
                 {
-                    throw new Exception("Order không tồn tại");
+                    return null;
                 }
-                order.StatusPayment = "Success";
+                if (option == 1)
+                {
+                    order.StatusPayment = "Pending"; // Chờ thanh toán
+                }
+                else if (option == 2)
+                {
+                    order.StatusPayment = "Success"; // Thanh toán Success
+                }
+                else if (option == 3)
+                {
+                    order.StatusPayment = "Cancelled"; // Đã hủy
+                }
                 _context.Orders.Update(order);
                 await _context.SaveChangesAsync();
                 return _mapper.Map<OrderDTO>(order);
