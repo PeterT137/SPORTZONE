@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "../../Sidebar";
 
@@ -9,6 +10,7 @@ interface Order {
   fieldName: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string; // Thêm email khách hàng
   totalPrice: number;
   totalServicePrice: number;
   contentPayment: string;
@@ -19,8 +21,6 @@ interface Order {
   createAt: string;
   action: string;
 }
-
-// Removed unused BookingDetail interface
 
 interface OrderDetail {
   orderId: number;
@@ -57,21 +57,20 @@ interface OrderServiceDetail {
   imageUrl?: string;
 }
 
-// Hàm chuyển đổi trạng thái thanh toán
 const mapPaymentStatus = (status?: string): string => {
-  if (!status) return "";
-  const s = status.toLowerCase();
-  if (s.includes("paid") || s.includes("completed") || s === "đã thanh toán")
-    return "Đã thanh toán";
-  if (s.includes("pending") || s.includes("unpaid") || s === "chưa thanh toán")
-    return "Chưa thanh toán";
-  if (
-    s.includes("deposit") ||
-    s.includes("deposited") ||
-    s.includes("coc") ||
-    s === "đã cọc"
-  )
-    return "Đã cọc";
+  if (!status || status === "NULL" || status == null) return "Chưa xác định";
+  const s = String(status).toLowerCase();
+  if (s === "pending") return "Chờ thanh toán";
+  if (s === "success") return "Đã thanh toán";
+  if (s === "cancel") return "Đã hủy";
+  return status;
+};
+
+const mapBookingStatus = (status: string) => {
+  if (!status) return "Chưa xác định";
+  const lower = status.trim().toLowerCase();
+  if (lower === "pending") return "Đang chờ";
+  if (lower === "success") return "Đã hoàn thành";
   return status;
 };
 
@@ -104,10 +103,6 @@ const OrdersTable: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
-  const [selectedPaymentOption, setSelectedPaymentOption] = useState<
-    number | null
-  >(null);
-  const [savingPayment, setSavingPayment] = useState<boolean>(false);
 
   const API_URL = "https://localhost:7057";
   const getAuthHeaders = useCallback((): Record<string, string> => {
@@ -213,7 +208,6 @@ const OrdersTable: React.FC = () => {
     [fetchBookingDetailForTable]
   );
 
-  // Lấy danh sách orders từ API
   useEffect(() => {
     const loadOrdersFromApi = async () => {
       setLoading(true);
@@ -286,7 +280,12 @@ const OrdersTable: React.FC = () => {
         )
           ? (accountsDataRaw as Array<Record<string, unknown>>)
           : [];
-        const userIdToInfo = new Map<number, { name: string; phone: string }>();
+
+        // Cập nhật map để lưu cả email
+        const userIdToInfo = new Map<
+          number,
+          { name: string; phone: string; email: string }
+        >();
         if (accountsData.length > 0) {
           accountsData.forEach((u) => {
             const uId = getNum(u["uId"] ?? u["UId"], NaN);
@@ -318,7 +317,9 @@ const OrdersTable: React.FC = () => {
                 staff?.["Phone"],
               ""
             );
-            userIdToInfo.set(uId, { name, phone });
+            // Lấy email từ API
+            const email = getStr(u["uEmail"], "");
+            userIdToInfo.set(uId, { name, phone, email });
           });
         }
 
@@ -414,6 +415,7 @@ const OrdersTable: React.FC = () => {
 
               let customerName = getStr(guestName, "");
               let customerPhone = getStr(guestPhone, "");
+              let customerEmail = "N/A"; // Khởi tạo email
 
               if (
                 !customerName &&
@@ -424,6 +426,7 @@ const OrdersTable: React.FC = () => {
                 if (fallbackUserInfo) {
                   customerName = fallbackUserInfo.name;
                   customerPhone = fallbackUserInfo.phone;
+                  customerEmail = fallbackUserInfo.email; // Gán email thật
                 }
               }
 
@@ -439,6 +442,7 @@ const OrdersTable: React.FC = () => {
                 fieldName: fieldName,
                 customerName: customerName || "Khách hàng",
                 customerPhone: customerPhone || "N/A",
+                customerEmail: customerEmail, // Lưu email vào object Order
                 totalPrice: getNum(o["totalPrice"] ?? o["TotalPrice"], 0),
                 totalServicePrice: getNum(
                   o["totalServicePrice"] ?? o["TotalServicePrice"],
@@ -467,7 +471,6 @@ const OrdersTable: React.FC = () => {
             new Date(b.createAt).getTime() - new Date(a.createAt).getTime()
         );
 
-        // Enrich with booking detail for accurate time and field name
         const enriched = await enrichOrdersWithBookingDetails(allOrders);
         setOrders(enriched);
       } catch (error) {
@@ -482,7 +485,6 @@ const OrdersTable: React.FC = () => {
     loadOrdersFromApi();
   }, [API_URL, getAuthHeaders, enrichOrdersWithBookingDetails]);
 
-  // Lấy chi tiết đơn hàng từ API booking
   const fetchBookingDetail = async (bookingId: number) => {
     setModalLoading(true);
     try {
@@ -510,11 +512,9 @@ const OrdersTable: React.FC = () => {
     setSelectedOrder(order);
     setOrderDetail(null);
     setShowModal(true);
-    setSelectedPaymentOption(null);
 
     const fetchedBookingDetail = await fetchBookingDetail(order.bookingId);
 
-    // Nếu lấy được dữ liệu từ API booking, map các trường theo cấu trúc OrderDetail
     if (fetchedBookingDetail) {
       const container = (fetchedBookingDetail as Record<string, unknown>) || {};
       const bookingData =
@@ -631,14 +631,15 @@ const OrdersTable: React.FC = () => {
         facilityName,
         fieldName,
         categoryFieldName: getString(
-          bookingData["categoryName"] ?? bookingData["CategoryName"],
+          typeof bookingData["field"] === "object" &&
+            bookingData["field"] !== null
+            ? (bookingData["field"] as Record<string, unknown>)["categoryName"]
+            : undefined,
           "N/A"
         ),
         customerName: order.customerName,
         customerPhone: order.customerPhone,
-        customerEmail: `${order.customerName
-          .toLowerCase()
-          .replace(/\s+/g, "")}@email.com`,
+        customerEmail: order.customerEmail || "N/A", // Sử dụng email thật
         totalPrice: totalAmount,
         totalServicePrice,
         fieldRentalPrice: Math.max(totalAmount - totalServicePrice, 0),
@@ -672,23 +673,7 @@ const OrdersTable: React.FC = () => {
         bookingCreateAt: new Date(bookingCreateAt).toLocaleString("vi-VN"),
       };
       setOrderDetail(detail);
-      // Map current contentPayment to option for UI selection
-      const cp = (
-        detail.contentPayment ||
-        detail.paymentMethod ||
-        ""
-      ).toLowerCase();
-      if (cp.includes("tiền mặt")) setSelectedPaymentOption(1);
-      else if (
-        cp.includes("ví điện tử") ||
-        cp.includes("ví") ||
-        cp.includes("vnpay") ||
-        cp.includes("momo")
-      )
-        setSelectedPaymentOption(2);
-      else setSelectedPaymentOption(null);
     } else {
-      // Nếu không lấy được data từ API, vẫn hiển thị thông tin cơ bản
       setOrderDetail({
         orderId: order.orderId,
         bookingId: order.bookingId,
@@ -697,7 +682,7 @@ const OrdersTable: React.FC = () => {
         categoryFieldName: "N/A",
         customerName: order.customerName,
         customerPhone: order.customerPhone,
-        customerEmail: "N/A",
+        customerEmail: order.customerEmail || "N/A", // Sử dụng email thật
         totalPrice: order.totalPrice,
         totalServicePrice: order.totalServicePrice,
         fieldRentalPrice: order.totalPrice - order.totalServicePrice,
@@ -718,63 +703,13 @@ const OrdersTable: React.FC = () => {
     }
   };
 
-  const savePaymentMethod = async () => {
-    if (!orderDetail || !selectedPaymentOption) return;
-    setSavingPayment(true);
-    try {
-      const url = `${API_URL}/api/Order/Order/${
-        orderDetail.orderId
-      }/Update/ContentPayment?option=${encodeURIComponent(
-        selectedPaymentOption
-      )}`;
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: {
-          ...getAuthHeaders(),
-        },
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Update content payment failed: ${res.status}`);
-      }
-      // Optimistic: update local detail and table state
-      const newMethod =
-        selectedPaymentOption === 1
-          ? "Thanh toán tiền mặt"
-          : "Thanh toán qua ví điện tử";
-      setOrderDetail((prev) =>
-        prev
-          ? {
-              ...prev,
-              contentPayment: newMethod,
-              paymentMethod: newMethod,
-            }
-          : prev
-      );
-      if (selectedOrder) {
-        setOrders((prev) =>
-          prev.map((o) =>
-            o.orderId === selectedOrder.orderId
-              ? { ...o, contentPayment: newMethod }
-              : o
-          )
-        );
-      }
-    } catch (e) {
-      console.error("Save payment method failed", e);
-    } finally {
-      setSavingPayment(false);
-    }
-  };
-
-  // Các hàm và logic còn lại không thay đổi
   const uniqueFacilities = [
     ...new Set(orders.map((order) => order.facilityName)),
   ];
   const uniqueCustomers = [
     ...new Set(orders.map((order) => order.customerName)),
   ];
-  const paymentStatuses = ["Đã thanh toán", "Chưa thanh toán", "Đã cọc"];
+  const paymentStatuses = ["Chờ thanh toán", "Đã thanh toán", "Đã hủy"];
 
   const filteredOrders = orders.filter((order) => {
     const matchesFacility =
@@ -820,13 +755,15 @@ const OrdersTable: React.FC = () => {
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case "Đã thanh toán":
-        return "bg-green-100 text-green-800";
-      case "Chưa thanh toán":
-        return "bg-red-100 text-red-800";
-      case "Đã cọc":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-green-100 text-green-800 border border-green-300";
+      case "Chờ thanh toán":
+        return "bg-orange-100 text-orange-800 border border-orange-300";
+      case "Đã hủy":
+        return "bg-red-200 text-red-800 border border-red-400";
+      case "Chưa xác định":
+        return "bg-gray-100 text-gray-800 border border-gray-300";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border border-gray-300";
     }
   };
 
@@ -838,13 +775,46 @@ const OrdersTable: React.FC = () => {
   };
 
   const updatePaymentStatus = (orderId: number, newStatus: string) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.orderId === orderId
-          ? { ...order, statusPayment: newStatus }
-          : order
-      )
-    );
+    const API_URL = "https://localhost:7057";
+    const token = localStorage.getItem("token");
+    let apiStatus = "Pending";
+    switch (newStatus) {
+      case "Đã thanh toán":
+        apiStatus = "success";
+        break;
+      case "Chờ thanh toán":
+        apiStatus = "pending";
+        break;
+      case "Đã hủy":
+        apiStatus = "cancel";
+        break;
+      case "Chưa xác định":
+        apiStatus = "NULL";
+        break;
+      default:
+        apiStatus = "pending";
+    }
+    fetch(`${API_URL}/api/Order/Order/${orderId}/Update/StatusPayment`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ statusPayment: apiStatus }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Cập nhật trạng thái thất bại");
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.orderId === orderId
+              ? { ...order, statusPayment: newStatus }
+              : order
+          )
+        );
+      })
+      .catch((err) => {
+        alert("Không thể cập nhật trạng thái thanh toán: " + err.message);
+      });
   };
 
   const closeModal = () => {
@@ -1363,7 +1333,7 @@ const OrdersTable: React.FC = () => {
                           }
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-black-600 font-bold">
-                            {index + 1}
+                            {(currentPage - 1) * ordersPerPage + index + 1}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
                             #{order.orderId}
@@ -1509,7 +1479,7 @@ const OrdersTable: React.FC = () => {
                     ) : (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-6 py-4 text-center text-gray-500"
                         >
                           Không tìm thấy đơn hàng nào.
@@ -1528,7 +1498,9 @@ const OrdersTable: React.FC = () => {
                 <span className="text-sm text-gray-700">
                   Hiển thị{" "}
                   <span className="font-medium">
-                    {(currentPage - 1) * ordersPerPage + 1}
+                    {filteredOrders.length > 0
+                      ? (currentPage - 1) * ordersPerPage + 1
+                      : 0}
                   </span>{" "}
                   đến{" "}
                   <span className="font-medium">
@@ -1707,7 +1679,6 @@ const OrdersTable: React.FC = () => {
         </div>
       </div>
 
-      {/* Order Detail Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -1782,11 +1753,9 @@ const OrdersTable: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Trạng thái booking:
-                          </span>
+                          <span className="text-gray-600">Trạng thái:</span>
                           <span className="font-medium text-green-600">
-                            {orderDetail.bookingStatus}
+                            {mapBookingStatus(orderDetail.bookingStatus)}
                           </span>
                         </div>
                       </div>
@@ -1979,6 +1948,17 @@ const OrdersTable: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex justify-between">
+                          <span className="text-gray-600">
+                            Còn lại cần thanh toán:
+                          </span>
+                          <span className="font-medium text-orange-600">
+                            {(
+                              orderDetail.totalPrice - orderDetail.deposit
+                            ).toLocaleString()}
+                            đ
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-gray-600">Trạng thái:</span>
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
@@ -1990,39 +1970,6 @@ const OrdersTable: React.FC = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Phương thức:</span>
-                          <div className="flex items-center gap-3">
-                            <label className="inline-flex items-center gap-2 text-sm">
-                              <input
-                                type="radio"
-                                name="paymentOption"
-                                className="form-radio"
-                                checked={selectedPaymentOption === 1}
-                                onChange={() => setSelectedPaymentOption(1)}
-                              />
-                              <span>Tiền mặt</span>
-                            </label>
-                            <label className="inline-flex items-center gap-2 text-sm">
-                              <input
-                                type="radio"
-                                name="paymentOption"
-                                className="form-radio"
-                                checked={selectedPaymentOption === 2}
-                                onChange={() => setSelectedPaymentOption(2)}
-                              />
-                              <span>Ví điện tử</span>
-                            </label>
-                            <button
-                              onClick={savePaymentMethod}
-                              disabled={!selectedPaymentOption || savingPayment}
-                              className="ml-2 px-3 py-1 bg-blue-600 text-white text-xs rounded disabled:opacity-60"
-                              title="Lưu phương thức thanh toán"
-                            >
-                              {savingPayment ? "Đang lưu..." : "Lưu"}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Nội dung:</span>
                           <span className="font-medium text-sm">
                             {orderDetail.contentPayment}
                           </span>

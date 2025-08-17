@@ -6,11 +6,13 @@ type MonthlyRevenue = {
   revenue: number;
 };
 
+type RevenueChartData = {
+  monthlyRevenue: MonthlyRevenue[];
+  [key: string]: unknown;
+};
+
 type RevenueChartProps = {
-  data: {
-    monthlyRevenue: MonthlyRevenue[];
-    [key: string]: unknown;
-  } | null;
+  data: RevenueChartData;
   loading: boolean;
   error?: string;
 };
@@ -22,7 +24,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
 }) => {
   if (loading) return <div>Đang tải biểu đồ...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
-  if (!data || !data.monthlyRevenue || data.monthlyRevenue.length === 0) {
+  if (!data?.monthlyRevenue || data.monthlyRevenue.length === 0) {
     return (
       <div className="h-48 flex items-center justify-center text-gray-400">
         (Biểu đồ doanh thu sẽ hiển thị ở đây)
