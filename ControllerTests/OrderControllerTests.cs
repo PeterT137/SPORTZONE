@@ -164,6 +164,7 @@ namespace SportZone_API.Tests.Controllers
         {
             // Arrange
             int orderId = 1;
+            int option = 1;
             var mockOrder = new OrderDTO
             {
                 OrderId = 1,
@@ -171,11 +172,11 @@ namespace SportZone_API.Tests.Controllers
                 ContentPayment = "Thanh toán tiền mặt"
             };
 
-            _orderServiceMock.Setup(s => s.UpdateOrderStatusPaymentAsync(orderId))
+            _orderServiceMock.Setup(s => s.UpdateOrderStatusPaymentAsync(orderId, option))
                 .ReturnsAsync(mockOrder);
 
             // Act
-            var result = await _controller.UpdateOrderStatusPayment(orderId);
+            var result = await _controller.UpdateOrderStatusPayment(orderId, option);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -190,12 +191,13 @@ namespace SportZone_API.Tests.Controllers
         {
             // Arrange
             int orderId = 999;
+            int option = 1;
 
-            _orderServiceMock.Setup(s => s.UpdateOrderStatusPaymentAsync(orderId))
+            _orderServiceMock.Setup(s => s.UpdateOrderStatusPaymentAsync(orderId, option))
                 .ReturnsAsync((OrderDTO?)null);
 
             // Act
-            var result = await _controller.UpdateOrderStatusPayment(orderId);
+            var result = await _controller.UpdateOrderStatusPayment(orderId, option);
 
             // Assert
             var statusCodeResult = Assert.IsType<ObjectResult>(result);
