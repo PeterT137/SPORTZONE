@@ -63,7 +63,7 @@ namespace SportZone_API.Controllers
                     success = true,
                     message = string.IsNullOrWhiteSpace(search) ? "Lấy danh sách sân thành công" : $"Tìm kiếm sân với từ khóa '{search}' thành công",
                     data = fields,
-                    conut = fields.Count(),
+                    count = fields.Count(),
                     searchTerm = search
                 });
             }

@@ -66,7 +66,9 @@ namespace SportZone_API.Services
 
                     await _notificationRepository.CreateNotificationAsync(ownerNotification);
                 }
-                    await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Đặt sân thành công! Bạn đã đặt sân " + bookingDetail.Field?.FieldName + " vào ngày " + bookingDetail.Date?.ToString("dd/MM/yyyy") + ".");
+                    await _hubContext.Clients.All.SendAsync("ReceiveNotification", "Đặt sân thành công!\n" +
+                         bookingDetail.Field?.FieldName +".\n" 
+                         +"Thời gian:"+ bookingDetail.Date?.ToString("dd/MM/yyyy") + ".");
             }
             catch (Exception ex)
             {
@@ -82,7 +84,10 @@ namespace SportZone_API.Services
             var date = booking.Date?.ToString("dd/MM/yyyy") ?? "Không xác định";
             var timeRange = $"{booking.StartTime:HH:mm} - {booking.EndTime:HH:mm}";
 
-            return $"Đặt sân thành công! Bạn đã đặt sân {fieldName} tại {facilityName} vào ngày {date} từ {timeRange}. Mã booking: #{booking.BookingId}";
+            return $"Đặt sân thành công!\n"
+                +$" {fieldName} - {facilityName}.\n"
+                +$"\nThời gian {date} từ {timeRange}";
+
         }
 
         private string GenerateOwnerNotificationContent(Booking booking)
@@ -93,7 +98,7 @@ namespace SportZone_API.Services
             var timeRange = $"{booking.StartTime:HH:mm} - {booking.EndTime:HH:mm}";
             var customerName = booking.UIdNavigation?.Customer?.Name ?? "Khách";
 
-            return $"Có đặt sân mới! {customerName} đã đặt sân {fieldName} tại {facilityName} vào ngày {date} từ {timeRange}. Mã booking: #{booking.BookingId}";
+            return $"Có đặt sân mới! {customerName} đã đặt sân {fieldName} tại {facilityName} vào ngày {date} từ {timeRange}. ";
         }
 
         public async Task<IEnumerable<Notification>> GetNotificationsByUserIdAsync(int userId)
