@@ -116,7 +116,7 @@ const FinanceManager: React.FC = () => {
 
   useEffect(() => {
     fetchTotalRevenue();
-  }, [filter]);
+  }, [filter, getAuthHeaders]); // Added getAuthHeaders dependency
 
   const handleFilterChange = (newFilter: Partial<FilterType>) => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -149,7 +149,8 @@ const FinanceManager: React.FC = () => {
                   <RevenueChart
                     data={(() => {
                       if (!revenueData) return { monthlyRevenue: [] };
-                      // Nếu filter.year có giá trị, dùng yearlyRevenue
+
+                      // If filter.year has a value, use yearlyRevenue
                       if (
                         filter.year &&
                         Array.isArray(revenueData.yearlyRevenue)
@@ -163,31 +164,20 @@ const FinanceManager: React.FC = () => {
                           ),
                         };
                       }
-                      // Nếu filter.month có giá trị, dùng monthlyRevenue
-                      if (
-                        filter.month &&
-                        Array.isArray(revenueData.monthlyRevenue)
-                      ) {
-                        return {
-                          monthlyRevenue: revenueData.monthlyRevenue.map(
-                            (item) => ({
-                              month: item.month || item.period,
-                              revenue: item.revenue,
-                            })
-                          ),
-                        };
-                      }
-                      // Mặc định: dùng monthlyRevenue
+
+                      // Default or if filter.month has a value, use monthlyRevenue
                       if (Array.isArray(revenueData.monthlyRevenue)) {
                         return {
                           monthlyRevenue: revenueData.monthlyRevenue.map(
                             (item) => ({
-                              month: item.month || item.period,
+                              // FIX: Ensure 'month' is always a string by providing a fallback to an empty string.
+                              month: item.month || item.period || "",
                               revenue: item.revenue,
                             })
                           ),
                         };
                       }
+
                       return { monthlyRevenue: [] };
                     })()}
                     loading={loading}

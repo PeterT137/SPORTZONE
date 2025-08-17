@@ -1,9 +1,8 @@
 // src/hooks/useFacilityDetail.ts
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { useCallback, useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 
 // *********************************************************************************
@@ -129,7 +128,6 @@ export const useFacilityDetail = () => {
     status: "Active",
   });
   const { facId } = useParams<{ facId: string }>();
-  const location = useLocation();
   const navigate = useNavigate();
 
   // State Management
@@ -590,47 +588,47 @@ export const useFacilityDetail = () => {
     }
   }, []);
 
-  const fetchDiscountsByStatus = useCallback(
-    async (isActive: boolean): Promise<Discount[]> => {
-      try {
-        const response = await fetch(
-          `${API_URL}/api/Discount/status/${isActive}`,
-          { headers: getAuthHeaders() }
-        );
-        if (!response.ok)
-          throw new Error(
-            `Lỗi khi lấy mã giảm giá theo trạng thái: ${response.status}`
-          );
-        const result = await response.json();
-        if (!result.success)
-          throw new Error(result.message || "Lỗi không xác định");
-        return result.data.map((d: any) => ({ ...d }));
-      } catch (error) {
-        console.error("Error fetching discounts by status:", error);
-        throw error;
-      }
-    },
-    []
-  );
+  // const fetchDiscountsByStatus = useCallback(
+  //   async (isActive: boolean): Promise<Discount[]> => {
+  //     try {
+  //       const response = await fetch(
+  //         `${API_URL}/api/Discount/status/${isActive}`,
+  //         { headers: getAuthHeaders() }
+  //       );
+  //       if (!response.ok)
+  //         throw new Error(
+  //           `Lỗi khi lấy mã giảm giá theo trạng thái: ${response.status}`
+  //         );
+  //       const result = await response.json();
+  //       if (!result.success)
+  //         throw new Error(result.message || "Lỗi không xác định");
+  //       return result.data.map((d: any) => ({ ...d }));
+  //     } catch (error) {
+  //       console.error("Error fetching discounts by status:", error);
+  //       throw error;
+  //     }
+  //   },
+  //   []
+  // );
 
-  const searchDiscounts = useCallback(
-    async (searchText: string): Promise<Discount[]> => {
-      try {
-        const response = await fetch(
-          `${API_URL}/api/Discount/search/${encodeURIComponent(searchText)}`,
-          { headers: getAuthHeaders() }
-        );
-        if (!response.ok)
-          throw new Error(`Lỗi khi tìm kiếm mã giảm giá: ${response.status}`);
-        const result = await response.json();
-        return result.success && Array.isArray(result.data) ? result.data : [];
-      } catch (err) {
-        console.error("Error searching discounts:", err);
-        return [];
-      }
-    },
-    []
-  );
+  // const searchDiscounts = useCallback(
+  //   async (searchText: string): Promise<Discount[]> => {
+  //     try {
+  //       const response = await fetch(
+  //         `${API_URL}/api/Discount/search/${encodeURIComponent(searchText)}`,
+  //         { headers: getAuthHeaders() }
+  //       );
+  //       if (!response.ok)
+  //         throw new Error(`Lỗi khi tìm kiếm mã giảm giá: ${response.status}`);
+  //       const result = await response.json();
+  //       return result.success && Array.isArray(result.data) ? result.data : [];
+  //     } catch (err) {
+  //       console.error("Error searching discounts:", err);
+  //       return [];
+  //     }
+  //   },
+  //   []
+  // );
 
   // *********************************************************************************
   // EVENT HANDLERS

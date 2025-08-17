@@ -1,5 +1,4 @@
 import {
-  Bell,
   Building2,
   ClipboardList,
   Home,
@@ -38,14 +37,6 @@ const Sidebar: React.FC = () => {
         ? "bg-[#1ebd6f] text-white"
         : "text-gray-700 hover:bg-gray-100"
     }`;
-
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "Đơn đặt sân mới #456" },
-    { id: 2, text: "Thanh toán hoàn thành #789" },
-    { id: 3, text: "Yêu cầu hủy đặt sân #123" },
-  ]);
-  const unreadNotifications = notifications.length;
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");

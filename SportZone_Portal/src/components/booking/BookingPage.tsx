@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../Header";
@@ -848,14 +849,12 @@ const BookingPage: React.FC = () => {
           setSelectedField(firstField);
           setFormData((prev) => ({ ...prev, fieldId: firstField.fieldId }));
 
-          // Fetch facility details in parallel
           fetchFacilityDetails(firstField.facId)
             .then((details) => isMounted && setFacilityDetails(details))
             .catch((err) =>
               console.warn("Could not load facility details:", err)
             );
 
-          // Fetch regulations for facility
           fetch(
             `https://localhost:7057/api/RegulationFacility/facility/${firstField.facId}`
           )
@@ -895,11 +894,9 @@ const BookingPage: React.FC = () => {
               if (isMounted) setRegulations([]);
             });
 
-          // Fetch discounts for facility
           fetchFacilityDiscounts(firstField.facId)
             .then((discounts) => {
               if (!isMounted) return;
-              // Chỉ lọc theo trạng thái isActive như yêu cầu
               const activeDiscounts = discounts.filter((d) => d.isActive);
               setAvailableDiscounts(activeDiscounts);
             })
@@ -1124,10 +1121,6 @@ const BookingPage: React.FC = () => {
     phoneError,
   ]);
 
-  const handleToggleDiscount = useCallback((discountId: number) => {
-    setSelectedDiscountId((prev) => (prev === discountId ? null : discountId));
-  }, []);
-
   const handleOpenPricingModal = useCallback(async () => {
     try {
       // Lấy danh sách fieldId của cơ sở hiện tại
@@ -1140,9 +1133,6 @@ const BookingPage: React.FC = () => {
       alert("Không thể tải thông tin giá. Vui lòng thử lại.");
     }
   }, [fields]);
-
-  // No-op; kept for potential future use
-  const handleConfirmBooking = useCallback(() => {}, []);
 
   const fieldsForGrid = useMemo(() => {
     if (selectedSlots.length > 0) {
@@ -1410,7 +1400,14 @@ const BookingPage: React.FC = () => {
                             name="discount"
                             className="mt-1"
                             checked={selectedDiscountId === d.discountId}
-                            onChange={() => handleToggleDiscount(d.discountId)}
+                            onClick={() => {
+                              if (selectedDiscountId === d.discountId) {
+                                setSelectedDiscountId(null);
+                              } else {
+                                setSelectedDiscountId(d.discountId);
+                              }
+                            }}
+                            readOnly
                           />
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
