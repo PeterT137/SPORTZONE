@@ -39,21 +39,16 @@ namespace SportZone_API.Services
             _facilityRepository = facilityRepository;
             _mapper = mapper;
             _hubContext = hubContext;
-            _httpContextAccessor = httpContextAccessor; // Khởi tạo HttpContextAccessor
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        // Lấy UserId từ HttpContext
         private string? GetCurrentUserId()
         {
-            // Lấy HttpContext
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null)
             {
                 return null;
             }
-
-            // Lấy User Id từ Claims của HttpContext
-            // Giả sử UserId được lưu trong claim "sub" (standard) hoặc ClaimTypes.NameIdentifier
             var userId = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             return userId;
         }
@@ -195,7 +190,7 @@ namespace SportZone_API.Services
 
                     if (!scheduleExists)
                     {
-                        decimal slotPrice = CalculatePriceForSlot(slotStartTime, pricingConfigsForField);
+                        decimal slotPrice = CalculatePriceForSlot(slotStartTime, pricingConfigsForField) / 2;
                         schedulesToAdd.Add(new FieldBookingSchedule
                         {
                             FieldId = generateDto.FieldId,
@@ -448,10 +443,8 @@ namespace SportZone_API.Services
                 };
             }
 
-            // 2. Xóa các lịch
-            await _scheduleRepository.DeleteRangeSchedulesAsync(schedulesToDelete); // Giả sử có method này
+            await _scheduleRepository.DeleteRangeSchedulesAsync(schedulesToDelete); 
 
-            // 3. Gửi thông báo
             var currentUserId = GetCurrentUserId();
             if (currentUserId != null)
             {

@@ -2584,8 +2584,7 @@ const WeeklySchedule: React.FC = () => {
                   className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg"
                   title="Quản lý giá đặt theo giờ"
                 >
-                  <FiDollarSign className="w-5 h-5" />
-                  Quản lý giá
+                  💰 Quản lý giá
                 </button>
               </div>
             </div>
@@ -2600,14 +2599,13 @@ const WeeklySchedule: React.FC = () => {
                 </button>
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-gray-800">
-                    {format(weekStart, "dd/MM", { locale: vi })} -
-                    {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
+                    {format(weekStart, "dd/MM", { locale: vi })} - {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  {/* <p className="text-sm text-gray-600 mt-1">
                     Tuần
                     {format(weekStart, "w", { locale: vi })} năm
                     {format(weekStart, "yyyy")}
-                  </p>
+                  </p> */}
                 </div>
                 <button
                   onClick={() => navigateWeek(1)}
