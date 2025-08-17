@@ -16,12 +16,14 @@ namespace SportZone_API.Services
     {
         private readonly IBookingRepository _bookingRepository;
         private readonly IFieldRepository _fieldRepository;
+        private readonly IOrderService _orderService;
         private readonly IHubContext<NotificationHub> _hubContext;
 
-        public BookingService(IBookingRepository bookingRepository, IFieldRepository fieldRepository, IHubContext<NotificationHub> hubContext)
+        public BookingService(IBookingRepository bookingRepository, IFieldRepository fieldRepository, IOrderService orderService, IHubContext<NotificationHub> hubContext)
         {
             _bookingRepository = bookingRepository;
             _fieldRepository = fieldRepository;
+            _orderService = orderService;
             _hubContext = hubContext;
         }
 
@@ -105,6 +107,18 @@ namespace SportZone_API.Services
                 var isCancelled = await _bookingRepository.CancelBookingAsync(bookingId);
                 if (isCancelled)
                 {
+                    try
+                    {
+                        var order = await _orderService.GetOrderByBookingIdAsync(bookingId);
+                        if (order != null)
+                        {
+                            await _orderService.UpdateOrderStatusPaymentAsync(order.OrderId, 3);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Lỗi khi cập nhật trạng thái thanh toán của Order: {ex.Message}");
+                    }
                     var field = booking.FieldBookingSchedules?.FirstOrDefault()?.Field;
                     if (field != null)
                     {
