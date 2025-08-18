@@ -24,7 +24,6 @@ namespace SportZone_API.Mappings
             // OrderCreateDTO to Order Entity
             CreateMap<OrderCreateDTO, Order>()
                 .ForMember(dest => dest.OrderId, opt => opt.Ignore()) // Auto-generated
-                .ForMember(dest => dest.DiscountId, opt => opt.Ignore()) // Set separately
                 .ForMember(dest => dest.TotalServicePrice, opt => opt.Ignore()) // Calculated separately
                 .ForMember(dest => dest.ContentPayment, opt => opt.Ignore()) // Set during payment
                 .ForMember(dest => dest.OrderServices, opt => opt.Ignore()) // Navigation property
