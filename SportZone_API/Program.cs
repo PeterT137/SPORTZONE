@@ -88,6 +88,7 @@ builder.Services.AddDbContext<SportZoneContext>(options =>
 builder.Services.AddAutoMapper(typeof(MappingField).Assembly);
 builder.Services.AddAutoMapper(typeof(MappingOrder).Assembly);
 builder.Services.AddAutoMapper(typeof(MappingBooking).Assembly);
+builder.Services.AddAutoMapper(typeof(MappingDiscount).Assembly);
 
 builder.Services.AddMemoryCache();
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
