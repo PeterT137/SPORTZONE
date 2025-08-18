@@ -60,13 +60,14 @@ const SignInForm: React.FC = () => {
     if (!formData.password) {
       newErrors.password = "Mật khẩu không được để trống";
     } else if (
-      formData.password.length < 10 ||
-      !/[A-Z]/.test(formData.password) ||
-      !/[a-z]/.test(formData.password) ||
-      !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+    formData.password.length < 10 ||
+    !/[A-Z]/.test(formData.password) ||
+    !/[a-z]/.test(formData.password) ||
+    !/[0-9]/.test(formData.password) || 
+    !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
     ) {
-      newErrors.password =
-        "Mật khẩu phải dài ít nhất 10 ký tự, bao gồm chữ hoa, chữ thường và ký tự đặc biệt";
+        newErrors.password =
+            "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
     }
 
     return newErrors;
