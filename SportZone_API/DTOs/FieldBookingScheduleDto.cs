@@ -37,14 +37,6 @@ namespace SportZone_API.DTOs
         public string? Notes { get; set; }
     }
 
-    //public class FieldBookingScheduleUpdateDto
-    //{
-    //    public TimeOnly? StartTime { get; set; }
-    //    public TimeOnly? EndTime { get; set; }
-    //    public string? Notes { get; set; }
-    //    public string? Status { get; set; }
-    //    public decimal? Price { get; set; }
-    //}
     public class FieldBookingScheduleUpdateGenerateDto
     {
         [Required(ErrorMessage = "Mã sân là bắt buộc.")]
