@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -62,10 +63,11 @@ const SignInForm: React.FC = () => {
       formData.password.length < 10 ||
       !/[A-Z]/.test(formData.password) ||
       !/[a-z]/.test(formData.password) ||
+      !/[0-9]/.test(formData.password) ||
       !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
     ) {
       newErrors.password =
-        "Mật khẩu phải dài ít nhất 10 ký tự, bao gồm chữ hoa, chữ thường và ký tự đặc biệt";
+        "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
     }
 
     return newErrors;
@@ -173,7 +175,12 @@ const SignInForm: React.FC = () => {
       console.log("Signed in user:", userToStore);
       console.log("Facility Info:", facilityInfo);
     } catch (err: any) {
-      showToast(err?.response?.data?.message || "Đăng nhập thất bại!", "error");
+      let errorMessage = "Đăng nhập thất bại!";
+      if (err && typeof err === "object" && err !== null) {
+        const e = err as { response?: { data?: { message?: string } } };
+        errorMessage = e?.response?.data?.message || errorMessage;
+      }
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -194,76 +201,73 @@ const SignInForm: React.FC = () => {
       // setForgotStep("otp");
       setForgotStep("verify-otp");
     } catch (err: any) {
-      showToast(err?.response?.data?.message || "Gửi mã thất bại", "error");
+      let errorMessage = "Gửi mã thất bại";
+      if (err && typeof err === "object" && err !== null) {
+        const e = err as { response?: { data?: { message?: string } } };
+        errorMessage = e?.response?.data?.message || errorMessage;
+      }
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
   };
 
-
-   // Hàm mới để xác nhận OTP
+  // Hàm mới để xác nhận OTP
 
   const handleVerifyOtpSubmit = async () => {
-
     setLoading(true);
 
     try {
+      await axios.post(
+        "https://localhost:7057/api/ForgotPassword/verify-code",
+        {
+          email: forgotEmail,
 
-      await axios.post("https://localhost:7057/api/ForgotPassword/verify-code", {
-
-        email: forgotEmail,
-
-        code: otp,
-
-      });
+          code: otp,
+        }
+      );
 
       showToast("Mã OTP chính xác!");
 
       // Chuyển sang bước nhập mật khẩu mới
 
       setForgotStep("new-password");
-
     } catch (err: any) {
-
-      showToast(err?.response?.data?.message || "Mã OTP không đúng", "error");
-
+      let errorMessage = "Mã OTP không đúng";
+      if (err && typeof err === "object" && err !== null) {
+        const e = err as { response?: { data?: { message?: string } } };
+        errorMessage = e?.response?.data?.message || errorMessage;
+      }
+      showToast(errorMessage, "error");
     } finally {
-
       setLoading(false);
-
     }
-
   };
-
-
 
   // Hàm mới để đặt lại mật khẩu
 
   const handleResetPasswordSubmit = async () => {
-
     setLoading(true);
 
     if (newPassword !== confirmPassword) {
-
       showToast("Mật khẩu không khớp!", "error");
 
       setLoading(false);
 
       return;
-
     }
 
     try {
+      await axios.post(
+        "https://localhost:7057/api/ForgotPassword/reset-password",
+        {
+          email: forgotEmail,
 
-      await axios.post("https://localhost:7057/api/ForgotPassword/reset-password", {
+          newPassword,
 
-        email: forgotEmail,
-
-        newPassword,
-
-        confirmPassword,
-
-      });
+          confirmPassword,
+        }
+      );
       showToast("Đặt lại mật khẩu thành công!");
       setShowForgotModal(false);
       setForgotStep("email");
@@ -272,10 +276,12 @@ const SignInForm: React.FC = () => {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: any) {
-      showToast(
-        err?.response?.data?.message || "Đặt lại mật khẩu thất bại",
-        "error"
-      );
+      let errorMessage = "Đặt lại mật khẩu thất bại";
+      if (err && typeof err === "object" && err !== null) {
+        const e = err as { response?: { data?: { message?: string } } };
+        errorMessage = e?.response?.data?.message || errorMessage;
+      }
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -300,9 +306,8 @@ const SignInForm: React.FC = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            className={`block w-full rounded-md border py-2 px-4 text-sm ${
-              errors.email ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`block w-full rounded-md border py-2 px-4 text-sm ${errors.email ? "border-red-500" : "border-gray-300"
+              }`}
           />
           {errors.email && (
             <p className="text-red-500 text-xs mt-1">{errors.email}</p>
@@ -326,9 +331,8 @@ const SignInForm: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              className={`block w-full rounded-md border py-2 px-4 pr-12 text-sm ${
-                errors.password ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`block w-full rounded-md border py-2 px-4 pr-12 text-sm ${errors.password ? "border-red-500" : "border-gray-300"
+                }`}
             />
             <button
               type="button"
@@ -418,7 +422,7 @@ const SignInForm: React.FC = () => {
               </>
             )}
 
-{forgotStep === "verify-otp" && (
+            {forgotStep === "verify-otp" && (
               <>
                 <h2 className="text-lg font-semibold mb-4">Xác nhận mã OTP</h2>
                 <input
@@ -449,7 +453,9 @@ const SignInForm: React.FC = () => {
 
             {forgotStep === "new-password" && (
               <>
-                <h2 className="text-lg font-semibold mb-4">Nhập mật khẩu mới</h2>
+                <h2 className="text-lg font-semibold mb-4">
+                  Nhập mật khẩu mới
+                </h2>
                 <input
                   type="password"
                   placeholder="Mật khẩu mới"

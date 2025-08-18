@@ -1,4 +1,4 @@
-using AutoMapper;
+   using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
 using SportZone_API.DTOs;
 using SportZone_API.Hubs;

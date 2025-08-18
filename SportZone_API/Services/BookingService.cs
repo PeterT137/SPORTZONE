@@ -16,12 +16,14 @@ namespace SportZone_API.Services
     {
         private readonly IBookingRepository _bookingRepository;
         private readonly IFieldRepository _fieldRepository;
+        private readonly IOrderService _orderService;
         private readonly IHubContext<NotificationHub> _hubContext;
 
-        public BookingService(IBookingRepository bookingRepository, IFieldRepository fieldRepository, IHubContext<NotificationHub> hubContext)
+        public BookingService(IBookingRepository bookingRepository, IFieldRepository fieldRepository, IOrderService orderService, IHubContext<NotificationHub> hubContext)
         {
             _bookingRepository = bookingRepository;
             _fieldRepository = fieldRepository;
+            _orderService = orderService;
             _hubContext = hubContext;
         }
 

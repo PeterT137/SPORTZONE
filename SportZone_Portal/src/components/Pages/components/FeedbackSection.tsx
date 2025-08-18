@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface RegulationSystem {
   regulationSystemId: number;
@@ -58,11 +58,10 @@ const FeedbackSection = () => {
                 </h3>
                 <p className="text-gray-700 mb-2">{reg.description}</p>
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs ${
-                    reg.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
+                  className={`inline-block px-3 py-1 rounded-full text-xs ${reg.status === "active"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-200 text-gray-600"
+                    }`}
                 >
                   {reg.status === "active" ? "Đang áp dụng" : "Không áp dụng"}
                 </span>

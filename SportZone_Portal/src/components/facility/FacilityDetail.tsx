@@ -8,7 +8,6 @@ import {
   FiArrowLeft,
   FiClock,
   FiEdit,
-  FiEye,
   FiMapPin,
   FiPlus,
   FiSearch,
@@ -19,44 +18,6 @@ import {
 } from "react-icons/fi";
 import Sidebar from "../../Sidebar";
 import { useFacilityDetail } from "./useFacilityDetailHooks";
-
-type Field = {
-  fieldId: number;
-  facId: number;
-  facilityAddress: string;
-  categoryId: number;
-  categoryName: string;
-  fieldName: string;
-  description: string;
-  isBookingEnable: boolean;
-};
-
-type Service = {
-  serviceId: number;
-  facId: number;
-  serviceName: string;
-  price: number;
-  status: string;
-  image?: string;
-  description: string;
-  facilityAddress: string;
-};
-
-type Discount = {
-  discountId: number;
-  facId: number;
-  discountPercentage: number;
-  startDate: string;
-  endDate: string;
-  description: string;
-  isActive: boolean;
-  quantity: number;
-};
-
-type Category = {
-  categoryId: number;
-  categoryName: string;
-};
 
 // =================================================================================
 // FACILITY DETAIL COMPONENT (UI Layer)
@@ -75,9 +36,6 @@ const FacilityDetail: React.FC = () => {
     fieldFilter,
     serviceFilter,
     discountFilter,
-    selectedField,
-    selectedService,
-    selectedDiscount,
     editField,
     editService,
     editDiscount,
@@ -125,14 +83,12 @@ const FacilityDetail: React.FC = () => {
     goToImage,
     setIsCarouselPaused,
     getImageUrl,
-    regulations,
     filteredRegulations,
     regulationFilter,
     setRegulationFilter,
     isAddRegulationModalOpen,
     setIsAddRegulationModalOpen,
     editRegulation,
-    setEditRegulation,
     newRegulationFormData,
     setNewRegulationFormData,
     regulationFormData,
@@ -154,6 +110,33 @@ const FacilityDetail: React.FC = () => {
               Đang tải dữ liệu...
             </h2>
             <p className="text-gray-600">Vui lòng chờ trong giây lát.</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // FIX: Handle case where facility is not found after loading
+  if (!facility) {
+    return (
+      <>
+        <Sidebar />
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 pl-64">
+          <div className="text-center p-8 bg-white rounded-lg shadow-md">
+            <h2 className="text-2xl font-bold text-red-600 mb-2">
+              Không tìm thấy cơ sở
+            </h2>
+            <p className="text-gray-600">
+              Không thể tải dữ liệu cho cơ sở này hoặc cơ sở không tồn tại.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="mt-6 flex items-center justify-center gap-2 px-5 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <FiArrowLeft className="h-5 w-5" />
+              Quay lại
+            </button>
           </div>
         </div>
       </>

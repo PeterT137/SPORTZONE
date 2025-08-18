@@ -135,21 +135,21 @@ const PaymentPage: React.FC = () => {
     const { field, date, time, duration } = bookingState || {};
     bookingDetails = field
       ? {
-          fieldName: field.name,
-          date: date || new Date().toISOString().split("T")[0],
-          time: time || "19:00",
-          duration: duration || 60,
-          price: field.price,
-          location: field.location,
-        }
+        fieldName: field.name,
+        date: date || new Date().toISOString().split("T")[0],
+        time: time || "19:00",
+        duration: duration || 60,
+        price: field.price,
+        location: field.location,
+      }
       : {
-          fieldName: "Sân bóng đá mini số 1",
-          date: new Date().toISOString().split("T")[0],
-          time: "19:00",
-          duration: 60,
-          price: 300000,
-          location: "Quận 1, TP.HCM",
-        };
+        fieldName: "Sân bóng đá mini số 1",
+        date: new Date().toISOString().split("T")[0],
+        time: "19:00",
+        duration: 60,
+        price: 300000,
+        location: "Quận 1, TP.HCM",
+      };
   }
 
   const [formData, setFormData] = useState<PaymentFormData>({
@@ -382,8 +382,8 @@ const PaymentPage: React.FC = () => {
           console.log("Error data:", errorData);
           throw new Error(
             errorData.message ||
-              errorData.errors?.[0] ||
-              `HTTP error! status: ${response.status}`
+            errorData.errors?.[0] ||
+            `HTTP error! status: ${response.status}`
           );
         }
 
@@ -437,8 +437,7 @@ const PaymentPage: React.FC = () => {
     } catch (error) {
       console.error("Error processing payment or creating booking:", error);
       alert(
-        `Lỗi: ${
-          error instanceof Error ? error.message : "Không thể xử lý thanh toán"
+        `Lỗi: ${error instanceof Error ? error.message : "Không thể xử lý thanh toán"
         }`
       );
     } finally {
@@ -591,15 +590,14 @@ const PaymentPage: React.FC = () => {
                       key={method}
                       type="button"
                       onClick={() => handlePaymentMethodChange(method as any)}
-                      className={`p-4 border-2 rounded-lg text-center transition-colors ${
-                        formData.paymentMethod === method
-                          ? method === "momo"
-                            ? "border-pink-500 bg-pink-50 text-pink-700"
-                            : method === "banking"
+                      className={`p-4 border-2 rounded-lg text-center transition-colors ${formData.paymentMethod === method
+                        ? method === "momo"
+                          ? "border-pink-500 bg-pink-50 text-pink-700"
+                          : method === "banking"
                             ? "border-green-500 bg-green-50 text-green-700"
                             : "border-blue-500 bg-blue-50 text-blue-700"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
+                        : "border-gray-200 hover:border-gray-300"
+                        }`}
                     >
                       {method === "momo" ? (
                         <>
@@ -708,11 +706,10 @@ const PaymentPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors ${
-                    isProcessing
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }`}
+                  className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors ${isProcessing
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                    }`}
                 >
                   {isProcessing ? (
                     <div className="flex items-center justify-center">

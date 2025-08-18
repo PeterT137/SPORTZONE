@@ -324,7 +324,6 @@ const BookingCell: React.FC<{
   );
 };
 
-
 const AddServiceModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -1157,7 +1156,7 @@ const BookingDetailsModal: React.FC<{
                   disabled={isProcessing || booking?.status === "confirmed"}
                   className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  {isProcessing ? "Đang xử lý..." : "Xác nhận đặt sân"}
+                  {isProcessing ? "Đang xử lý..." : "Xác nhận thanh toán"}
                 </button>
               </div>
             </>
@@ -2575,8 +2574,7 @@ const WeeklySchedule: React.FC = () => {
                   className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg"
                   title="Quản lý giá đặt theo giờ"
                 >
-                  <FiDollarSign className="w-5 h-5" />
-                  Quản lý giá
+                  💰 Quản lý giá
                 </button>
               </div>
             </div>
@@ -2591,14 +2589,13 @@ const WeeklySchedule: React.FC = () => {
                 </button>
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-gray-800">
-                    {format(weekStart, "dd/MM", { locale: vi })} -
-                    {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
+                    {format(weekStart, "dd/MM", { locale: vi })} - {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  {/* <p className="text-sm text-gray-600 mt-1">
                     Tuần
                     {format(weekStart, "w", { locale: vi })} năm
                     {format(weekStart, "yyyy")}
-                  </p>
+                  </p> */}
                 </div>
                 <button
                   onClick={() => navigateWeek(1)}
@@ -2653,10 +2650,10 @@ const WeeklySchedule: React.FC = () => {
                       <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded"></div>
                       <span className="text-gray-600">Chờ đặt cọc</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    {/* <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-red-200 border border-red-400 rounded"></div>
                       <span className="text-gray-600">Đã hủy</span>
-                    </div>
+                    </div> */}
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded"></div>
                       <span className="text-gray-600">Chưa đặt</span>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../Header";
@@ -242,8 +243,8 @@ const fetchFacilityDiscounts = async (
     const raw: any[] = Array.isArray(result)
       ? result
       : Array.isArray(result?.data)
-      ? result.data
-      : [];
+        ? result.data
+        : [];
     const toBool = (v: any): boolean => {
       if (typeof v === "boolean") return v;
       if (v === 1 || v === "1") return true;
@@ -610,9 +611,8 @@ const TimeSlotsGrid = React.memo(
                     let title = `${field.fieldName} - ${timeSlot.time} - Không có lịch`;
 
                     if (slot) {
-                      title = `${field.fieldName} - ${timeSlot.time} - ${
-                        slot.status
-                      } - ${slot.price.toLocaleString()}đ`;
+                      title = `${field.fieldName} - ${timeSlot.time} - ${slot.status
+                        } - ${slot.price.toLocaleString()}đ`;
 
                       if (isPastSlot) {
                         bgColor = "bg-gray-300";
@@ -650,10 +650,9 @@ const TimeSlotsGrid = React.memo(
                         disabled={!isClickable}
                         className={`
                           ${bgColor} ${textColor} h-8 text-xs font-medium transition-colors
-                          ${
-                            isClickable
-                              ? "hover:opacity-80 cursor-pointer"
-                              : "cursor-not-allowed"
+                          ${isClickable
+                            ? "hover:opacity-80 cursor-pointer"
+                            : "cursor-not-allowed"
                           }
                           ${isPastSlot ? "opacity-50" : ""}
                         `}
@@ -848,14 +847,12 @@ const BookingPage: React.FC = () => {
           setSelectedField(firstField);
           setFormData((prev) => ({ ...prev, fieldId: firstField.fieldId }));
 
-          // Fetch facility details in parallel
           fetchFacilityDetails(firstField.facId)
             .then((details) => isMounted && setFacilityDetails(details))
             .catch((err) =>
               console.warn("Could not load facility details:", err)
             );
 
-          // Fetch regulations for facility
           fetch(
             `https://localhost:7057/api/RegulationFacility/facility/${firstField.facId}`
           )
@@ -895,11 +892,9 @@ const BookingPage: React.FC = () => {
               if (isMounted) setRegulations([]);
             });
 
-          // Fetch discounts for facility
           fetchFacilityDiscounts(firstField.facId)
             .then((discounts) => {
               if (!isMounted) return;
-              // Chỉ lọc theo trạng thái isActive như yêu cầu
               const activeDiscounts = discounts.filter((d) => d.isActive);
               setAvailableDiscounts(activeDiscounts);
             })
@@ -1124,10 +1119,6 @@ const BookingPage: React.FC = () => {
     phoneError,
   ]);
 
-  const handleToggleDiscount = useCallback((discountId: number) => {
-    setSelectedDiscountId((prev) => (prev === discountId ? null : discountId));
-  }, []);
-
   const handleOpenPricingModal = useCallback(async () => {
     try {
       // Lấy danh sách fieldId của cơ sở hiện tại
@@ -1140,9 +1131,6 @@ const BookingPage: React.FC = () => {
       alert("Không thể tải thông tin giá. Vui lòng thử lại.");
     }
   }, [fields]);
-
-  // No-op; kept for potential future use
-  const handleConfirmBooking = useCallback(() => {}, []);
 
   const fieldsForGrid = useMemo(() => {
     if (selectedSlots.length > 0) {
@@ -1221,7 +1209,7 @@ const BookingPage: React.FC = () => {
                     <div className="flex items-center space-x-4">
                       <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                         {facilityDetails?.images &&
-                        facilityDetails.images.length > 0 ? (
+                          facilityDetails.images.length > 0 ? (
                           <img
                             src={facilityDetails.images[0]}
                             alt={facilityDetails.facilityName}
@@ -1287,14 +1275,12 @@ const BookingPage: React.FC = () => {
                               {r.title}
                             </h4>
                             <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                r.status === "Active"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-700"
-                              }`}
-                              title={`Trạng thái: ${
-                                r.status === "Active" ? "Hoạt động" : "Tạm dừng"
-                              }`}
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${r.status === "Active"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-700"
+                                }`}
+                              title={`Trạng thái: ${r.status === "Active" ? "Hoạt động" : "Tạm dừng"
+                                }`}
                             >
                               {r.status === "Active" ? "Hoạt động" : "Tạm dừng"}
                             </span>
@@ -1351,9 +1337,8 @@ const BookingPage: React.FC = () => {
                         type="tel"
                         value={formData.guestPhone}
                         onChange={(e) => handlePhoneChange(e.target.value)}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${
-                          phoneError ? "border-red-500" : "border-gray-300"
-                        }`}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${phoneError ? "border-red-500" : "border-gray-300"
+                          }`}
                         placeholder={
                           isLoadingUserInfo
                             ? "Đang tải thông tin..."
@@ -1410,7 +1395,14 @@ const BookingPage: React.FC = () => {
                             name="discount"
                             className="mt-1"
                             checked={selectedDiscountId === d.discountId}
-                            onChange={() => handleToggleDiscount(d.discountId)}
+                            onClick={() => {
+                              if (selectedDiscountId === d.discountId) {
+                                setSelectedDiscountId(null);
+                              } else {
+                                setSelectedDiscountId(d.discountId);
+                              }
+                            }}
+                            readOnly
                           />
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -1544,15 +1536,15 @@ const BookingPage: React.FC = () => {
         booking={{
           field: selectedField
             ? {
-                ...selectedField,
-                facilityName:
-                  facilityDetails?.facilityName || "SportZone Facility",
-                image:
-                  facilityDetails?.images?.[0] || "/api/placeholder/400/300",
-                openTime: facilityDetails?.openTime || "05:30:00",
-                closeTime: facilityDetails?.closeTime || "22:30:00",
-                pricing: [],
-              }
+              ...selectedField,
+              facilityName:
+                facilityDetails?.facilityName || "SportZone Facility",
+              image:
+                facilityDetails?.images?.[0] || "/api/placeholder/400/300",
+              openTime: facilityDetails?.openTime || "05:30:00",
+              closeTime: facilityDetails?.closeTime || "22:30:00",
+              pricing: [],
+            }
             : null,
           slots: selectedSlots,
           guestInfo: {

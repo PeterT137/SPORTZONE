@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
-import BookingHistoryItem from "./BookingHistoryItem";
 import Header from "../Header";
 
 interface Booking {
@@ -27,6 +27,7 @@ const statusMap: Record<string, { label: string; color: string }> = {
 
 const BookingHistoryList: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,7 +78,7 @@ const BookingHistoryList: React.FC = () => {
       })
       .catch((err) => {
         setBookings([]);
-        setError("");
+        setError(String(err));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -144,9 +145,6 @@ const BookingHistoryList: React.FC = () => {
                       Cơ sở
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-[#1a3c34] uppercase tracking-wider">
-                      Địa chỉ
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-[#1a3c34] uppercase tracking-wider">
                       Ngày
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-[#1a3c34] uppercase tracking-wider">
@@ -157,6 +155,9 @@ const BookingHistoryList: React.FC = () => {
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-[#1a3c34] uppercase tracking-wider">
                       Ghi chú
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-[#1a3c34] uppercase tracking-wider">
+                      Thao tác
                     </th>
                   </tr>
                 </thead>
@@ -169,7 +170,6 @@ const BookingHistoryList: React.FC = () => {
                       <td className="px-4 py-3 font-semibold text-[#1a3c34]">
                         {booking.fieldName}
                       </td>
-                      <td className="px-4 py-3">{booking.facilityName}</td>
                       <td className="px-4 py-3">{booking.facilityAddress}</td>
                       <td className="px-4 py-3">{booking.date}</td>
                       <td className="px-4 py-3">
@@ -178,16 +178,79 @@ const BookingHistoryList: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
-                            statusMap[booking.status]?.color ||
+                          className={`px-2 py-1 rounded text-xs font-semibold ${statusMap[booking.status]?.color ||
                             "bg-gray-100 text-gray-700"
-                          }`}
+                            }`}
                         >
                           {statusMap[booking.status]?.label || booking.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {booking.notes}
+                      </td>
+                      <td className="px-4 py-3 text-sm flex items-center gap-2">
+                        {booking.status !== "Cancelled" && (
+                          <button
+                            className={`px-3 py-1 rounded bg-red-100 text-red-700 text-xs font-semibold border border-red-200 hover:bg-red-200 transition disabled:opacity-50`}
+                            disabled={cancellingId === booking.bookingId}
+                            onClick={async () => {
+                              if (
+                                window.confirm(
+                                  "Bạn có chắc muốn hủy đặt sân này?"
+                                )
+                              ) {
+                                setCancellingId(booking.bookingId);
+                                try {
+                                  const apiUrl =
+                                    (window as any).REACT_APP_API_URL ||
+                                    "https://localhost:7057";
+                                  const token = localStorage.getItem("token");
+                                  const res = await fetch(
+                                    `${apiUrl}/api/Booking/CancelBooking/${booking.bookingId}`,
+                                    {
+                                      method: "DELETE",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                        ...(token
+                                          ? { Authorization: `Bearer ${token}` }
+                                          : {}),
+                                      },
+                                    }
+                                  );
+                                  if (!res.ok)
+                                    throw new Error("Hủy đặt sân thất bại");
+                                  setBookings((prev) =>
+                                    prev.map((b) =>
+                                      b.bookingId === booking.bookingId
+                                        ? { ...b, status: "Cancelled" }
+                                        : b
+                                    )
+                                  );
+                                } catch (err) {
+                                  let message = "";
+                                  if (
+                                    err &&
+                                    typeof err === "object" &&
+                                    "message" in err
+                                  ) {
+                                    message =
+                                      (err as { message?: string }).message ||
+                                      String(err);
+                                  } else {
+                                    message = String(err);
+                                  }
+                                  alert("Không thể hủy đặt sân: " + message);
+                                } finally {
+                                  setCancellingId(null);
+                                }
+                              }
+                            }}
+                          >
+                            {cancellingId === booking.bookingId
+                              ? "Đang hủy..."
+                              : "Hủy đặt sân"}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -208,11 +271,10 @@ const BookingHistoryList: React.FC = () => {
                   (page) => (
                     <button
                       key={page}
-                      className={`px-3 py-1 rounded border border-gray-300 font-semibold ${
-                        page === currentPage
-                          ? "bg-[#1ebd6f] text-white border-[#1ebd6f]"
-                          : "bg-white hover:bg-gray-100 text-[#1a3c34]"
-                      }`}
+                      className={`px-3 py-1 rounded border border-gray-300 font-semibold ${page === currentPage
+                        ? "bg-[#1ebd6f] text-white border-[#1ebd6f]"
+                        : "bg-white hover:bg-gray-100 text-[#1a3c34]"
+                        }`}
                       onClick={() => handlePageChange(page)}
                     >
                       {page}

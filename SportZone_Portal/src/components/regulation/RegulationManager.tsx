@@ -294,17 +294,16 @@ const RegulationManager: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {regulation.createAt
                             ? new Date(regulation.createAt).toLocaleDateString(
-                                "vi-VN"
-                              )
+                              "vi-VN"
+                            )
                             : ""}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              regulation.status === "active"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${regulation.status === "active"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                              }`}
                           >
                             {regulation.status === "active"
                               ? "Hoạt động"
@@ -316,18 +315,17 @@ const RegulationManager: React.FC = () => {
                             <button
                               onClick={() =>
                                 regulation.regulationSystemId !== undefined &&
-                                regulation.regulationSystemId !== null
+                                  regulation.regulationSystemId !== null
                                   ? handleEditRegulation(
-                                      regulation.regulationSystemId
-                                    )
+                                    regulation.regulationSystemId
+                                  )
                                   : undefined
                               }
-                              className={`text-green-600 hover:text-green-800 p-1${
-                                regulation.regulationSystemId === undefined ||
+                              className={`text-green-600 hover:text-green-800 p-1${regulation.regulationSystemId === undefined ||
                                 regulation.regulationSystemId === null
-                                  ? " opacity-50 cursor-not-allowed"
-                                  : ""
-                              }`}
+                                ? " opacity-50 cursor-not-allowed"
+                                : ""
+                                }`}
                               title="Chỉnh sửa"
                               disabled={
                                 regulation.regulationSystemId === undefined ||
@@ -339,18 +337,17 @@ const RegulationManager: React.FC = () => {
                             <button
                               onClick={() =>
                                 regulation.regulationSystemId !== undefined &&
-                                regulation.regulationSystemId !== null
+                                  regulation.regulationSystemId !== null
                                   ? handleDeleteRegulation(
-                                      regulation.regulationSystemId
-                                    )
+                                    regulation.regulationSystemId
+                                  )
                                   : undefined
                               }
-                              className={`text-red-600 hover:text-red-800 p-1${
-                                regulation.regulationSystemId === undefined ||
+                              className={`text-red-600 hover:text-red-800 p-1${regulation.regulationSystemId === undefined ||
                                 regulation.regulationSystemId === null
-                                  ? " opacity-50 cursor-not-allowed"
-                                  : ""
-                              }`}
+                                ? " opacity-50 cursor-not-allowed"
+                                : ""
+                                }`}
                               title="Xóa"
                               disabled={
                                 regulation.regulationSystemId === undefined ||
@@ -437,17 +434,17 @@ const RegulationManager: React.FC = () => {
           initialData={
             editRegulationId !== null
               ? (() => {
-                  const r = regulations.find(
-                    (r) => r.regulationSystemId === editRegulationId
-                  );
-                  return r
-                    ? {
-                        regulationName: r.title,
-                        description: r.description,
-                        isActive: r.status === "active",
-                      }
-                    : null;
-                })()
+                const r = regulations.find(
+                  (r) => r.regulationSystemId === editRegulationId
+                );
+                return r
+                  ? {
+                    regulationName: r.title,
+                    description: r.description,
+                    isActive: r.status === "active",
+                  }
+                  : null;
+              })()
               : null
           }
         />
@@ -463,8 +460,8 @@ const RegulationManager: React.FC = () => {
           regulationName={
             deleteRegulationId !== null
               ? regulations.find(
-                  (r) => r.regulationSystemId === deleteRegulationId
-                )?.title
+                (r) => r.regulationSystemId === deleteRegulationId
+              )?.title
               : ""
           }
         />

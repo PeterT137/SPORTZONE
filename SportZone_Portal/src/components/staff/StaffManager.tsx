@@ -271,162 +271,34 @@ const StaffManager: React.FC = () => {
           method: "DELETE",
           headers: authHeaders,
         });
+
         if (!response.ok) {
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={9} className="text-center text-gray-500 py-6">
-                  Đang tải...
-                </td>
-              </tr>
-            ) : paginatedStaffs.length > 0 ? (
-              paginatedStaffs.map((staff) => (
-                <tr key={staff.id} className="hover:bg-gray-50">
-                  <td className="p-3">
-                    <img
-                      src={staff.image}
-                      alt={staff.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  </td>
-                  <td className="p-3 font-medium">{staff.name}</td>
-                  <td className="p-3">{staff.phone}</td>
-                  <td className="p-3">{staff.email}</td>
-                  <td className="p-3">
-                    {staff.startTime
-                      ? new Date(staff.startTime).toLocaleString("vi-VN")
-                      : ""}
-                  </td>
-                  <td className="p-3">{staff.facilityNames.join(", ")}</td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 rounded text-white ${
-                        staff.status === "Active"
-                          ? "bg-green-600"
-                          : staff.status === "Inactive"
-                          ? "bg-red-600"
-                          : "bg-gray-500"
-                      }`}
-                    >
-                      {staff.status === "Active"
-                        ? "Hoạt động"
-                        : staff.status === "Inactive"
-                        ? "Không hoạt động"
-                        : staff.status}
-                    </span>
-                  </td>
-                  <td className="p-3 space-x-2 flex items-center">
-                    <button
-                      onClick={() => handleEdit(staff)}
-                      className="text-green-600 hover:text-green-800"
-                      title="Chỉnh sửa"
-                    >
-                      <FiEdit size={18} />
-                    </button>
-                    {/* <button
-                          onClick={() => toggleStatus(staff.id)}
-                          className={`$${
-                            staff.status === "Active"
-                              ? "text-red-600 hover:text-red-800"
-                              : "text-blue-600 hover:text-blue-800"
-                          }`}
-                          title={
-                            staff.status === "Active"
-                              ? "Chuyển thành Không hoạt động"
-                              : "Kích hoạt lại nhân viên"
-                          }
-                        >
-                          {staff.status === "Active" ? (
-                            <FiSlash size={18} />
-                          ) : (
-                            <FiCheckCircle size={18} />
-                          )}
-                        </button> */}
-                    <button
-                      onClick={() => deleteStaff(staff.id, staff.name)}
-                      className="text-red-600 hover:text-red-800"
-                      title="Xóa nhân viên"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={9} className="text-center text-gray-500 py-6">
-                  Không có nhân viên nào phù hợp.
-                </td>
-              </tr>
-            )}
-          </tbody>;
-          {
-            /* Pagination controls */
+          const responseText = await response.text();
+          let apiResponse: any = {};
+          try {
+            apiResponse = JSON.parse(responseText);
+          } catch {
+            apiResponse = { message: responseText };
           }
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4">
-            <div className="flex items-center gap-2">
-              <span>Hiển thị</span>
-              <select
-                className="border rounded px-2 py-1"
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-              >
-                {[5, 10, 20, 50, 100].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <span>nhân viên/trang</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                className="px-2 py-1 border rounded disabled:opacity-50"
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-              >
-                Đầu
-              </button>
-              <button
-                className="px-2 py-1 border rounded disabled:opacity-50"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Trước
-              </button>
-              <span>
-                Trang <b>{currentPage}</b> / {totalPages}
-              </span>
-              <button
-                className="px-2 py-1 border rounded disabled:opacity-50"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-              >
-                Sau
-              </button>
-              <button
-                className="px-2 py-1 border rounded disabled:opacity-50"
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-              >
-                Cuối
-              </button>
-            </div>
-            <div className="text-sm text-gray-500">
-              Tổng: <b>{totalRows}</b> nhân viên
-            </div>
-          </div>;
-          throw new Error(apiResponse.error || "Lỗi khi cập nhật trạng thái.");
+          throw new Error(
+            apiResponse.message ||
+            `Lỗi khi xóa nhân viên (HTTP ${response.status})`
+          );
         }
+
+        Swal.fire({
+          title: "Đã xóa!",
+          text: `Nhân viên "${name}" đã được xóa thành công.`,
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        fetchStaffs(); // Refresh the list after deletion
       } catch (err: any) {
-        const errorMessage = err.message || "Lỗi khi cập nhật trạng thái.";
+        const errorMessage = err.message || "Đã xảy ra lỗi khi xóa nhân viên.";
         setError(errorMessage);
-        Swal.fire(errorMessage, "error");
+        Swal.fire("Lỗi", errorMessage, "error");
       }
     }
   };
@@ -785,19 +657,18 @@ const StaffManager: React.FC = () => {
                       <td className="p-3">{staff.facilityNames.join(", ")}</td>
                       <td className="p-3">
                         <span
-                          className={`px-2 py-1 rounded text-white ${
-                            staff.status === "Active"
-                              ? "bg-green-600"
-                              : staff.status === "Inactive"
+                          className={`px-2 py-1 rounded text-white ${staff.status === "Active"
+                            ? "bg-green-600"
+                            : staff.status === "Inactive"
                               ? "bg-red-600"
                               : "bg-gray-500"
-                          }`}
+                            }`}
                         >
                           {staff.status === "Active"
                             ? "Hoạt động"
                             : staff.status === "Inactive"
-                            ? "Không hoạt động"
-                            : staff.status}
+                              ? "Không hoạt động"
+                              : staff.status}
                         </span>
                       </td>
                       <td className="p-3 space-x-2 flex items-center">
@@ -808,25 +679,6 @@ const StaffManager: React.FC = () => {
                         >
                           <FiEdit size={18} />
                         </button>
-                        {/* <button
-                          onClick={() => toggleStatus(staff.id)}
-                          className={`${
-                            staff.status === "Active"
-                              ? "text-red-600 hover:text-red-800"
-                              : "text-blue-600 hover:text-blue-800"
-                          }`}
-                          title={
-                            staff.status === "Active"
-                              ? "Chuyển thành Không hoạt động"
-                              : "Kích hoạt lại nhân viên"
-                          }
-                        >
-                          {staff.status === "Active" ? (
-                            <FiSlash size={18} />
-                          ) : (
-                            <FiCheckCircle size={18} />
-                          )}
-                        </button> */}
                         <button
                           onClick={() => deleteStaff(staff.id, staff.name)}
                           className="text-red-600 hover:text-red-800"
@@ -846,7 +698,7 @@ const StaffManager: React.FC = () => {
                 )}
               </tbody>
             </table>
-            {/* Pagination controls - beautiful modern UI */}
+            {/* Pagination controls */}
             <div className="mt-4 rounded-xl border bg-white shadow flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="text-gray-700 font-medium">Hiển thị</span>
@@ -1032,7 +884,7 @@ const StaffManager: React.FC = () => {
                       className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
                     />
                   </div>
-                  {/* Image upload: file input cho cả thêm và sửa */}
+                  {/* Image upload */}
                   <div className="flex flex-col col-span-2">
                     <label className="mb-1 font-semibold text-gray-700">
                       Ảnh đại diện
