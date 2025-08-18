@@ -58,5 +58,7 @@ namespace SportZone_API.DTOs
         public decimal? Price { get; set; }
         public string? GuestName { get; set; }
         public string? GuestPhone { get; set; }
+        public string? BookingStatus { get; set; }
+        public string? OrderStatusPayment { get; set; }
     }
 }
