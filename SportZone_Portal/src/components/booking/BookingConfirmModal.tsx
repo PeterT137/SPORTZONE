@@ -157,7 +157,7 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
         notes: booking.guestInfo?.notes || "Đặt sân qua hệ thống online",
         depositAmount,
       };
-      let apiUrl = "https://api.sportzone.top/api/Payment/calculate-and-pay";
+      let apiUrl = "https://localhost:7057/api/Payment/calculate-and-pay";
       let response: Response;
       try {
         response = await fetch(apiUrl, {

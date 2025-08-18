@@ -30,7 +30,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import Sidebar from "../../Sidebar";
 
-const API_URL = "https://api.sportzone.top";
+const API_URL = "https://localhost:7057";
 
 // === CÁC HÀM API VÀ INTERFACE (KHÔNG THAY ĐỔI) ===
 const updateBookingSlot = async (data: {

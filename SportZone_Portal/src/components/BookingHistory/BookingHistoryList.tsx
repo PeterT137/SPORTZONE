@@ -52,7 +52,7 @@ const BookingHistoryList: React.FC = () => {
       return;
     }
     const apiUrl =
-      (window as any).REACT_APP_API_URL || "https://api.sportzone.top";
+      (window as any).REACT_APP_API_URL || "https://localhost:7057";
     const token = localStorage.getItem("token");
     fetch(`${apiUrl}/api/Booking/user/${userId}`, {
       headers: {
@@ -203,7 +203,7 @@ const BookingHistoryList: React.FC = () => {
                                 try {
                                   const apiUrl =
                                     (window as any).REACT_APP_API_URL ||
-                                    "https://api.sportzone.top";
+                                    "https://localhost:7057";
                                   const token = localStorage.getItem("token");
                                   const res = await fetch(
                                     `${apiUrl}/api/Booking/CancelBooking/${booking.bookingId}`,
@@ -272,8 +272,8 @@ const BookingHistoryList: React.FC = () => {
                     <button
                       key={page}
                       className={`px-3 py-1 rounded border border-gray-300 font-semibold ${page === currentPage
-                          ? "bg-[#1ebd6f] text-white border-[#1ebd6f]"
-                          : "bg-white hover:bg-gray-100 text-[#1a3c34]"
+                        ? "bg-[#1ebd6f] text-white border-[#1ebd6f]"
+                        : "bg-white hover:bg-gray-100 text-[#1a3c34]"
                         }`}
                       onClick={() => handlePageChange(page)}
                     >

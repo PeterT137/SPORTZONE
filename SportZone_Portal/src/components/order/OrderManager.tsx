@@ -13,7 +13,7 @@ import type { Order, OrderServiceType, Service, User } from "../interface";
 import { OrderList } from "../order/OrderList";
 import { OrderService } from "../services/orderServices";
 
-const API_URL = "https://api.sportzone.top";
+const API_URL = "https://localhost:7057";
 
 const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem("token");

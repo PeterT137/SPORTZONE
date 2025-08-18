@@ -60,14 +60,14 @@ const SignInForm: React.FC = () => {
     if (!formData.password) {
       newErrors.password = "Mật khẩu không được để trống";
     } else if (
-    formData.password.length < 10 ||
-    !/[A-Z]/.test(formData.password) ||
-    !/[a-z]/.test(formData.password) ||
-    !/[0-9]/.test(formData.password) || 
-    !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+      formData.password.length < 10 ||
+      !/[A-Z]/.test(formData.password) ||
+      !/[a-z]/.test(formData.password) ||
+      !/[0-9]/.test(formData.password) ||
+      !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
     ) {
-        newErrors.password =
-            "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
+      newErrors.password =
+        "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
     }
 
     return newErrors;
@@ -85,7 +85,7 @@ const SignInForm: React.FC = () => {
       setLoading(true);
 
       const response = await axios.post(
-        "https://api.sportzone.top/api/Authentication/Login",
+        "https://localhost:7057/api/Authentication/Login",
         {
           uEmail: formData.email,
           uPassword: formData.password,
@@ -188,13 +188,13 @@ const SignInForm: React.FC = () => {
 
   const handleGoogleLogin = () => {
     window.location.href =
-      "https://api.sportzone.top/api/Authentication/googlelogin";
+      "https://localhost:7057/api/Authentication/googlelogin";
   };
 
   const handleForgotPasswordSubmit = async () => {
     setLoading(true);
     try {
-      await axios.post("https://api.sportzone.top/api/ForgotPassword/send-code", {
+      await axios.post("https://localhost:7057/api/ForgotPassword/send-code", {
         email: forgotEmail,
       });
       showToast("Mã OTP đã được gửi về email!");
@@ -219,7 +219,7 @@ const SignInForm: React.FC = () => {
 
     try {
       await axios.post(
-        "https://api.sportzone.top/api/ForgotPassword/verify-code",
+        "https://localhost:7057/api/ForgotPassword/verify-code",
         {
           email: forgotEmail,
 
@@ -259,7 +259,7 @@ const SignInForm: React.FC = () => {
 
     try {
       await axios.post(
-        "https://api.sportzone.top/api/ForgotPassword/reset-password",
+        "https://localhost:7057/api/ForgotPassword/reset-password",
         {
           email: forgotEmail,
 

@@ -26,7 +26,7 @@ const UsersManager: React.FC = () => {
         throw new Error("Không tìm thấy token xác thực");
       }
 
-      const response = await fetch("https://api.sportzone.top/get-all-account", {
+      const response = await fetch("https://localhost:7057/get-all-account", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

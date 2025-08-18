@@ -104,7 +104,7 @@ const OrdersTable: React.FC = () => {
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
 
-  const API_URL = "https://api.sportzone.top";
+  const API_URL = "https://localhost:7057";
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -775,7 +775,7 @@ const OrdersTable: React.FC = () => {
   };
 
   const updatePaymentStatus = (orderId: number, newStatus: string) => {
-    const API_URL = "https://api.sportzone.top";
+    const API_URL = "https://localhost:7057";
     const token = localStorage.getItem("token");
     let apiStatus = "Pending";
     switch (newStatus) {
@@ -1423,8 +1423,8 @@ const OrdersTable: React.FC = () => {
                                               );
                                             }}
                                             className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 ${status === order.statusPayment
-                                                ? "bg-blue-50 text-blue-700"
-                                                : "text-gray-700 hover:text-blue-600"
+                                              ? "bg-blue-50 text-blue-700"
+                                              : "text-gray-700 hover:text-blue-600"
                                               }`}
                                           >
                                             <span
@@ -1539,8 +1539,8 @@ const OrdersTable: React.FC = () => {
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
                     className={`p-2 rounded-lg border ${currentPage === 1
-                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
                       } transition-colors duration-200`}
                     aria-label="Trang đầu"
                   >
@@ -1565,8 +1565,8 @@ const OrdersTable: React.FC = () => {
                     }
                     disabled={currentPage === 1}
                     className={`p-2 rounded-lg border ${currentPage === 1
-                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
                       } transition-colors duration-200`}
                     aria-label="Trang trước"
                   >
@@ -1603,8 +1603,8 @@ const OrdersTable: React.FC = () => {
                           key={pageNumber}
                           onClick={() => setCurrentPage(pageNumber)}
                           className={`w-8 h-8 rounded-lg border text-sm font-medium transition-colors duration-200 ${pageNumber === currentPage
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "text-gray-700 border-gray-300 hover:bg-gray-50"
                             }`}
                         >
                           {pageNumber}
@@ -1619,8 +1619,8 @@ const OrdersTable: React.FC = () => {
                     }
                     disabled={currentPage === totalPages}
                     className={`p-2 rounded-lg border ${currentPage === totalPages
-                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
                       } transition-colors duration-200`}
                     aria-label="Trang tiếp"
                   >
@@ -1643,8 +1643,8 @@ const OrdersTable: React.FC = () => {
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
                     className={`p-2 rounded-lg border ${currentPage === totalPages
-                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
                       } transition-colors duration-200`}
                     aria-label="Trang cuối"
                   >

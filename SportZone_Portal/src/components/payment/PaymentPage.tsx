@@ -295,7 +295,7 @@ const PaymentPage: React.FC = () => {
         console.log("Testing API connectivity...");
         try {
           const testResponse = await fetch(
-            "https://api.sportzone.top/api/Booking/user/1",
+            "https://localhost:7057/api/Booking/user/1",
             {
               method: "GET",
               headers: {
@@ -331,7 +331,7 @@ const PaymentPage: React.FC = () => {
         console.log("Making actual booking request...");
 
         // Try HTTPS first, then HTTP if it fails
-        let apiUrl = "https://api.sportzone.top/api/Booking/CreateBooking";
+        let apiUrl = "https://localhost:7057/api/Booking/CreateBooking";
         let response;
 
         try {
@@ -591,12 +591,12 @@ const PaymentPage: React.FC = () => {
                       type="button"
                       onClick={() => handlePaymentMethodChange(method as any)}
                       className={`p-4 border-2 rounded-lg text-center transition-colors ${formData.paymentMethod === method
-                          ? method === "momo"
-                            ? "border-pink-500 bg-pink-50 text-pink-700"
-                            : method === "banking"
-                              ? "border-green-500 bg-green-50 text-green-700"
-                              : "border-blue-500 bg-blue-50 text-blue-700"
-                          : "border-gray-200 hover:border-gray-300"
+                        ? method === "momo"
+                          ? "border-pink-500 bg-pink-50 text-pink-700"
+                          : method === "banking"
+                            ? "border-green-500 bg-green-50 text-green-700"
+                            : "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 hover:border-gray-300"
                         }`}
                     >
                       {method === "momo" ? (
@@ -707,8 +707,8 @@ const PaymentPage: React.FC = () => {
                   type="submit"
                   disabled={isProcessing}
                   className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors ${isProcessing
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
                     }`}
                 >
                   {isProcessing ? (

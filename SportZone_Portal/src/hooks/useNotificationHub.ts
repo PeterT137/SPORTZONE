@@ -6,7 +6,7 @@ export function useNotificationHub(onNotify: (message: string) => void) {
 
   useEffect(() => {
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("https://api.sportzone.top/notificationhub", {
+      .withUrl("https://localhost:7057/notificationhub", {
         transport: signalR.HttpTransportType.WebSockets,
         skipNegotiation: true,
       })

@@ -36,7 +36,7 @@ const RegulationManager: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     const token = localStorage.getItem("token");
-    fetch("https://api.sportzone.top/api/RegulationSystem", {
+    fetch("https://localhost:7057/api/RegulationSystem", {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -79,7 +79,7 @@ const RegulationManager: React.FC = () => {
     const token = localStorage.getItem("token");
     try {
       if (editRegulationId === null) {
-        const res = await fetch("https://api.sportzone.top/api/RegulationSystem", {
+        const res = await fetch("https://localhost:7057/api/RegulationSystem", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -95,7 +95,7 @@ const RegulationManager: React.FC = () => {
       } else {
         // Edit
         const res = await fetch(
-          `https://api.sportzone.top/api/RegulationSystem/${editRegulationId}`,
+          `https://localhost:7057/api/RegulationSystem/${editRegulationId}`,
           {
             method: "PUT",
             headers: {
@@ -112,7 +112,7 @@ const RegulationManager: React.FC = () => {
         if (!res.ok) throw new Error("Lỗi khi cập nhật quy định");
       }
       // Refresh list
-      const res = await fetch("https://api.sportzone.top/api/RegulationSystem", {
+      const res = await fetch("https://localhost:7057/api/RegulationSystem", {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -139,7 +139,7 @@ const RegulationManager: React.FC = () => {
       setError(null);
       try {
         const res = await fetch(
-          `https://api.sportzone.top/api/RegulationSystem/${deleteRegulationId}`,
+          `https://localhost:7057/api/RegulationSystem/${deleteRegulationId}`,
           {
             method: "DELETE",
             headers: {
@@ -150,7 +150,7 @@ const RegulationManager: React.FC = () => {
         if (!res.ok) throw new Error("Lỗi khi xóa quy định");
         // Refresh list
         const res2 = await fetch(
-          "https://api.sportzone.top/api/RegulationSystem",
+          "https://localhost:7057/api/RegulationSystem",
           {
             headers: {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -301,8 +301,8 @@ const RegulationManager: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${regulation.status === "active"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
                               }`}
                           >
                             {regulation.status === "active"
@@ -322,9 +322,9 @@ const RegulationManager: React.FC = () => {
                                   : undefined
                               }
                               className={`text-green-600 hover:text-green-800 p-1${regulation.regulationSystemId === undefined ||
-                                  regulation.regulationSystemId === null
-                                  ? " opacity-50 cursor-not-allowed"
-                                  : ""
+                                regulation.regulationSystemId === null
+                                ? " opacity-50 cursor-not-allowed"
+                                : ""
                                 }`}
                               title="Chỉnh sửa"
                               disabled={
@@ -344,9 +344,9 @@ const RegulationManager: React.FC = () => {
                                   : undefined
                               }
                               className={`text-red-600 hover:text-red-800 p-1${regulation.regulationSystemId === undefined ||
-                                  regulation.regulationSystemId === null
-                                  ? " opacity-50 cursor-not-allowed"
-                                  : ""
+                                regulation.regulationSystemId === null
+                                ? " opacity-50 cursor-not-allowed"
+                                : ""
                                 }`}
                               title="Xóa"
                               disabled={

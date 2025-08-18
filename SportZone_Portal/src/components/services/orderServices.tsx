@@ -1,7 +1,7 @@
 // services/orderServices.ts
 import type { Order, OrderServiceType, Service } from "../interface";
 
-const API_URL = "https://api.sportzone.top";
+const API_URL = "https://localhost:7057";
 
 const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem("token");
