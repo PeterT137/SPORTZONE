@@ -151,6 +151,16 @@ namespace SportZone_API.Controllers
             try
             {
                 var result = await _bookingService.CancelBookingAsync(id);
+                var order = await _orderService.GetOrderByBookingIdAsync(id);
+                if (order == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy order hoặc không thể hủy"
+                    });
+                }
+                await _orderService.UpdateOrderStatusPaymentAsync(order.OrderId, 3);
                 if (!result)
                 {
                     return NotFound(new
