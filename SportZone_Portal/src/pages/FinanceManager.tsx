@@ -64,7 +64,7 @@ const FinanceManager: React.FC = () => {
   const fetchFacilities = async () => {
     try {
       const res = await fetch(
-        "https://localhost:7057/api/Facility/with-details",
+        "https://api.sportzone.top/api/Facility/with-details",
         {
           method: "GET",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -81,7 +81,7 @@ const FinanceManager: React.FC = () => {
     setLoading(true);
     setError("");
     try {
-      let url = `https://localhost:7057/api/Order/Owner/${filter.ownerId}/TotalRevenue`;
+      let url = `https://api.sportzone.top/api/Order/Owner/${filter.ownerId}/TotalRevenue`;
       const params = [];
       if (filter.startDate) params.push(`startDate=${filter.startDate}`);
       if (filter.endDate) params.push(`endDate=${filter.endDate}`);

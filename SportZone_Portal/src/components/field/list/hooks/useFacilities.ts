@@ -42,7 +42,7 @@ export const useFacilities = () => {
       try {
         setLoading(true);
         const response = await fetch(
-          "https://localhost:7057/api/Facility/with-details"
+          "https://api.sportzone.top/api/Facility/with-details"
         );
 
         if (response.ok) {
@@ -59,10 +59,10 @@ export const useFacilities = () => {
             subdescription: apiField.subdescription,
             image:
               apiField.imageUrls.length > 0
-                ? `https://localhost:7057${apiField.imageUrls[0]}`
+                ? `https://api.sportzone.top${apiField.imageUrls[0]}`
                 : "/placeholder.svg",
             imageUrls: apiField.imageUrls.map(
-              (url) => `https://localhost:7057${url}`
+              (url) => `https://api.sportzone.top${url}`
             ),
             categoryFields: apiField.categoryFields,
             available: true, // Default to available, can be updated based on actual availability logic

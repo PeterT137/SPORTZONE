@@ -84,7 +84,7 @@ const SignInForm: React.FC = () => {
       setLoading(true);
 
       const response = await axios.post(
-        "https://localhost:7057/api/Authentication/Login",
+        "https://api.sportzone.top/api/Authentication/Login",
         {
           uEmail: formData.email,
           uPassword: formData.password,
@@ -187,13 +187,13 @@ const SignInForm: React.FC = () => {
 
   const handleGoogleLogin = () => {
     window.location.href =
-      "https://localhost:7057/api/Authentication/googlelogin";
+      "https://api.sportzone.top/api/Authentication/googlelogin";
   };
 
   const handleForgotPasswordSubmit = async () => {
     setLoading(true);
     try {
-      await axios.post("https://localhost:7057/api/ForgotPassword/send-code", {
+      await axios.post("https://api.sportzone.top/api/ForgotPassword/send-code", {
         email: forgotEmail,
       });
       showToast("Mã OTP đã được gửi về email!");
@@ -218,7 +218,7 @@ const SignInForm: React.FC = () => {
 
     try {
       await axios.post(
-        "https://localhost:7057/api/ForgotPassword/verify-code",
+        "https://api.sportzone.top/api/ForgotPassword/verify-code",
         {
           email: forgotEmail,
 
@@ -258,7 +258,7 @@ const SignInForm: React.FC = () => {
 
     try {
       await axios.post(
-        "https://localhost:7057/api/ForgotPassword/reset-password",
+        "https://api.sportzone.top/api/ForgotPassword/reset-password",
         {
           email: forgotEmail,
 
@@ -305,9 +305,8 @@ const SignInForm: React.FC = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            className={`block w-full rounded-md border py-2 px-4 text-sm ${
-              errors.email ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`block w-full rounded-md border py-2 px-4 text-sm ${errors.email ? "border-red-500" : "border-gray-300"
+              }`}
           />
           {errors.email && (
             <p className="text-red-500 text-xs mt-1">{errors.email}</p>
@@ -331,9 +330,8 @@ const SignInForm: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              className={`block w-full rounded-md border py-2 px-4 pr-12 text-sm ${
-                errors.password ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`block w-full rounded-md border py-2 px-4 pr-12 text-sm ${errors.password ? "border-red-500" : "border-gray-300"
+                }`}
             />
             <button
               type="button"

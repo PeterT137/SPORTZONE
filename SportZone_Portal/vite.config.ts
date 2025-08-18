@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://localhost:7057",
+        target: "https://api.sportzone.top",
         changeOrigin: true,
         secure: false,
       },

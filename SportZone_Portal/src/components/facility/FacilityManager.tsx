@@ -119,7 +119,7 @@ const FacilityManager: React.FC = () => {
     }
 
     // If it's a relative path, prepend the server URL
-    const baseUrl = "https://localhost:7057";
+    const baseUrl = "https://api.sportzone.top";
     const cleanPath = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
     const fullUrl = `${baseUrl}${cleanPath}`;
 
@@ -161,7 +161,7 @@ const FacilityManager: React.FC = () => {
     }
 
     // Use the new API endpoint that returns complete data with facId
-    const baseUrl = `https://localhost:7057/api/Facility/with-details`;
+    const baseUrl = `https://api.sportzone.top/api/Facility/with-details`;
     const url = searchText
       ? `${baseUrl}?searchText=${encodeURIComponent(searchText)}`
       : baseUrl;
@@ -441,8 +441,8 @@ const FacilityManager: React.FC = () => {
       // Use the standard endpoint - backend only has one endpoint for updates
       const baseUrl =
         editId !== null
-          ? `https://localhost:7057/api/Facility/${editId}`
-          : "https://localhost:7057/api/Facility";
+          ? `https://api.sportzone.top/api/Facility/${editId}`
+          : "https://api.sportzone.top/api/Facility";
 
       const response = await fetch(baseUrl, {
         method: editId !== null ? "PUT" : "POST",
@@ -499,8 +499,7 @@ const FacilityManager: React.FC = () => {
         const errorMessages = Object.entries(responseData.errors)
           .map(
             ([field, messages]) =>
-              `${field}: ${
-                Array.isArray(messages) ? messages.join(", ") : messages
+              `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages
               }`
           )
           .join("\n");
@@ -609,7 +608,7 @@ const FacilityManager: React.FC = () => {
 
     try {
       const response = await fetch(
-        `https://localhost:7057/api/Facility/${facilityToDelete}`,
+        `https://api.sportzone.top/api/Facility/${facilityToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -709,7 +708,7 @@ const FacilityManager: React.FC = () => {
 
     try {
       const response = await fetch(
-        `https://localhost:7057/api/Facility/${facility.fac_id}`,
+        `https://api.sportzone.top/api/Facility/${facility.fac_id}`,
         {
           method: "GET",
           headers: {
@@ -899,11 +898,10 @@ const FacilityManager: React.FC = () => {
       pageNumbers.push(
         <button
           key={i}
-          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium transition-all duration-200 ${
-            i === currentPage
+          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium transition-all duration-200 ${i === currentPage
               ? "z-10 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
               : "bg-white text-gray-700 hover:bg-green-50 hover:text-green-600"
-          }`}
+            }`}
           onClick={() => goToPage(i)}
           disabled={i === currentPage}
         >
@@ -1452,11 +1450,10 @@ const FacilityManager: React.FC = () => {
                 <div className="bg-white px-6 py-4 flex items-center justify-between border-t border-gray-200 rounded-b-2xl shadow-lg">
                   <div className="flex-1 flex justify-between sm:hidden">
                     <button
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${
-                        currentPage === 1
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${currentPage === 1
                           ? "opacity-50 cursor-not-allowed"
                           : "hover:shadow-md"
-                      }`}
+                        }`}
                       onClick={goToPrevPage}
                       disabled={currentPage === 1}
                     >
@@ -1481,11 +1478,10 @@ const FacilityManager: React.FC = () => {
                       <span className="font-medium">{totalPages}</span>
                     </div>
                     <button
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${
-                        currentPage === totalPages || totalPages === 0
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${currentPage === totalPages || totalPages === 0
                           ? "opacity-50 cursor-not-allowed"
                           : "hover:shadow-md"
-                      }`}
+                        }`}
                       onClick={goToNextPage}
                       disabled={currentPage === totalPages || totalPages === 0}
                     >
@@ -1545,11 +1541,10 @@ const FacilityManager: React.FC = () => {
                         aria-label="Phân trang"
                       >
                         <button
-                          className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${
-                            currentPage === 1
+                          className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${currentPage === 1
                               ? "opacity-50 cursor-not-allowed"
                               : "hover:text-gray-700"
-                          }`}
+                            }`}
                           onClick={goToPrevPage}
                           disabled={currentPage === 1}
                         >
@@ -1572,11 +1567,10 @@ const FacilityManager: React.FC = () => {
                           {renderPaginationNumbers()}
                         </div>
                         <button
-                          className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${
-                            currentPage === totalPages || totalPages === 0
+                          className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${currentPage === totalPages || totalPages === 0
                               ? "opacity-50 cursor-not-allowed"
                               : "hover:text-gray-700"
-                          }`}
+                            }`}
                           onClick={goToNextPage}
                           disabled={
                             currentPage === totalPages || totalPages === 0
@@ -2277,11 +2271,10 @@ const FacilityManager: React.FC = () => {
                           </span>
                         </div>
                         <span
-                          className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                            selectedService.status === "active"
+                          className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${selectedService.status === "active"
                               ? "bg-green-100 text-green-800"
                               : "bg-red-100 text-red-800"
-                          }`}
+                            }`}
                         >
                           {selectedService.status}
                         </span>

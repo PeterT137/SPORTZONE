@@ -132,7 +132,7 @@ interface BookingFormData {
 // API Functions (Stable - defined outside the component)
 const fetchFields = async (facilityId: number): Promise<ApiFieldResponse[]> => {
   const response = await fetch(
-    `https://localhost:7057/api/Field/facility/${facilityId}`
+    `https://api.sportzone.top/api/Field/facility/${facilityId}`
   );
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
   const result = await response.json();
@@ -144,7 +144,7 @@ const fetchFacilityDetails = async (
   facilityId: number
 ): Promise<ApiFacilityWithDetails> => {
   const response = await fetch(
-    `https://localhost:7057/api/Facility/with-details`
+    `https://api.sportzone.top/api/Facility/with-details`
   );
   if (!response.ok) {
     const errorText = await response.text();
@@ -165,7 +165,7 @@ const fetchFacilityDetails = async (
       closeTime: facility.closeTime,
       images:
         facility.imageUrls?.map((url) =>
-          url.startsWith("http") ? url : `https://localhost:7057${url}`
+          url.startsWith("http") ? url : `https://api.sportzone.top${url}`
         ) || [],
     };
   }
@@ -176,7 +176,7 @@ const fetchFieldBookingSchedules = async (
   date: string
 ): Promise<ApiFieldBookingSchedule[]> => {
   const response = await fetch(
-    "https://localhost:7057/api/FieldBookingSchedule"
+    "https://api.sportzone.top/api/FieldBookingSchedule"
   );
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
   const schedules: ApiFieldBookingSchedule[] = await response.json();
@@ -191,7 +191,7 @@ const fetchFieldPricing = async (
     for (const fieldId of facilityFieldIds) {
       try {
         const response = await fetch(
-          `https://localhost:7057/api/FieldPricing/byField/${fieldId}`
+          `https://api.sportzone.top/api/FieldPricing/byField/${fieldId}`
         );
         if (!response.ok) {
           console.warn(
@@ -216,7 +216,7 @@ const fetchFieldPricing = async (
     }
     return allPricing;
   } else {
-    const response = await fetch("https://localhost:7057/api/FieldPricing");
+    const response = await fetch("https://api.sportzone.top/api/FieldPricing");
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const result = await response.json();
     if (Array.isArray(result)) return result;
@@ -235,7 +235,7 @@ const fetchFacilityDiscounts = async (
 
   try {
     const res = await fetch(
-      `https://localhost:7057/api/Discount/facility/${facilityId}`,
+      `https://api.sportzone.top/api/Discount/facility/${facilityId}`,
       { headers }
     );
     if (!res.ok) return [];
@@ -243,8 +243,8 @@ const fetchFacilityDiscounts = async (
     const raw: any[] = Array.isArray(result)
       ? result
       : Array.isArray(result?.data)
-      ? result.data
-      : [];
+        ? result.data
+        : [];
     const toBool = (v: any): boolean => {
       if (typeof v === "boolean") return v;
       if (v === 1 || v === "1") return true;
@@ -611,9 +611,8 @@ const TimeSlotsGrid = React.memo(
                     let title = `${field.fieldName} - ${timeSlot.time} - Không có lịch`;
 
                     if (slot) {
-                      title = `${field.fieldName} - ${timeSlot.time} - ${
-                        slot.status
-                      } - ${slot.price.toLocaleString()}đ`;
+                      title = `${field.fieldName} - ${timeSlot.time} - ${slot.status
+                        } - ${slot.price.toLocaleString()}đ`;
 
                       if (isPastSlot) {
                         bgColor = "bg-gray-300";
@@ -651,10 +650,9 @@ const TimeSlotsGrid = React.memo(
                         disabled={!isClickable}
                         className={`
                           ${bgColor} ${textColor} h-8 text-xs font-medium transition-colors
-                          ${
-                            isClickable
-                              ? "hover:opacity-80 cursor-pointer"
-                              : "cursor-not-allowed"
+                          ${isClickable
+                            ? "hover:opacity-80 cursor-pointer"
+                            : "cursor-not-allowed"
                           }
                           ${isPastSlot ? "opacity-50" : ""}
                         `}
@@ -856,7 +854,7 @@ const BookingPage: React.FC = () => {
             );
 
           fetch(
-            `https://localhost:7057/api/RegulationFacility/facility/${firstField.facId}`
+            `https://api.sportzone.top/api/RegulationFacility/facility/${firstField.facId}`
           )
             .then(async (res) => {
               if (!res.ok) return [] as RegulationItem[];
@@ -1211,7 +1209,7 @@ const BookingPage: React.FC = () => {
                     <div className="flex items-center space-x-4">
                       <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                         {facilityDetails?.images &&
-                        facilityDetails.images.length > 0 ? (
+                          facilityDetails.images.length > 0 ? (
                           <img
                             src={facilityDetails.images[0]}
                             alt={facilityDetails.facilityName}
@@ -1277,14 +1275,12 @@ const BookingPage: React.FC = () => {
                               {r.title}
                             </h4>
                             <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                r.status === "Active"
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${r.status === "Active"
                                   ? "bg-green-100 text-green-700"
                                   : "bg-gray-100 text-gray-700"
-                              }`}
-                              title={`Trạng thái: ${
-                                r.status === "Active" ? "Hoạt động" : "Tạm dừng"
-                              }`}
+                                }`}
+                              title={`Trạng thái: ${r.status === "Active" ? "Hoạt động" : "Tạm dừng"
+                                }`}
                             >
                               {r.status === "Active" ? "Hoạt động" : "Tạm dừng"}
                             </span>
@@ -1341,9 +1337,8 @@ const BookingPage: React.FC = () => {
                         type="tel"
                         value={formData.guestPhone}
                         onChange={(e) => handlePhoneChange(e.target.value)}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${
-                          phoneError ? "border-red-500" : "border-gray-300"
-                        }`}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${phoneError ? "border-red-500" : "border-gray-300"
+                          }`}
                         placeholder={
                           isLoadingUserInfo
                             ? "Đang tải thông tin..."
@@ -1541,15 +1536,15 @@ const BookingPage: React.FC = () => {
         booking={{
           field: selectedField
             ? {
-                ...selectedField,
-                facilityName:
-                  facilityDetails?.facilityName || "SportZone Facility",
-                image:
-                  facilityDetails?.images?.[0] || "/api/placeholder/400/300",
-                openTime: facilityDetails?.openTime || "05:30:00",
-                closeTime: facilityDetails?.closeTime || "22:30:00",
-                pricing: [],
-              }
+              ...selectedField,
+              facilityName:
+                facilityDetails?.facilityName || "SportZone Facility",
+              image:
+                facilityDetails?.images?.[0] || "/api/placeholder/400/300",
+              openTime: facilityDetails?.openTime || "05:30:00",
+              closeTime: facilityDetails?.closeTime || "22:30:00",
+              pricing: [],
+            }
             : null,
           slots: selectedSlots,
           guestInfo: {

@@ -49,7 +49,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       }
 
       const response = await fetch(
-        "https://localhost:7057/api/Facility/with-details",
+        "https://api.sportzone.top/api/Facility/with-details",
         {
           method: "GET",
           headers: {
@@ -115,7 +115,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       if (!token) {
         throw new Error("Không tìm thấy token xác thực");
       }
-      const response = await fetch("https://localhost:7057/create-account", {
+      const response = await fetch("https://api.sportzone.top/create-account", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -323,109 +323,109 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
               );
               return formData.RoleId === 4;
             })() && (
-              <div className="border-t border-gray-200 pt-6 mt-6">
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-200">
-                  <h4 className="text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                    Thông tin nhân viên
-                  </h4>
-                  <p className="text-sm text-blue-700">
-                    Vui lòng điền đầy đủ thông tin cơ sở làm việc và thời gian
-                    làm việc
-                  </p>
-                </div>
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-200">
+                    <h4 className="text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      Thông tin nhân viên
+                    </h4>
+                    <p className="text-sm text-blue-700">
+                      Vui lòng điền đầy đủ thông tin cơ sở làm việc và thời gian
+                      làm việc
+                    </p>
+                  </div>
 
-                <div className="space-y-4">
-                  {/* Facility Field - Made more prominent */}
-                  <label
-                    htmlFor="FacilityId"
-                    className="block text-sm font-semibold text-gray-800"
-                  >
-                    Cơ sở làm việc <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="FacilityId"
-                    name="FacilityId"
-                    value={formData.FacilityId || 0}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 bg-white font-medium"
-                    disabled={facilitiesLoading}
-                  >
-                    <option value={0}>Chưa phân cơ sở</option>
-                    {facilitiesLoading ? (
-                      <option disabled>Đang tải danh sách cơ sở...</option>
-                    ) : (
-                      facilities.map((facility) => (
-                        <option key={facility.facId} value={facility.facId}>
-                          {facility.name}{" "}
-                          {facility.address ? `- ${facility.address}` : ""}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {facilitiesLoading
-                      ? "Đang tải danh sách cơ sở từ hệ thống..."
-                      : 'Chọn "Chưa phân cơ sở" nếu nhân viên chưa được phân công cơ sở cụ thể'}
-                  </p>
+                  <div className="space-y-4">
+                    {/* Facility Field - Made more prominent */}
+                    <label
+                      htmlFor="FacilityId"
+                      className="block text-sm font-semibold text-gray-800"
+                    >
+                      Cơ sở làm việc <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="FacilityId"
+                      name="FacilityId"
+                      value={formData.FacilityId || 0}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 bg-white font-medium"
+                      disabled={facilitiesLoading}
+                    >
+                      <option value={0}>Chưa phân cơ sở</option>
+                      {facilitiesLoading ? (
+                        <option disabled>Đang tải danh sách cơ sở...</option>
+                      ) : (
+                        facilities.map((facility) => (
+                          <option key={facility.facId} value={facility.facId}>
+                            {facility.name}{" "}
+                            {facility.address ? `- ${facility.address}` : ""}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {facilitiesLoading
+                        ? "Đang tải danh sách cơ sở từ hệ thống..."
+                        : 'Chọn "Chưa phân cơ sở" nếu nhân viên chưa được phân công cơ sở cụ thể'}
+                    </p>
 
-                  {/* Work Period */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        htmlFor="StartTime"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Ngày bắt đầu làm việc
-                      </label>
-                      <input
-                        type="date"
-                        id="StartTime"
-                        name="StartTime"
-                        value={
-                          formData.StartTime
-                            ? formData.StartTime.split("T")[0]
-                            : ""
-                        }
-                        onChange={(e) => {
-                          const { name, value } = e.target;
-                          setFormData((prev) => ({
-                            ...prev,
-                            [name]: value ? `${value}T08:00:00` : "",
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
+                    {/* Work Period */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="StartTime"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Ngày bắt đầu làm việc
+                        </label>
+                        <input
+                          type="date"
+                          id="StartTime"
+                          name="StartTime"
+                          value={
+                            formData.StartTime
+                              ? formData.StartTime.split("T")[0]
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const { name, value } = e.target;
+                            setFormData((prev) => ({
+                              ...prev,
+                              [name]: value ? `${value}T08:00:00` : "",
+                            }));
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
 
-                    <div>
-                      <label
-                        htmlFor="EndTime"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Ngày kết thúc làm việc
-                      </label>
-                      <input
-                        type="date"
-                        id="EndTime"
-                        name="EndTime"
-                        value={
-                          formData.EndTime ? formData.EndTime.split("T")[0] : ""
-                        }
-                        onChange={(e) => {
-                          const { name, value } = e.target;
-                          setFormData((prev) => ({
-                            ...prev,
-                            [name]: value ? `${value}T18:00:00` : "",
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
+                      <div>
+                        <label
+                          htmlFor="EndTime"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Ngày kết thúc làm việc
+                        </label>
+                        <input
+                          type="date"
+                          id="EndTime"
+                          name="EndTime"
+                          value={
+                            formData.EndTime ? formData.EndTime.split("T")[0] : ""
+                          }
+                          onChange={(e) => {
+                            const { name, value } = e.target;
+                            setFormData((prev) => ({
+                              ...prev,
+                              [name]: value ? `${value}T18:00:00` : "",
+                            }));
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* Buttons */}

@@ -111,7 +111,7 @@ const StaffManager: React.FC = () => {
 
       if (roleId === 3) {
         const response = await fetch(
-          `https://localhost:7057/api/Staff/GetAll`,
+          `https://api.sportzone.top/api/Staff/GetAll`,
           {
             method: "GET",
             headers: authHeaders,
@@ -140,7 +140,7 @@ const StaffManager: React.FC = () => {
         for (const facility of facilityList) {
           try {
             const response = await fetch(
-              `https://localhost:7057/api/Staff/by-facility/${facility.id}`,
+              `https://api.sportzone.top/api/Staff/by-facility/${facility.id}`,
               {
                 method: "GET",
                 headers: authHeaders,
@@ -196,7 +196,7 @@ const StaffManager: React.FC = () => {
           // Normalize image URL
           let image = item.image || "/default-avatar.jpg";
           if (image && !image.startsWith("http")) {
-            image = `https://localhost:7057${image}`;
+            image = `https://api.sportzone.top${image}`;
           }
           staffMap.set(uId, {
             id: uId,
@@ -267,7 +267,7 @@ const StaffManager: React.FC = () => {
           authHeaders.Authorization = `Bearer ${token}`;
         }
 
-        const response = await fetch(`https://localhost:7057/api/Staff/${id}`, {
+        const response = await fetch(`https://api.sportzone.top/api/Staff/${id}`, {
           method: "DELETE",
           headers: authHeaders,
         });
@@ -282,7 +282,7 @@ const StaffManager: React.FC = () => {
           }
           throw new Error(
             apiResponse.message ||
-              `Lỗi khi xóa nhân viên (HTTP ${response.status})`
+            `Lỗi khi xóa nhân viên (HTTP ${response.status})`
           );
         }
 
@@ -375,7 +375,7 @@ const StaffManager: React.FC = () => {
         if (token) {
           authHeaders["Authorization"] = `Bearer ${token}`;
         }
-        const url = `https://localhost:7057/api/Staff/${selectedStaff.id}`;
+        const url = `https://api.sportzone.top/api/Staff/${selectedStaff.id}`;
         const response = await fetch(url, {
           method: "PUT",
           headers: authHeaders,
@@ -452,7 +452,7 @@ const StaffManager: React.FC = () => {
         if (token) {
           authHeaders["Authorization"] = `Bearer ${token}`;
         }
-        const url = "https://localhost:7057/api/Register";
+        const url = "https://api.sportzone.top/api/Register";
         const response = await fetch(url, {
           method: "POST",
           headers: authHeaders,
@@ -657,19 +657,18 @@ const StaffManager: React.FC = () => {
                       <td className="p-3">{staff.facilityNames.join(", ")}</td>
                       <td className="p-3">
                         <span
-                          className={`px-2 py-1 rounded text-white ${
-                            staff.status === "Active"
+                          className={`px-2 py-1 rounded text-white ${staff.status === "Active"
                               ? "bg-green-600"
                               : staff.status === "Inactive"
-                              ? "bg-red-600"
-                              : "bg-gray-500"
-                          }`}
+                                ? "bg-red-600"
+                                : "bg-gray-500"
+                            }`}
                         >
                           {staff.status === "Active"
                             ? "Hoạt động"
                             : staff.status === "Inactive"
-                            ? "Không hoạt động"
-                            : staff.status}
+                              ? "Không hoạt động"
+                              : staff.status}
                         </span>
                       </td>
                       <td className="p-3 space-x-2 flex items-center">
