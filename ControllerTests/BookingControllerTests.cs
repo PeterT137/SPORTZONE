@@ -1701,6 +1701,47 @@ namespace SportZone_API.Tests.Controllers
             Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
             Assert.Equal("Lỗi server: Lỗi khi hủy booking: Transaction failed", doc.RootElement.GetProperty("message").GetString());
         }
+
+        // TC_Booking_27
+        [Fact]
+        public async Task CancelBooking_ShouldUpdateOrderStatusPaymentToCancel()
+        {
+            // Arrange
+            int bookingId = 1;
+            int orderId = 100;
+
+            // Mock OrderService để kiểm tra việc cập nhật order status
+            var mockOrder = new OrderDTO
+            {
+                OrderId = orderId,
+                BookingId = bookingId,
+                StatusPayment = "Pending"
+            };
+
+            _bookingServiceMock.Setup(s => s.CancelBookingAsync(bookingId))
+                .ReturnsAsync(true);
+
+            _orderServiceMock.Setup(s => s.GetOrderByBookingIdAsync(bookingId))
+                .ReturnsAsync(mockOrder);
+
+            _orderServiceMock.Setup(s => s.UpdateOrderStatusPaymentAsync(orderId, 3))
+                .ReturnsAsync(mockOrder);
+
+            // Act
+            var result = await _controller.CancelBooking(bookingId);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var json = JsonSerializer.Serialize(okResult.Value);
+            using var doc = JsonDocument.Parse(json);
+
+            Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+            Assert.Equal("Hủy booking thành công", doc.RootElement.GetProperty("message").GetString());
+
+            // Verify that OrderService methods were called
+            _orderServiceMock.Verify(s => s.GetOrderByBookingIdAsync(bookingId), Times.Once);
+            _orderServiceMock.Verify(s => s.UpdateOrderStatusPaymentAsync(orderId, 3), Times.Once);
+        }
     }
 }
 

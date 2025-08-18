@@ -140,7 +140,7 @@ namespace SportZone_API.Controllers
                 string vnp_SecureHash = vnpay.GetResponseData("vnp_SecureHash");
                 string vnp_TxnRef = vnpay.GetResponseData("vnp_TxnRef");
                 string vnp_Amount = vnpay.GetResponseData("vnp_Amount");
-                string vnp_BankCode = vnpay.GetResponseData("vnp_BankCode");
+                string vnp_BankCode = vnpay.GetResponseData("vnp_BankCode");    
                 string vnp_TransactionNo = vnpay.GetResponseData("vnp_TransactionNo");
 
                 Console.WriteLine($"Response Code: {vnp_ResponseCode}");

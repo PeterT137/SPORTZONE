@@ -107,18 +107,6 @@ namespace SportZone_API.Services
                 var isCancelled = await _bookingRepository.CancelBookingAsync(bookingId);
                 if (isCancelled)
                 {
-                    try
-                    {
-                        var order = await _orderService.GetOrderByBookingIdAsync(bookingId);
-                        if (order != null)
-                        {
-                            await _orderService.UpdateOrderStatusPaymentAsync(order.OrderId, 3);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Lỗi khi cập nhật trạng thái thanh toán của Order: {ex.Message}");
-                    }
                     var field = booking.FieldBookingSchedules?.FirstOrDefault()?.Field;
                     if (field != null)
                     {
