@@ -103,6 +103,10 @@ namespace SportZone_API.Services
                         throw new InvalidOperationException("Không thể hủy booking trong vòng 2 giờ trước giờ bắt đầu");
                     }
                 }
+                if (booking.Date.HasValue && booking.Date.Value.ToDateTime(new TimeOnly(0, 0)) <= DateTime.Now)
+                {
+                    throw new InvalidOperationException("Không thể hủy booking trong quá khứ");
+                }
 
                 var isCancelled = await _bookingRepository.CancelBookingAsync(bookingId);
                 if (isCancelled)
