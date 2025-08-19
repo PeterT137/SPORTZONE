@@ -1764,6 +1764,44 @@ const OrdersTable: React.FC = () => {
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                         <svg
+                          className="w-5 h-5 mr-2 text-purple-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                          />
+                        </svg>
+                        Thông tin sân
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Cơ sở:</span>
+                          <span className="font-medium">
+                            {orderDetail.facilityName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tên sân:</span>
+                          <span className="font-medium">
+                            {orderDetail.fieldName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Loại sân:</span>
+                          <span className="font-medium">
+                            {orderDetail.categoryFieldName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
                           className="w-5 h-5 mr-2 text-blue-600"
                           fill="none"
                           stroke="currentColor"
@@ -1791,12 +1829,6 @@ const OrdersTable: React.FC = () => {
                           <span className="text-gray-600">Thời gian sân:</span>
                           <span className="font-medium">
                             {orderDetail.startTime} - {orderDetail.endTime}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Trạng thái:</span>
-                          <span className="font-medium text-green-600">
-                            {mapBookingStatus(orderDetail.bookingStatus)}
                           </span>
                         </div>
                       </div>
@@ -1843,44 +1875,7 @@ const OrdersTable: React.FC = () => {
                   </div>
 
                   <div className="space-y-6">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2 text-purple-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                          />
-                        </svg>
-                        Thông tin sân
-                      </h3>
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Cơ sở:</span>
-                          <span className="font-medium">
-                            {orderDetail.facilityName}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Tên sân:</span>
-                          <span className="font-medium">
-                            {orderDetail.fieldName}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Loại sân:</span>
-                          <span className="font-medium">
-                            {orderDetail.categoryFieldName}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    
 
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -2002,11 +1997,8 @@ const OrdersTable: React.FC = () => {
                         <div className="flex justify-between">
                           <span className="text-gray-600">Trạng thái:</span>
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                              orderDetail.statusPayment
-                            )}`}
-                          >
-                            {orderDetail.statusPayment}
+                              className={`px-3 py-1 rounded-full text-100 font-medium ${getPaymentStatusColor(orderDetail.statusPayment)}`}>
+                              {mapBookingStatus(orderDetail.statusPayment)}
                           </span>
                         </div>
                         <div className="flex justify-between">
