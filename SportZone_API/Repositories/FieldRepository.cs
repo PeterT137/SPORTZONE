@@ -145,6 +145,9 @@ namespace SportZone_API.Repositories
                     .Include(fbs => fbs.Field)
                     .Include(fbs => fbs.Booking)
                         .ThenInclude(b => b.Orders)
+                    .Include(fbs => fbs.Booking)
+                        .ThenInclude(b => b.UIdNavigation)
+                            .ThenInclude(u => u.Customer)
                     .Where(fbs => fbs.FieldId == fieldId)
                     .OrderBy(fbs => fbs.Date)
                     .ThenBy(fbs => fbs.StartTime)
@@ -163,8 +166,13 @@ namespace SportZone_API.Repositories
                     Notes = s.Notes,
                     Status = s.Status,
                     Price = s.Price,
+                    GuestName = s.Booking?.GuestName,
+                    GuestPhone = s.Booking?.GuestPhone,
                     BookingStatus = s.Booking?.Status,
                     OrderStatusPayment = s.Booking?.Orders?.FirstOrDefault()?.StatusPayment,
+                    CustomerName = s.Booking?.UIdNavigation?.Customer?.Name,
+                    CustomerPhone = s.Booking?.UIdNavigation?.Customer?.Phone,
+                    BookerType = s.Booking?.UId != null ? "Customer" : "Guest",
                 });
 
                 return scheduleDto;
