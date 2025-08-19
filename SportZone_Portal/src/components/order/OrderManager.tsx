@@ -207,7 +207,7 @@ export function OrderManagement() {
   //xác nhận thanh toán
   const confirmPayment = async (
     orderId: string,
-    newStatus: "pending" | "paid" | "cancelled"
+    newStatus: "pending" | "paid" | "cancel"
   ) => {
     console.log(
       `Confirming payment for order ${orderId} with status ${newStatus}`

@@ -214,7 +214,7 @@ export class OrderService {
 
   static async updateOrderPaymentStatus(
     orderId: string,
-    status: "pending" | "paid" | "cancelled"
+    status: "pending" | "paid" | "cancel"
   ): Promise<Order> {
     // No backend endpoint provided; keep local shape update minimal
     return {

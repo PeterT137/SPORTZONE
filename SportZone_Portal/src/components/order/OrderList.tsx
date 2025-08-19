@@ -33,7 +33,7 @@ interface OrderListProps {
   ) => void;
   onUpdateOrderStatus: (
     orderId: string,
-    newStatus: "pending" | "paid" | "cancelled"
+    newStatus: "pending" | "paid" | "cancel"
   ) => void;
 }
 

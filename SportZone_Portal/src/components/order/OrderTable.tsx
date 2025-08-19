@@ -665,7 +665,7 @@ const OrdersTable: React.FC = () => {
         totalServicePrice,
         fieldRentalPrice: Math.max(totalAmount - totalServicePrice, 0),
         discountAmount: 0,
-        deposit: Math.round(totalAmount * 0.3),
+        deposit: Math.round((Math.max(totalAmount - totalServicePrice, 0)) * 0.5),
         contentPayment: getString(
           orderObj?.["contentPayment"] ?? order.contentPayment,
           ""
@@ -708,7 +708,7 @@ const OrdersTable: React.FC = () => {
         totalServicePrice: order.totalServicePrice,
         fieldRentalPrice: order.totalPrice - order.totalServicePrice,
         discountAmount: 0,
-        deposit: Math.round(order.totalPrice * 0.3),
+        deposit: Math.round(order.totalPrice * 0.5),
         contentPayment: order.contentPayment,
         statusPayment: order.statusPayment,
         paymentMethod: "N/A",
