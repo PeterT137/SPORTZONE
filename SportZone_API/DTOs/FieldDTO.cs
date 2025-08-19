@@ -60,5 +60,8 @@ namespace SportZone_API.DTOs
         public string? GuestPhone { get; set; }
         public string? BookingStatus { get; set; }
         public string? OrderStatusPayment { get; set; }
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
+        public string? BookerType { get; set; } // "Customer" hoặc "Guest"
     }
 }
