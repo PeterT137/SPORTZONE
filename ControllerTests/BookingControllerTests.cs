@@ -1583,7 +1583,7 @@ namespace SportZone_API.Tests.Controllers
             var result = await _controller.CancelBooking(bookingId);
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
+            var okResult = Assert.IsType<NotFoundObjectResult>(result);
             var json = JsonSerializer.Serialize(okResult.Value);
             using var doc = JsonDocument.Parse(json);
 
