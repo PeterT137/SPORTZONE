@@ -98,6 +98,27 @@ const OrdersTable: React.FC = () => {
     [key: string]: boolean;
   }>({});
 
+  const [confirmPopup, setConfirmPopup] = useState<{
+    show: boolean;
+    orderId: number | null;
+    newStatus: string;
+  }>(() => ({ show: false, orderId: null, newStatus: "" }));
+
+  const handleChangePaymentStatus = (orderId: number, newStatus: string) => {
+    setConfirmPopup({ show: true, orderId, newStatus });
+  };
+
+  const handleConfirmChangeStatus = () => {
+    if (confirmPopup.orderId && confirmPopup.newStatus) {
+      updatePaymentStatus(confirmPopup.orderId, confirmPopup.newStatus);
+    }
+    setConfirmPopup({ show: false, orderId: null, newStatus: "" });
+  };
+
+  const handleCancelChangeStatus = () => {
+    setConfirmPopup({ show: false, orderId: null, newStatus: "" });
+  };
+
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -173,16 +194,16 @@ const OrdersTable: React.FC = () => {
         );
         const startTime = getString(
           d["startTime"] ??
-          d["StartTime"] ??
-          firstSlot["startTime"] ??
-          firstSlot["StartTime"],
+            d["StartTime"] ??
+            firstSlot["startTime"] ??
+            firstSlot["StartTime"],
           o.startTime
         ).slice(0, 5);
         const endTime = getString(
           d["endTime"] ??
-          d["EndTime"] ??
-          firstSlot["endTime"] ??
-          firstSlot["EndTime"],
+            d["EndTime"] ??
+            firstSlot["endTime"] ??
+            firstSlot["EndTime"],
           o.endTime
         ).slice(0, 5);
 
@@ -190,9 +211,9 @@ const OrdersTable: React.FC = () => {
           (d["field"] as Record<string, unknown> | undefined) || undefined;
         const fieldName = getString(
           fieldObj?.["fieldName"] ??
-          fieldObj?.["FieldName"] ??
-          firstSlot["fieldName"] ??
-          firstSlot["FieldName"],
+            fieldObj?.["FieldName"] ??
+            firstSlot["fieldName"] ??
+            firstSlot["FieldName"],
           o.fieldName
         );
 
@@ -301,20 +322,20 @@ const OrdersTable: React.FC = () => {
               | undefined;
             const name = getStr(
               customer?.["name"] ??
-              customer?.["Name"] ??
-              fieldOwner?.["name"] ??
-              fieldOwner?.["Name"] ??
-              staff?.["name"] ??
-              staff?.["Name"],
+                customer?.["Name"] ??
+                fieldOwner?.["name"] ??
+                fieldOwner?.["Name"] ??
+                staff?.["name"] ??
+                staff?.["Name"],
               ""
             );
             const phone = getStr(
               customer?.["phone"] ??
-              customer?.["Phone"] ??
-              fieldOwner?.["phone"] ??
-              fieldOwner?.["Phone"] ??
-              staff?.["phone"] ??
-              staff?.["Phone"],
+                customer?.["Phone"] ??
+                fieldOwner?.["phone"] ??
+                fieldOwner?.["Phone"] ??
+                staff?.["phone"] ??
+                staff?.["Phone"],
               ""
             );
             // Lấy email từ API
@@ -546,8 +567,8 @@ const OrdersTable: React.FC = () => {
       );
       const statusPaymentRaw = getString(
         orderObj?.["statusPayment"] ??
-        orderObj?.["StatusPayment"] ??
-        order.statusPayment
+          orderObj?.["StatusPayment"] ??
+          order.statusPayment
       );
 
       const servicesRaw = (orderObj?.["services"] ??
@@ -568,52 +589,52 @@ const OrdersTable: React.FC = () => {
 
       const facilityName = getString(
         (bookingData["facility"] as Record<string, unknown> | undefined)?.[
-        "facilityName"
+          "facilityName"
         ] ??
-        (bookingData["facility"] as Record<string, unknown> | undefined)?.[
-        "FacilityName"
-        ] ??
-        bookingData["facilityName"] ??
-        bookingData["FacilityName"] ??
-        order.facilityName,
+          (bookingData["facility"] as Record<string, unknown> | undefined)?.[
+            "FacilityName"
+          ] ??
+          bookingData["facilityName"] ??
+          bookingData["FacilityName"] ??
+          order.facilityName,
         order.facilityName
       );
 
       const fieldName = getString(
         (bookingData["field"] as Record<string, unknown> | undefined)?.[
-        "fieldName"
+          "fieldName"
         ] ??
-        (bookingData["field"] as Record<string, unknown> | undefined)?.[
-        "FieldName"
-        ] ??
-        firstSlot["fieldName"] ??
-        firstSlot["FieldName"] ??
-        order.fieldName,
+          (bookingData["field"] as Record<string, unknown> | undefined)?.[
+            "FieldName"
+          ] ??
+          firstSlot["fieldName"] ??
+          firstSlot["FieldName"] ??
+          order.fieldName,
         order.fieldName
       );
 
       const bookingDate = getString(
         bookingData["date"] ??
-        bookingData["Date"] ??
-        firstSlot["date"] ??
-        firstSlot["Date"] ??
-        order.bookingDate,
+          bookingData["Date"] ??
+          firstSlot["date"] ??
+          firstSlot["Date"] ??
+          order.bookingDate,
         order.bookingDate
       );
       const startTime = getString(
         bookingData["startTime"] ??
-        bookingData["StartTime"] ??
-        firstSlot["startTime"] ??
-        firstSlot["StartTime"] ??
-        order.startTime,
+          bookingData["StartTime"] ??
+          firstSlot["startTime"] ??
+          firstSlot["StartTime"] ??
+          order.startTime,
         order.startTime
       ).slice(0, 5);
       const endTime = getString(
         bookingData["endTime"] ??
-        bookingData["EndTime"] ??
-        firstSlot["endTime"] ??
-        firstSlot["EndTime"] ??
-        order.endTime,
+          bookingData["EndTime"] ??
+          firstSlot["endTime"] ??
+          firstSlot["EndTime"] ??
+          order.endTime,
         order.endTime
       ).slice(0, 5);
 
@@ -896,26 +917,26 @@ const OrdersTable: React.FC = () => {
                 filters.paymentStatus ||
                 filters.dateFrom ||
                 filters.dateTo) && (
-                  <button
-                    onClick={clearFilters}
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 hover:bg-red-100 transition-colors duration-200 text-sm font-medium"
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center space-x-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 hover:bg-red-100 transition-colors duration-200 text-sm font-medium"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                    <span>Xóa bộ lọc</span>
-                  </button>
-                )}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  <span>Xóa bộ lọc</span>
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -1065,8 +1086,9 @@ const OrdersTable: React.FC = () => {
                 >
                   <span className="text-gray-900">
                     {filters.priceFrom || filters.priceTo
-                      ? `${filters.priceFrom || "0"} - ${filters.priceTo || "∞"
-                      }`
+                      ? `${filters.priceFrom || "0"} - ${
+                          filters.priceTo || "∞"
+                        }`
                       : "Chọn khoảng giá"}
                   </span>
                   <svg
@@ -1188,8 +1210,9 @@ const OrdersTable: React.FC = () => {
                           className="p-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center text-gray-700 hover:text-blue-600"
                         >
                           <span
-                            className={`inline-block w-3 h-3 rounded-full mr-3 ${getPaymentStatusColor(status).split(" ")[0]
-                              }`}
+                            className={`inline-block w-3 h-3 rounded-full mr-3 ${
+                              getPaymentStatusColor(status).split(" ")[0]
+                            }`}
                           ></span>
                           {status}
                         </div>
@@ -1209,8 +1232,9 @@ const OrdersTable: React.FC = () => {
                 >
                   <span className="text-gray-900">
                     {filters.dateFrom || filters.dateTo
-                      ? `${filters.dateFrom || "..."} - ${filters.dateTo || "..."
-                      }`
+                      ? `${filters.dateFrom || "..."} - ${
+                          filters.dateTo || "..."
+                        }`
                       : "Chọn thời gian"}
                   </span>
                   <svg
@@ -1387,7 +1411,19 @@ const OrdersTable: React.FC = () => {
                                 }
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
                                   order.statusPayment
-                                )}`}
+                                )} ${
+                                  order.statusPayment === "Đã thanh toán"
+                                    ? "cursor-not-allowed opacity-60"
+                                    : ""
+                                }`}
+                                disabled={
+                                  order.statusPayment === "Đã thanh toán"
+                                }
+                                title={
+                                  order.statusPayment === "Đã thanh toán"
+                                    ? "Đơn hàng đã thanh toán, không thể đổi trạng thái"
+                                    : "Đổi trạng thái thanh toán"
+                                }
                               >
                                 {order.statusPayment}
                                 <svg
@@ -1406,7 +1442,8 @@ const OrdersTable: React.FC = () => {
                               </button>
                               {showDropdowns[
                                 `paymentStatus_${order.orderId}`
-                              ] && (
+                              ] &&
+                                order.statusPayment !== "Đã thanh toán" && (
                                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
                                     <div className="py-1">
                                       {paymentStatuses.map(
@@ -1414,7 +1451,7 @@ const OrdersTable: React.FC = () => {
                                           <div
                                             key={statusIndex}
                                             onClick={() => {
-                                              updatePaymentStatus(
+                                              handleChangePaymentStatus(
                                                 order.orderId,
                                                 status
                                               );
@@ -1422,16 +1459,18 @@ const OrdersTable: React.FC = () => {
                                                 `paymentStatus_${order.orderId}`
                                               );
                                             }}
-                                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 ${status === order.statusPayment
-                                              ? "bg-blue-50 text-blue-700"
-                                              : "text-gray-700 hover:text-blue-600"
-                                              }`}
+                                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 ${
+                                              status === order.statusPayment
+                                                ? "bg-blue-50 text-blue-700"
+                                                : "text-gray-700 hover:text-blue-600"
+                                            }`}
                                           >
                                             <span
-                                              className={`inline-block w-2 h-2 rounded-full mr-3 ${getPaymentStatusColor(
-                                                status
-                                              ).split(" ")[0]
-                                                }`}
+                                              className={`inline-block w-2 h-2 rounded-full mr-3 ${
+                                                getPaymentStatusColor(
+                                                  status
+                                                ).split(" ")[0]
+                                              }`}
                                             ></span>
                                             {status}
                                           </div>
@@ -1442,6 +1481,41 @@ const OrdersTable: React.FC = () => {
                                 )}
                             </div>
                           </td>
+                          {confirmPopup.show && (
+                            <div className="fixed inset-0 flex items-center justify-center z-[100]">
+                              <div className="absolute inset-0 bg-gray-500 bg-opacity-30"></div>
+                              <div className="relative bg-white rounded-lg shadow-xl p-6 min-w-[320px]">
+                                <h3 className="text-lg font-semibold mb-2 text-gray-900">
+                                  Xác nhận chuyển trạng thái
+                                </h3>
+                                <p className="mb-4 text-gray-700">
+                                  Bạn có chắc muốn chuyển trạng thái đơn hàng{" "}
+                                  <span className="font-bold">
+                                    #{confirmPopup.orderId}
+                                  </span>{" "}
+                                  thành{" "}
+                                  <span className="font-bold">
+                                    {confirmPopup.newStatus}
+                                  </span>
+                                  ?
+                                </p>
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    onClick={handleCancelChangeStatus}
+                                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                                  >
+                                    Hủy
+                                  </button>
+                                  <button
+                                    onClick={handleConfirmChangeStatus}
+                                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+                                  >
+                                    Xác nhận
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <button
                               onClick={() => openOrderDetail(order)}
@@ -1538,10 +1612,11 @@ const OrdersTable: React.FC = () => {
                   <button
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
-                    className={`p-2 rounded-lg border ${currentPage === 1
-                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                      } transition-colors duration-200`}
+                    className={`p-2 rounded-lg border ${
+                      currentPage === 1
+                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                    } transition-colors duration-200`}
                     aria-label="Trang đầu"
                   >
                     <svg
@@ -1564,10 +1639,11 @@ const OrdersTable: React.FC = () => {
                       setCurrentPage((prev) => Math.max(prev - 1, 1))
                     }
                     disabled={currentPage === 1}
-                    className={`p-2 rounded-lg border ${currentPage === 1
-                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                      } transition-colors duration-200`}
+                    className={`p-2 rounded-lg border ${
+                      currentPage === 1
+                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                    } transition-colors duration-200`}
                     aria-label="Trang trước"
                   >
                     <svg
@@ -1602,10 +1678,11 @@ const OrdersTable: React.FC = () => {
                         <button
                           key={pageNumber}
                           onClick={() => setCurrentPage(pageNumber)}
-                          className={`w-8 h-8 rounded-lg border text-sm font-medium transition-colors duration-200 ${pageNumber === currentPage
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                            }`}
+                          className={`w-8 h-8 rounded-lg border text-sm font-medium transition-colors duration-200 ${
+                            pageNumber === currentPage
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                          }`}
                         >
                           {pageNumber}
                         </button>
@@ -1618,10 +1695,11 @@ const OrdersTable: React.FC = () => {
                       setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                     }
                     disabled={currentPage === totalPages}
-                    className={`p-2 rounded-lg border ${currentPage === totalPages
-                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                      } transition-colors duration-200`}
+                    className={`p-2 rounded-lg border ${
+                      currentPage === totalPages
+                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                    } transition-colors duration-200`}
                     aria-label="Trang tiếp"
                   >
                     <svg
@@ -1642,10 +1720,11 @@ const OrdersTable: React.FC = () => {
                   <button
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
-                    className={`p-2 rounded-lg border ${currentPage === totalPages
-                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                      } transition-colors duration-200`}
+                    className={`p-2 rounded-lg border ${
+                      currentPage === totalPages
+                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                    } transition-colors duration-200`}
                     aria-label="Trang cuối"
                   >
                     <svg

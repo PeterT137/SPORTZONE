@@ -6,41 +6,50 @@ type MonthlyRevenue = {
   revenue: number;
 };
 
-type RevenueChartData = {
-  monthlyRevenue: MonthlyRevenue[];
-  [key: string]: unknown;
-};
-
 type RevenueChartProps = {
-  data: RevenueChartData;
+  monthlyRevenue: MonthlyRevenue[];
+  filterMode: "month" | "year";
   loading: boolean;
   error?: string;
 };
 
 const RevenueChart: React.FC<RevenueChartProps> = ({
-  data,
+  monthlyRevenue,
+  filterMode,
   loading,
   error,
 }) => {
   if (loading) return <div>Đang tải biểu đồ...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
-  if (!data?.monthlyRevenue || data.monthlyRevenue.length === 0) {
+
+  if (!monthlyRevenue || monthlyRevenue.length === 0) {
     return (
       <div className="h-48 flex items-center justify-center text-gray-400">
-        (Biểu đồ doanh thu sẽ hiển thị ở đây)
+        (Không có dữ liệu doanh thu để hiển thị)
       </div>
     );
   }
+
+  const chartLabel =
+    filterMode === "year" ? "Doanh thu theo năm" : "Doanh thu theo tháng";
+  const chartTitle =
+    filterMode === "year"
+      ? "Biểu đồ doanh thu theo năm"
+      : "Biểu đồ doanh thu theo tháng";
+
   return (
     <div className="h-64 flex items-center justify-center">
       <div className="w-full max-w-[600px]">
         <SimpleBarChart
+          // Chuyển đổi dữ liệu cho SimpleBarChart
           data={{
-            monthlyRevenue: data.monthlyRevenue.map(({ month, revenue }) => ({
+            monthlyRevenue: monthlyRevenue.map(({ month, revenue }) => ({
               period: month,
               revenue,
             })),
           }}
+          chartLabel={chartLabel}
+          chartTitle={chartTitle}
         />
       </div>
     </div>

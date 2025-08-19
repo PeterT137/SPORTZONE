@@ -55,10 +55,7 @@ const FinanceManager: React.FC = () => {
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("token");
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-    return {};
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
   const fetchFacilities = async () => {
@@ -82,41 +79,42 @@ const FinanceManager: React.FC = () => {
     setError("");
     try {
       let url = `https://localhost:7057/api/Order/Owner/${filter.ownerId}/TotalRevenue`;
-      const params = [];
-      if (filter.startDate) params.push(`startDate=${filter.startDate}`);
-      if (filter.endDate) params.push(`endDate=${filter.endDate}`);
-      if (filter.facilityId) params.push(`facilityId=${filter.facilityId}`);
-      if (params.length > 0) url += `?${params.join("&")}`;
+      const params = new URLSearchParams();
+      if (filter.startDate) params.append("startDate", filter.startDate);
+      if (filter.endDate) params.append("endDate", filter.endDate);
+      if (filter.facilityId) params.append("facilityId", filter.facilityId);
+
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+
       const res = await fetch(url, {
         method: "GET",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       });
       const data = await res.json();
-      if (data.success) {
-        console.log("API doanh thu trả về:", data.data);
-        if (data.data && Array.isArray(data.data.monthlyRevenue)) {
-          setRevenueData(data.data);
-        } else if (Array.isArray(data.data)) {
-          setRevenueData({ monthlyRevenue: data.data });
-        } else {
-          setRevenueData({ monthlyRevenue: [] });
-        }
+
+      if (res.ok && data.success) {
+        setRevenueData(data.data || { monthlyRevenue: [] });
       } else {
         setError(data.message || "Lỗi lấy dữ liệu");
+        setRevenueData(null);
       }
     } catch {
       setError("Lỗi kết nối server");
+      setRevenueData(null);
     }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchFacilities();
-  }, []);
+  }, [getAuthHeaders]);
 
   useEffect(() => {
     fetchTotalRevenue();
-  }, [filter, getAuthHeaders]); // Added getAuthHeaders dependency
+  }, [filter, getAuthHeaders]);
 
   const handleFilterChange = (newFilter: Partial<FilterType>) => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -126,6 +124,23 @@ const FinanceManager: React.FC = () => {
       ownerId: String(user.UId || ""),
     }));
   };
+
+  const filterMode = filter.year ? "year" : "month";
+  let chartDisplayData: { month: string; revenue: number }[] = [];
+
+  if (revenueData) {
+    const sourceData =
+      filterMode === "year"
+        ? revenueData.yearlyRevenue
+        : revenueData.monthlyRevenue;
+
+    if (Array.isArray(sourceData)) {
+      chartDisplayData = sourceData.map((item) => ({
+        month: String(item.month || item.period || ""),
+        revenue: item.revenue,
+      }));
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
@@ -147,39 +162,8 @@ const FinanceManager: React.FC = () => {
                 />
                 <div className="bg-white rounded-xl shadow-md p-6 mt-6">
                   <RevenueChart
-                    data={(() => {
-                      if (!revenueData) return { monthlyRevenue: [] };
-
-                      // If filter.year has a value, use yearlyRevenue
-                      if (
-                        filter.year &&
-                        Array.isArray(revenueData.yearlyRevenue)
-                      ) {
-                        return {
-                          monthlyRevenue: revenueData.yearlyRevenue.map(
-                            (item) => ({
-                              month: String(item.month || item.period || ""),
-                              revenue: item.revenue,
-                            })
-                          ),
-                        };
-                      }
-
-                      // Default or if filter.month has a value, use monthlyRevenue
-                      if (Array.isArray(revenueData.monthlyRevenue)) {
-                        return {
-                          monthlyRevenue: revenueData.monthlyRevenue.map(
-                            (item) => ({
-                              // FIX: Ensure 'month' is always a string by providing a fallback to an empty string.
-                              month: item.month || item.period || "",
-                              revenue: item.revenue,
-                            })
-                          ),
-                        };
-                      }
-
-                      return { monthlyRevenue: [] };
-                    })()}
+                    monthlyRevenue={chartDisplayData}
+                    filterMode={filterMode}
                     loading={loading}
                     error={error}
                   />
