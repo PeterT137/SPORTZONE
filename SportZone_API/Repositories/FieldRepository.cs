@@ -143,8 +143,6 @@ namespace SportZone_API.Repositories
             {
                 var schedule = await _context.FieldBookingSchedules
                     .Include(fbs => fbs.Field)
-                        .ThenInclude(f => f.Fac)
-                            .ThenInclude(fac => fac.UIdNavigation)
                     .Include(fbs => fbs.Booking)
                         .ThenInclude(b => b.Orders)
                     .Include(fbs => fbs.Booking)
@@ -175,7 +173,6 @@ namespace SportZone_API.Repositories
                     CustomerName = s.Booking?.UIdNavigation?.Customer?.Name,
                     CustomerPhone = s.Booking?.UIdNavigation?.Customer?.Phone,
                     BookerType = s.Booking?.UId != null ? "Customer" : "Guest",
-                    FieldOwnerName = s.Field?.Fac?.UIdNavigation?.Name
                 });
 
                 return scheduleDto;
