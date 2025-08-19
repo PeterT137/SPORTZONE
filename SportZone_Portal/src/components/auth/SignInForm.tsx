@@ -63,10 +63,11 @@ const SignInForm: React.FC = () => {
       formData.password.length < 10 ||
       !/[A-Z]/.test(formData.password) ||
       !/[a-z]/.test(formData.password) ||
+      !/[0-9]/.test(formData.password) ||
       !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
     ) {
       newErrors.password =
-        "Mật khẩu phải dài ít nhất 10 ký tự, bao gồm chữ hoa, chữ thường và ký tự đặc biệt";
+        "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
     }
 
     return newErrors;
@@ -305,9 +306,8 @@ const SignInForm: React.FC = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            className={`block w-full rounded-md border py-2 px-4 text-sm ${
-              errors.email ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`block w-full rounded-md border py-2 px-4 text-sm ${errors.email ? "border-red-500" : "border-gray-300"
+              }`}
           />
           {errors.email && (
             <p className="text-red-500 text-xs mt-1">{errors.email}</p>
@@ -331,9 +331,8 @@ const SignInForm: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              className={`block w-full rounded-md border py-2 px-4 pr-12 text-sm ${
-                errors.password ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`block w-full rounded-md border py-2 px-4 pr-12 text-sm ${errors.password ? "border-red-500" : "border-gray-300"
+                }`}
             />
             <button
               type="button"

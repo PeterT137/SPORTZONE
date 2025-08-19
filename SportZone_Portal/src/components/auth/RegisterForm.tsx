@@ -51,10 +51,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
       formData.password.length < 10 ||
       !/[A-Z]/.test(formData.password) ||
       !/[a-z]/.test(formData.password) ||
+      !/[0-9]/.test(formData.password) ||
       !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
     ) {
       newErrors.password =
-        "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường và ký tự đặc biệt";
+        "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
     }
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Xác nhận mật khẩu không khớp";
@@ -91,7 +92,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
     setLoading(true);
 
     try {
-      await axios.post("https://localhost:7057/api/Register/register", {
+      await axios.post("https://localhost:7057/api/Register", {
         roleName: roleNameMap[role],
         name: formData.name,
         phone: formData.phone,
@@ -154,9 +155,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
           name="name"
           value={formData.name}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${
-            errors.name ? "border-red-500" : "border-gray-300"
-          }`}
+          className={`w-full border px-4 py-2 rounded text-sm ${errors.name ? "border-red-500" : "border-gray-300"
+            }`}
           placeholder="Nhập tên của bạn"
           aria-label="Tên"
         />
@@ -173,9 +173,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
           name="phone"
           value={formData.phone}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${
-            errors.phone ? "border-red-500" : "border-gray-300"
-          }`}
+          className={`w-full border px-4 py-2 rounded text-sm ${errors.phone ? "border-red-500" : "border-gray-300"
+            }`}
           placeholder="Nhập số điện thoại"
           aria-label="Số điện thoại"
         />
@@ -192,9 +191,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
           name="email"
           value={formData.email}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${
-            errors.email ? "border-red-500" : "border-gray-300"
-          }`}
+          className={`w-full border px-4 py-2 rounded text-sm ${errors.email ? "border-red-500" : "border-gray-300"
+            }`}
           placeholder="Nhập email"
           aria-label="Email"
         />
@@ -211,9 +209,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
           name="password"
           value={formData.password}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${
-            errors.password ? "border-red-500" : "border-gray-300"
-          }`}
+          className={`w-full border px-4 py-2 rounded text-sm ${errors.password ? "border-red-500" : "border-gray-300"
+            }`}
           placeholder="Nhập mật khẩu"
           aria-label="Mật khẩu"
         />
@@ -232,9 +229,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
           name="confirmPassword"
           value={formData.confirmPassword}
           onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${
-            errors.confirmPassword ? "border-red-500" : "border-gray-300"
-          }`}
+          className={`w-full border px-4 py-2 rounded text-sm ${errors.confirmPassword ? "border-red-500" : "border-gray-300"
+            }`}
           placeholder="Xác nhận mật khẩu"
           aria-label="Xác nhận mật khẩu"
         />

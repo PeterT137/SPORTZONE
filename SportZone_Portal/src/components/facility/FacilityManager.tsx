@@ -499,8 +499,7 @@ const FacilityManager: React.FC = () => {
         const errorMessages = Object.entries(responseData.errors)
           .map(
             ([field, messages]) =>
-              `${field}: ${
-                Array.isArray(messages) ? messages.join(", ") : messages
+              `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages
               }`
           )
           .join("\n");
@@ -899,11 +898,10 @@ const FacilityManager: React.FC = () => {
       pageNumbers.push(
         <button
           key={i}
-          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium transition-all duration-200 ${
-            i === currentPage
-              ? "z-10 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
-              : "bg-white text-gray-700 hover:bg-green-50 hover:text-green-600"
-          }`}
+          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium transition-all duration-200 ${i === currentPage
+            ? "z-10 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+            : "bg-white text-gray-700 hover:bg-green-50 hover:text-green-600"
+            }`}
           onClick={() => goToPage(i)}
           disabled={i === currentPage}
         >
@@ -1452,11 +1450,10 @@ const FacilityManager: React.FC = () => {
                 <div className="bg-white px-6 py-4 flex items-center justify-between border-t border-gray-200 rounded-b-2xl shadow-lg">
                   <div className="flex-1 flex justify-between sm:hidden">
                     <button
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${
-                        currentPage === 1
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:shadow-md"
-                      }`}
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${currentPage === 1
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:shadow-md"
+                        }`}
                       onClick={goToPrevPage}
                       disabled={currentPage === 1}
                     >
@@ -1481,11 +1478,10 @@ const FacilityManager: React.FC = () => {
                       <span className="font-medium">{totalPages}</span>
                     </div>
                     <button
-                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${
-                        currentPage === totalPages || totalPages === 0
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:shadow-md"
-                      }`}
+                      className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${currentPage === totalPages || totalPages === 0
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:shadow-md"
+                        }`}
                       onClick={goToNextPage}
                       disabled={currentPage === totalPages || totalPages === 0}
                     >
@@ -1545,11 +1541,10 @@ const FacilityManager: React.FC = () => {
                         aria-label="Phân trang"
                       >
                         <button
-                          className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${
-                            currentPage === 1
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:text-gray-700"
-                          }`}
+                          className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${currentPage === 1
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:text-gray-700"
+                            }`}
                           onClick={goToPrevPage}
                           disabled={currentPage === 1}
                         >
@@ -1572,11 +1567,10 @@ const FacilityManager: React.FC = () => {
                           {renderPaginationNumbers()}
                         </div>
                         <button
-                          className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${
-                            currentPage === totalPages || totalPages === 0
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:text-gray-700"
-                          }`}
+                          className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${currentPage === totalPages || totalPages === 0
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:text-gray-700"
+                            }`}
                           onClick={goToNextPage}
                           disabled={
                             currentPage === totalPages || totalPages === 0
@@ -2277,11 +2271,10 @@ const FacilityManager: React.FC = () => {
                           </span>
                         </div>
                         <span
-                          className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                            selectedService.status === "active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
+                          className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${selectedService.status === "active"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                            }`}
                         >
                           {selectedService.status}
                         </span>

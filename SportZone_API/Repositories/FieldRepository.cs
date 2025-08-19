@@ -144,6 +144,7 @@ namespace SportZone_API.Repositories
                 var schedule = await _context.FieldBookingSchedules
                     .Include(fbs => fbs.Field)
                     .Include(fbs => fbs.Booking)
+                        .ThenInclude(b => b.Orders)
                     .Where(fbs => fbs.FieldId == fieldId)
                     .OrderBy(fbs => fbs.Date)
                     .ThenBy(fbs => fbs.StartTime)
@@ -161,7 +162,9 @@ namespace SportZone_API.Repositories
                     Date = s.Date,
                     Notes = s.Notes,
                     Status = s.Status,
-                    Price = s.Price
+                    Price = s.Price,
+                    BookingStatus = s.Booking?.Status,
+                    OrderStatusPayment = s.Booking?.Orders?.FirstOrDefault()?.StatusPayment,
                 });
 
                 return scheduleDto;

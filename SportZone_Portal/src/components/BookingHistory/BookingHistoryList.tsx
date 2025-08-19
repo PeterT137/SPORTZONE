@@ -178,10 +178,9 @@ const BookingHistoryList: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-semibold ${
-                            statusMap[booking.status]?.color ||
+                          className={`px-2 py-1 rounded text-xs font-semibold ${statusMap[booking.status]?.color ||
                             "bg-gray-100 text-gray-700"
-                          }`}
+                            }`}
                         >
                           {statusMap[booking.status]?.label || booking.status}
                         </span>
@@ -272,11 +271,10 @@ const BookingHistoryList: React.FC = () => {
                   (page) => (
                     <button
                       key={page}
-                      className={`px-3 py-1 rounded border border-gray-300 font-semibold ${
-                        page === currentPage
-                          ? "bg-[#1ebd6f] text-white border-[#1ebd6f]"
-                          : "bg-white hover:bg-gray-100 text-[#1a3c34]"
-                      }`}
+                      className={`px-3 py-1 rounded border border-gray-300 font-semibold ${page === currentPage
+                        ? "bg-[#1ebd6f] text-white border-[#1ebd6f]"
+                        : "bg-white hover:bg-gray-100 text-[#1a3c34]"
+                        }`}
                       onClick={() => handlePageChange(page)}
                     >
                       {page}

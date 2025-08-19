@@ -63,7 +63,7 @@ namespace SportZone_API.Controllers
 
         [HttpPut("Order/{orderId}/Update/StatusPayment")]
         [RoleAuthorize("2,4")]
-        public async Task<IActionResult> UpdateOrderStatusPayment(int orderId)
+        public async Task<IActionResult> UpdateOrderStatusPayment(int orderId, int option)
         {
             try
             {
@@ -76,7 +76,7 @@ namespace SportZone_API.Controllers
                         errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
                     });
                 }
-                var response = await _orderService.UpdateOrderStatusPaymentAsync(orderId);
+                var response = await _orderService.UpdateOrderStatusPaymentAsync(orderId,option);
                 return Ok(response);
             }
             catch (Exception ex)

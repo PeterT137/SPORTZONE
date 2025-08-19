@@ -39,21 +39,16 @@ namespace SportZone_API.Services
             _facilityRepository = facilityRepository;
             _mapper = mapper;
             _hubContext = hubContext;
-            _httpContextAccessor = httpContextAccessor; // Khởi tạo HttpContextAccessor
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        // Lấy UserId từ HttpContext
         private string? GetCurrentUserId()
         {
-            // Lấy HttpContext
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null)
             {
                 return null;
             }
-
-            // Lấy User Id từ Claims của HttpContext
-            // Giả sử UserId được lưu trong claim "sub" (standard) hoặc ClaimTypes.NameIdentifier
             var userId = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             return userId;
         }
@@ -195,7 +190,7 @@ namespace SportZone_API.Services
 
                     if (!scheduleExists)
                     {
-                        decimal slotPrice = CalculatePriceForSlot(slotStartTime, pricingConfigsForField);
+                        decimal slotPrice = CalculatePriceForSlot(slotStartTime, pricingConfigsForField) / 2;
                         schedulesToAdd.Add(new FieldBookingSchedule
                         {
                             FieldId = generateDto.FieldId,
@@ -285,11 +280,9 @@ namespace SportZone_API.Services
 
             await _scheduleRepository.AddRangeSchedulesAsync(schedulesToAdd);
 
-            // Lấy ID người dùng hiện tại
             var currentUserId = GetCurrentUserId();
             if (currentUserId != null)
             {
-                // Gửi thông báo trực tiếp đến người dùng hiện tại
                 await _hubContext.Clients.User(currentUserId).SendAsync("ReceiveNotification", $"Đã tạo thành công {schedulesToAdd.Count} lịch cho sân '{field.FieldName}' từ {generateDto.StartDate.ToShortDateString()} đến {generateDto.EndDate.ToShortDateString()}.");
             }
 
@@ -315,7 +308,6 @@ namespace SportZone_API.Services
 
         public async Task<ScheduleGenerationResponseDto> UpdateGeneratedFieldBookingSchedulesAsync(FieldBookingScheduleUpdateGenerateDto updateDto)
         {
-            // 1. Validate
             if (updateDto.StartDate > updateDto.EndDate)
             {
                 return new ScheduleGenerationResponseDto
@@ -347,7 +339,6 @@ namespace SportZone_API.Services
                 };
             }
 
-            // Kiểm tra giờ hoạt động của cơ sở và các ràng buộc khác
             var field = await _fieldRepository.GetFieldByIdAsync(updateDto.FieldId);
             if (field == null)
             {
@@ -371,10 +362,10 @@ namespace SportZone_API.Services
                 return new ScheduleGenerationResponseDto { IsSuccess = false, Message = "Thời gian bắt đầu trong ngày phải nhỏ hơn thời gian kết thúc trong ngày." };
             }
 
-            // 2. Xóa các lịch hiện có (không có booking)
+            // Xóa các lịch hiện có (không có booking)
             await _scheduleRepository.DeleteRangeSchedulesAsync(existingSchedules);
 
-            // 3. Tạo lại các lịch mới với thời gian cập nhật
+            // Tạo lại các lịch mới với thời gian cập nhật
             var generateDto = new FieldBookingScheduleGenerateDto
             {
                 FieldId = updateDto.FieldId,
@@ -389,11 +380,9 @@ namespace SportZone_API.Services
 
             if (!generateResponse.IsSuccess)
             {
-                // Có lỗi xảy ra trong quá trình tạo lại lịch.
                 return generateResponse;
             }
 
-            // 4. Gửi thông báo
             var currentUserId = GetCurrentUserId();
             if (currentUserId != null && field != null)
             {
@@ -412,7 +401,6 @@ namespace SportZone_API.Services
 
         public async Task<ScheduleGenerationResponseDto> DeleteGeneratedFieldBookingSchedulesAsync(FieldBookingScheduleDeleteGenerateDto deleteDto)
         {
-            // 1. Validate
             if (deleteDto.StartDate > deleteDto.EndDate)
             {
                 return new ScheduleGenerationResponseDto
@@ -448,10 +436,8 @@ namespace SportZone_API.Services
                 };
             }
 
-            // 2. Xóa các lịch
-            await _scheduleRepository.DeleteRangeSchedulesAsync(schedulesToDelete); // Giả sử có method này
+            await _scheduleRepository.DeleteRangeSchedulesAsync(schedulesToDelete); 
 
-            // 3. Gửi thông báo
             var currentUserId = GetCurrentUserId();
             if (currentUserId != null)
             {

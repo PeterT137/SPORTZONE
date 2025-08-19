@@ -756,13 +756,13 @@ export const useFacilityDetail = () => {
     setFieldFormData((prev) =>
       prev
         ? {
-            ...prev,
-            [name]: isCheckbox
-              ? (e.target as HTMLInputElement).checked
-              : name === "categoryId"
+          ...prev,
+          [name]: isCheckbox
+            ? (e.target as HTMLInputElement).checked
+            : name === "categoryId"
               ? Number(value)
               : value,
-          }
+        }
         : null
     );
   };
@@ -779,8 +779,8 @@ export const useFacilityDetail = () => {
       [name]: isCheckbox
         ? (e.target as HTMLInputElement).checked
         : name === "categoryId"
-        ? Number(value)
-        : value,
+          ? Number(value)
+          : value,
     }));
   };
 
@@ -1096,13 +1096,13 @@ export const useFacilityDetail = () => {
     setDiscountFormData((prev) =>
       prev
         ? {
-            ...prev,
-            [name]: isCheckbox
-              ? (e.target as HTMLInputElement).checked
-              : type === "number"
+          ...prev,
+          [name]: isCheckbox
+            ? (e.target as HTMLInputElement).checked
+            : type === "number"
               ? Number(value)
               : value,
-          }
+        }
         : null
     );
   };
@@ -1119,8 +1119,8 @@ export const useFacilityDetail = () => {
       [name]: isCheckbox
         ? (e.target as HTMLInputElement).checked
         : type === "number"
-        ? Number(value)
-        : value,
+          ? Number(value)
+          : value,
     }));
   };
 

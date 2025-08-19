@@ -245,7 +245,7 @@ namespace SportZone_API.DTOs
                 BookingId = booking.BookingId,
                 FieldId = booking.FieldId,
                 FieldName = booking.Field?.FieldName,
-                FacilityName = booking.Field?.Fac != null ? $"Cơ sở {booking.Field.FacId}" : null,
+                FacilityName = booking.Field?.Fac?.Name,
                 FacilityAddress = booking.Field?.Fac?.Address,
                 UserId = booking.UId,
                 CustomerName = booking.UIdNavigation?.Customer?.Name,

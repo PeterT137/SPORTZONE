@@ -123,7 +123,7 @@ namespace SportZone_API.Controllers
             {
                 Console.WriteLine($"VNPay Return URL: {Request.QueryString}");
                 
-                //  query parameters 
+                
                 var vnpay = new VnPayLibrary();
                 
                 foreach (var param in Request.Query)
@@ -140,7 +140,7 @@ namespace SportZone_API.Controllers
                 string vnp_SecureHash = vnpay.GetResponseData("vnp_SecureHash");
                 string vnp_TxnRef = vnpay.GetResponseData("vnp_TxnRef");
                 string vnp_Amount = vnpay.GetResponseData("vnp_Amount");
-                string vnp_BankCode = vnpay.GetResponseData("vnp_BankCode");
+                string vnp_BankCode = vnpay.GetResponseData("vnp_BankCode");    
                 string vnp_TransactionNo = vnpay.GetResponseData("vnp_TransactionNo");
 
                 Console.WriteLine($"Response Code: {vnp_ResponseCode}");
@@ -157,28 +157,28 @@ namespace SportZone_API.Controllers
                 {
                     if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
                     {
-                        // Thanh toán thành công
+                        
                         Console.WriteLine("Thanh toán thành công!");
                         
-                        // Tìm booking data từ OrderId
+                        
                         if (_pendingBookings.TryGetValue(vnp_TxnRef, out var pendingBooking))
                         {
                             try
                             {
-                                // Xác nhận booking pending thành công
+                                
                                 var confirmResult = await _bookingService.ConfirmBookingAsync(pendingBooking.BookingId);
                                 if (!confirmResult)
                                 {
                                     throw new Exception("Không thể xác nhận booking");
                                 }
 
-                                // Lấy booking entity để truyền cho OrderService
+                                
                                 var bookingEntity = await _bookingService.GetBookingDetailAsync(pendingBooking.BookingId);
                                 if (bookingEntity != null)
                                 {
                                     var fieldinfo = await _fieldService.GetFieldEntityByIdAsync(bookingEntity.FieldId);
                                     var facilityId = fieldinfo?.FacId;
-                                    // Tạo Order từ Booking
+                                    
                                     var bookingModel = new Booking
                                     {
                                         BookingId = bookingEntity.BookingId,
@@ -190,9 +190,10 @@ namespace SportZone_API.Controllers
                                         Field = new Field { FacId = facilityId }
                                     };
 
-                                    var order = await _orderService.CreateOrderFromBookingAsync(bookingModel);
+                                     var discountId = pendingBooking.BookingData.DiscountId;
+                                     var order = await _orderService.CreateOrderFromBookingAsync(bookingModel, discountId);
 
-                                    // Tạo OrderFieldId linking Order với Field
+                                    
                                     await _orderFieldIdService.CreateOrderFieldIdAsync(order.OrderId, bookingEntity.FieldId);
                                 }
 
@@ -200,7 +201,6 @@ namespace SportZone_API.Controllers
 
                                 Console.WriteLine($"Booking đã được xác nhận thành công! BookingId: {pendingBooking.BookingId}");
                                 
-                                // Tạo notification cho booking thành công
                                 try
                                 {
                                     var bookingForNotification = new Booking
@@ -222,7 +222,7 @@ namespace SportZone_API.Controllers
                                 catch (Exception notificationEx)
                                 {
                                     Console.WriteLine($"Lỗi khi tạo notification: {notificationEx.Message}");
-                                    // Không throw exception vì booking đã thành công
+                                   
                                 }
                                 
                                 // Redirect với thông tin booking // Sau có FE thì redirect sang các trang của FE

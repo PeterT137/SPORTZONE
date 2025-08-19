@@ -121,7 +121,7 @@ namespace SportZone_API.Services
             }
         }
 
-        public async Task<OrderDTO?> UpdateOrderStatusPaymentAsync(int orderId)
+        public async Task<OrderDTO?> UpdateOrderStatusPaymentAsync(int orderId, int option)
         {
             try
             {
@@ -129,7 +129,11 @@ namespace SportZone_API.Services
                 {
                     throw new ArgumentException("OrderId không hợp lệ", nameof(orderId));
                 }
-                return await _orderRepository.UpdateOrderStatusPaymentAsync(orderId);
+                if (option != 1 && option != 2 && option != 3)
+                {
+                    throw new ArgumentException("Option không hợp lệ", nameof(option));
+                }
+                return await _orderRepository.UpdateOrderStatusPaymentAsync(orderId, option);
             }
             catch (Exception ex)
             {
@@ -147,7 +151,7 @@ namespace SportZone_API.Services
                 {
                     throw new Exception($"Không tìm thấy slot nào cho booking ID {booking.BookingId}");
                 }
-                var totalAfterFirstDivision = bookedSlots.Sum(slot => (slot.Price ?? 0) / 2);
+                var totalAfterFirstDivision = bookedSlots.Sum(slot => (slot.Price ?? 0));
                 var fieldPrice = totalAfterFirstDivision;
 
                 return fieldPrice;

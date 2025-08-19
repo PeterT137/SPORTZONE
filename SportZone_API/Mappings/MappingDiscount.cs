@@ -18,6 +18,12 @@ namespace SportZone_API.Mappings
             // Mapping từ DiscountUpdateDTO sang Discount entity (partial update)
             CreateMap<DiscountUpdateDTO, Discount>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+            // Mapping từ DiscountDto sang Discount entity (cho Create và Update)
+            CreateMap<DiscountDto, Discount>();
+
+            // Mapping từ Discount entity sang DiscountDto (cho response)
+            CreateMap<Discount, DiscountDto>();
         }
     }
 }
