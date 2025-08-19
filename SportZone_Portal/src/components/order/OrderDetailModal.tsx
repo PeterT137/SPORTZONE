@@ -35,7 +35,7 @@ interface OrderDetailModalProps {
   ) => void;
   onUpdateOrderStatus: (
     orderId: string,
-    newStatus: "pending" | "paid" | "cancel"
+    newStatus: "pending" | "paid" | "cancelled"
   ) => void;
 }
 
@@ -130,8 +130,8 @@ export function OrderDetailModal({
       console.log(`Attempting to cancel order ${order.order_id}`); // Debug log
       try {
         setIsCancelling(true);
-        await onUpdateOrderStatus(order.order_id, "cancel");
-        console.log(`Order ${order.order_id} cancel`); // Debug log
+        await onUpdateOrderStatus(order.order_id, "cancelled");
+        console.log(`Order ${order.order_id} cancelled`); // Debug log
         alert("Hủy đơn hàng thành công!");
       } catch (error) {
         console.error("Error cancelling order:", error);

@@ -62,7 +62,7 @@ const mapPaymentStatus = (status?: string): string => {
   const s = String(status).toLowerCase();
   if (s === "pending") return "Chờ thanh toán";
   if (s === "success") return "Đã thanh toán";
-  if (s === "cancel") return "Đã hủy";
+  if (s === "cancelled" || s === "cancel") return "Đã hủy";
   return status;
 };
 

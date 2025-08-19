@@ -8,7 +8,7 @@ export interface Order {
     guest_phone: string
     total_amount: number
     content_payment: string
-    status_payment: "pending" | "paid" | "cancel"
+    status_payment: "pending" | "paid" | "cancelled"
     create_at: string
 }
 
