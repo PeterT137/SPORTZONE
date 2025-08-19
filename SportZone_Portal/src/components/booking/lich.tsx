@@ -16,7 +16,6 @@ import {
   FiCalendar,
   FiChevronLeft,
   FiChevronRight,
-  FiDollarSign,
   FiEdit,
   FiMinus,
   FiPlus,
@@ -32,7 +31,6 @@ import Sidebar from "../../Sidebar";
 
 const API_URL = "https://localhost:7057";
 
-// === CÁC HÀM API VÀ INTERFACE (KHÔNG THAY ĐỔI) ===
 const updateBookingSlot = async (data: {
   fieldId: number;
   startDate: string;
@@ -104,7 +102,7 @@ interface Booking {
   date: Date;
   duration: number;
   field: string;
-  status: "confirmed" | "pending" | "cancelled";
+  status: "completed" | "deposited" | "pending" | "cancelled";
   contact: string;
   basePrice: number;
   userId?: number | null;
@@ -139,6 +137,8 @@ interface Schedule {
   notes: string;
   status: string;
   price: number;
+  bookingStatus?: string;
+  orderStatusPayment?: string;
 }
 
 interface CreateSlotData {
@@ -188,6 +188,7 @@ interface BookingDetail {
   endTime?: string;
   status?: string;
   statusPayment?: string;
+  contentPayment?: string;
   createAt?: string;
   notes?: string;
   field?: any;
@@ -218,6 +219,7 @@ const mapServiceToIconAndUnit = (
   )
     return { icon: "🥤", unit: "chai" };
   if (lowerName.includes("bóng")) return { icon: "⚽", unit: "quả" };
+  if (lowerName.includes("cầu lông")) return { icon: "🏸", unit: "quả" };
   if (lowerName.includes("khăn")) return { icon: "🏃‍♂️", unit: "chiếc" };
   if (lowerName.includes("băng")) return { icon: "🩹", unit: "bộ" };
   if (lowerName.includes("tất")) return { icon: "🧦", unit: "đôi" };
@@ -242,8 +244,10 @@ const BookingCell: React.FC<{
   const isExpired = isEmpty && endTime < new Date();
 
   const statusColors = {
-    confirmed:
+    completed:
       "bg-gradient-to-br from-green-100 to-green-200 border-green-400 text-green-800 hover:from-green-200 hover:to-green-300 shadow-green-100",
+    deposited:
+      "bg-gradient-to-br from-blue-100 to-blue-200 border-blue-400 text-blue-800 hover:from-blue-200 hover:to-blue-300 shadow-blue-100",
     pending:
       "bg-gradient-to-br from-yellow-100 to-yellow-200 border-yellow-400 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 shadow-yellow-100",
     cancelled:
@@ -254,14 +258,16 @@ const BookingCell: React.FC<{
     "bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300 text-gray-600 hover:from-gray-150 hover:to-gray-250 shadow-gray-100";
 
   const statusIcons = {
-    confirmed: "✓",
+    completed: "✅",
+    deposited: "💰",
     pending: "⏳",
     cancelled: "✕",
   };
 
   const statusText = {
-    confirmed: "Đã xác nhận",
-    pending: "Chờ xác nhận",
+    completed: "Đã hoàn thành",
+    deposited: "Đã cọc",
+    pending: "Chờ đặt cọc",
     cancelled: "Đã hủy",
   };
 
@@ -270,10 +276,13 @@ const BookingCell: React.FC<{
   return (
     <div
       onClick={() => !isEmpty && onClick(booking)}
-      className={`relative p-3 rounded-lg border-2 ${isEmpty ? emptySlotColor : statusColors[booking.status]
-        } ${isEmpty ? "cursor-default" : "cursor-pointer"
-        } transition-all duration-200 ${isEmpty ? "" : "hover:shadow-lg transform hover:-translate-y-1"
-        } group ${isExpired ? "opacity-70" : ""}`}
+      className={`relative p-3 rounded-lg border-2 ${
+        isEmpty ? emptySlotColor : statusColors[booking.status]
+      } ${
+        isEmpty ? "cursor-default" : "cursor-pointer"
+      } transition-all duration-200 ${
+        isEmpty ? "" : "hover:shadow-lg transform hover:-translate-y-1"
+      } group ${isExpired ? "opacity-70" : ""}`}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
@@ -337,49 +346,49 @@ const AddServiceModal: React.FC<{
   onAddService,
   selectedServiceIds,
 }) => {
-    if (!isOpen) return null;
+  if (!isOpen) return null;
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
-        <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Thêm dịch vụ vào đơn đặt sân
-            </h3>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-              title="Đóng modal chọn dịch vụ"
-            >
-              <FiX className="w-5 h-5 text-gray-500" />
-            </button>
-          </div>
-          <div className="space-y-3 max-h-60 overflow-y-auto">
-            {availableServices
-              .filter((service) => !selectedServiceIds.includes(service.id))
-              .map((service) => (
-                <div
-                  key={service.id}
-                  onClick={() => onAddService(service)}
-                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{service.icon}</span>
-                    <div>
-                      <p className="font-medium text-gray-700">{service.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {service.price.toLocaleString("vi-VN")}đ/{service.unit}
-                      </p>
-                    </div>
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+      <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Thêm dịch vụ vào đơn đặt sân
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            title="Đóng modal chọn dịch vụ"
+          >
+            <FiX className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        <div className="space-y-3 max-h-60 overflow-y-auto">
+          {availableServices
+            .filter((service) => !selectedServiceIds.includes(service.id))
+            .map((service) => (
+              <div
+                key={service.id}
+                onClick={() => onAddService(service)}
+                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">{service.icon}</span>
+                  <div>
+                    <p className="font-medium text-gray-700">{service.name}</p>
+                    <p className="text-sm text-gray-500">
+                      {service.price.toLocaleString("vi-VN")}đ/{service.unit}
+                    </p>
                   </div>
-                  <FiPlus className="w-5 h-5 text-blue-500" />
                 </div>
-              ))}
-          </div>
+                <FiPlus className="w-5 h-5 text-blue-500" />
+              </div>
+            ))}
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
 const BookingDetailsModal: React.FC<{
   booking: Booking | null;
@@ -396,9 +405,9 @@ const BookingDetailsModal: React.FC<{
   const [selectedServices, setSelectedServices] = useState<BookingService[]>(
     []
   );
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer">(
-    "cash"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "Thanh toán tiền mặt" | "Thanh toán qua ví điện tử"
+  >("Thanh toán tiền mặt");
   const [showAddService, setShowAddService] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(
@@ -409,12 +418,26 @@ const BookingDetailsModal: React.FC<{
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (bookingDetail && bookingDetail.contentPayment) {
+      const paymentStatus = bookingDetail.contentPayment;
+      if (paymentStatus === "Thanh toán qua ví điện tử") {
+        setPaymentMethod("Thanh toán qua ví điện tử");
+      } else if (paymentStatus === "Thanh toán tiền mặt") {
+        setPaymentMethod("Thanh toán tiền mặt");
+      } else {
+        setPaymentMethod("Thanh toán tiền mặt");
+      }
+    } else {
+      setPaymentMethod("Thanh toán tiền mặt");
+    }
+  }, [bookingDetail]);
+
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
-  // Fetch services by orderId to ensure numeric orderServiceId is available for update/remove
   const reloadOrderServices = useCallback(
     async (oid: number) => {
       try {
@@ -522,19 +545,19 @@ const BookingDetailsModal: React.FC<{
               result.data.order ?? result.data.Order ?? result.data ?? null;
             const ordIdRaw = ordContainer
               ? ordContainer.orderId ??
-              ordContainer.OrderId ??
-              ordContainer.id ??
-              ordContainer.Id ??
-              result.data.orderId ??
-              result.data.OrderId ??
-              null
+                ordContainer.OrderId ??
+                ordContainer.id ??
+                ordContainer.Id ??
+                result.data.orderId ??
+                result.data.OrderId ??
+                null
               : null;
             const normalizedOrderId =
               typeof ordIdRaw === "number"
                 ? ordIdRaw
                 : typeof ordIdRaw === "string"
-                  ? Number(ordIdRaw)
-                  : null;
+                ? Number(ordIdRaw)
+                : null;
             setOrderId(
               normalizedOrderId &&
                 Number.isFinite(normalizedOrderId) &&
@@ -542,24 +565,14 @@ const BookingDetailsModal: React.FC<{
                 ? normalizedOrderId
                 : null
             );
-            console.log("[BookingDetailsModal] orderId resolved:", {
-              ordIdRaw,
-              normalized: normalizedOrderId,
-            });
-            console.log("[BookingDetailsModal] fetchBookingDetail ok", {
-              scheduleId,
-              hasOrder: !!result.data.order,
-              orderId: result.data.order?.orderId,
-              servicesCount: result.data.order?.services?.length ?? 0,
-            });
 
             const rawServices: any[] = Array.isArray(
               result.data?.order?.services
             )
               ? (result.data.order.services as any[])
               : Array.isArray(result.data?.services)
-                ? (result.data.services as any[])
-                : [];
+              ? (result.data.services as any[])
+              : [];
 
             const mappedServices: BookingService[] = rawServices.map(
               (s: any) => {
@@ -584,8 +597,8 @@ const BookingDetailsModal: React.FC<{
 
             const resolvedId =
               normalizedOrderId &&
-                Number.isFinite(normalizedOrderId) &&
-                normalizedOrderId > 0
+              Number.isFinite(normalizedOrderId) &&
+              normalizedOrderId > 0
                 ? normalizedOrderId
                 : null;
             if (resolvedId) {
@@ -621,7 +634,7 @@ const BookingDetailsModal: React.FC<{
         setIsLoadingDetails(false);
       }
     },
-    [fetchUserInfo, getAuthHeaders]
+    [fetchUserInfo, getAuthHeaders, reloadOrderServices]
   );
 
   useEffect(() => {
@@ -645,9 +658,6 @@ const BookingDetailsModal: React.FC<{
 
   const handleAddService = async (service: Service) => {
     if (!orderId) {
-      console.warn("[BookingDetailsModal] Không có orderId để thêm dịch vụ", {
-        bookingDetail,
-      });
       showToast("Không có đơn hàng để thêm dịch vụ.", "error");
       return;
     }
@@ -667,9 +677,8 @@ const BookingDetailsModal: React.FC<{
         throw new Error("Failed to add service.");
       }
       showToast("Đã thêm dịch vụ thành công!", "success");
-      // Reload services to get real orderServiceId from backend
       await reloadOrderServices(orderId);
-      onBookingUpdate(); // Cập nhật lại lịch
+      onBookingUpdate();
     } catch (error) {
       showToast((error as Error).message, "error");
     } finally {
@@ -700,8 +709,8 @@ const BookingDetailsModal: React.FC<{
         throw new Error("Failed to update service quantity.");
       }
       showToast("Cập nhật số lượng thành công!", "success");
-      await fetchBookingDetail(booking?.id || 0); // Tải lại chi tiết đơn hàng
-      onBookingUpdate(); // Cập nhật lại lịch
+      await fetchBookingDetail(booking?.id || 0);
+      onBookingUpdate();
     } catch (error) {
       showToast((error as Error).message, "error");
     } finally {
@@ -723,34 +732,7 @@ const BookingDetailsModal: React.FC<{
         throw new Error("Failed to remove service.");
       }
       showToast("Đã xóa dịch vụ thành công!", "success");
-      await fetchBookingDetail(booking?.id || 0); // Tải lại chi tiết đơn hàng
-      onBookingUpdate(); // Cập nhật lại lịch
-    } catch (error) {
-      showToast((error as Error).message, "error");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleConfirm = async () => {
-    if (!bookingDetail || !bookingDetail.order) {
-      showToast("Không tìm thấy đơn hàng để xác nhận.", "error");
-      return;
-    }
-    setIsProcessing(true);
-    try {
-      const response = await fetch(
-        `${API_URL}/api/Order/${bookingDetail.order.orderId}/confirm`,
-        {
-          method: "PUT",
-          headers: getAuthHeaders(),
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Failed to confirm booking.");
-      }
-      showToast("Xác nhận đặt sân thành công!", "success");
-      onClose();
+      await fetchBookingDetail(booking?.id || 0);
       onBookingUpdate();
     } catch (error) {
       showToast((error as Error).message, "error");
@@ -759,54 +741,153 @@ const BookingDetailsModal: React.FC<{
     }
   };
 
+  const handleConfirmPayment = async () => {
+    const currentOrderId = bookingDetail?.order?.orderId ?? orderId;
+    if (!currentOrderId) {
+      showToast("Không tìm thấy mã đơn hàng để cập nhật.", "error");
+      return;
+    }
+
+    Swal.fire({
+      title: "Xác nhận thanh toán?",
+      html: `
+        <p>Bạn có chắc chắn muốn chuyển trạng thái thanh toán không?</p>
+        <br>
+        <p class="text-sm text-gray-600">
+          <b>Lưu ý:</b> Hành động này sẽ cập nhật cả phương thức và trạng thái thanh toán của đơn hàng.
+        </p>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#28a745",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setIsProcessing(true);
+        try {
+          const paymentOptionId =
+            paymentMethod === "Thanh toán tiền mặt" ? 1 : 2;
+
+          // API 1: Update Payment Content (Method)
+          const updateContentPromise = fetch(
+            `${API_URL}/api/Order/Order/${currentOrderId}/Update/ContentPayment?option=${paymentOptionId}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+              },
+            }
+          );
+
+          // API 2: Update Payment Status
+          const updateStatusPromise = fetch(
+            `${API_URL}/api/Order/Order/${currentOrderId}/Update/StatusPayment?option=2`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+              },
+            }
+          );
+
+          const [contentResponse, statusResponse] = await Promise.all([
+            updateContentPromise,
+            updateStatusPromise,
+          ]);
+
+          // Check if both requests were successful
+          if (!contentResponse.ok) {
+            const errorText = await contentResponse.text();
+            throw new Error(
+              `Cập nhật phương thức thanh toán thất bại: ${
+                errorText || contentResponse.status
+              }`
+            );
+          }
+          if (!statusResponse.ok) {
+            const errorText = await statusResponse.text();
+            throw new Error(
+              `Cập nhật trạng thái thanh toán thất bại: ${
+                errorText || statusResponse.status
+              }`
+            );
+          }
+
+          showToast("Xác nhận thanh toán thành công!", "success");
+          onClose();
+          onBookingUpdate(); // This will refetch and update the UI
+        } catch (error) {
+          showToast((error as Error).message, "error");
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    });
+  };
+
   const getDisplayName = (): string => {
+    let fallbackName = "Khách hàng";
+
     if (isLoadingDetails || isLoadingUserInfo) return "Đang tải...";
     if ((userInfo as any)?.error) return (userInfo as any).error;
-    if (userInfo) {
-      const name =
-        userInfo.admin?.name ||
-        userInfo.customers?.[0]?.name ||
-        userInfo.fieldOwner?.name ||
-        userInfo.staff?.name;
-      if (name) return name;
+    if (bookingDetail?.customerInfo?.name) {
+      fallbackName = bookingDetail.customerInfo.name;
+    } else {
+      if (userInfo) {
+        const name =
+          userInfo.admin?.name ||
+          userInfo.customers?.[0]?.name ||
+          userInfo.fieldOwner?.name ||
+          userInfo.staff?.name;
+        if (name) return name;
+      }
+      if (bookingDetail?.order) {
+        const order = bookingDetail.order as any;
+        if (order.guestName) return order.guestName;
+        if (order.customerName && order.customerName !== "Không có tên")
+          return order.customerName;
+      }
+      if (bookingDetail?.guestName) return bookingDetail.guestName;
+      fallbackName = booking?.customerName || "Khách hàng";
+      if (fallbackName.startsWith("Đặt sân "))
+        fallbackName = fallbackName.replace("Đặt sân ", "").trim();
+      if (fallbackName === booking?.field || fallbackName.includes("Sân "))
+        fallbackName = "Khách hàng";
     }
-    if (bookingDetail?.order) {
-      const order = bookingDetail.order as any;
-      if (order.guestName) return order.guestName;
-      if (order.customerName && order.customerName !== "Không có tên")
-        return order.customerName;
-    }
-    if (bookingDetail?.guestName) return bookingDetail.guestName;
-    let fallbackName = booking?.customerName || "Khách hàng";
-    if (fallbackName.startsWith("Đặt sân "))
-      fallbackName = fallbackName.replace("Đặt sân ", "").trim();
-    if (fallbackName === booking?.field || fallbackName.includes("Sân "))
-      fallbackName = "Khách hàng";
     return fallbackName;
   };
 
   const getDisplayPhone = (): string => {
+    let fallbackPhone = "Chưa có thông tin";
     if (isLoadingDetails || isLoadingUserInfo) return "Đang tải...";
     if ((userInfo as any)?.error) return "Không có quyền xem";
-    if (userInfo) {
-      const phone =
-        userInfo.admin?.phone ||
-        userInfo.customers?.[0]?.phone ||
-        userInfo.fieldOwner?.phone ||
-        userInfo.staff?.phone;
-      if (phone) return phone;
-    }
-    if (bookingDetail?.order) {
-      const order = bookingDetail.order as any;
-      if (order.guestPhone) return order.guestPhone;
-      if (order.customerPhone) return order.customerPhone;
-    }
-    if (bookingDetail?.guestPhone) {
-      return bookingDetail.guestPhone;
-    }
-    let fallbackPhone = booking?.contact;
-    if (!fallbackPhone || fallbackPhone === "Unknown") {
-      fallbackPhone = "Chưa có thông tin";
+    if (bookingDetail?.customerInfo?.phone) {
+      fallbackPhone = bookingDetail.customerInfo.phone;
+    } else {
+      if (userInfo) {
+        const phone =
+          userInfo.admin?.phone ||
+          userInfo.customers?.[0]?.phone ||
+          userInfo.fieldOwner?.phone ||
+          userInfo.staff?.phone;
+        if (phone) return phone;
+      }
+      if (bookingDetail?.order) {
+        const order = bookingDetail.order as any;
+        if (order.guestPhone) return order.guestPhone;
+        if (order.customerPhone) return order.customerPhone;
+      }
+      if (bookingDetail?.guestPhone) {
+        return bookingDetail.guestPhone;
+      }
+      fallbackPhone = booking?.contact ?? "Chưa có thông tin";
+      if (!fallbackPhone || fallbackPhone === "Unknown") {
+        fallbackPhone = "Chưa có thông tin";
+      }
     }
     return fallbackPhone;
   };
@@ -832,7 +913,28 @@ const BookingDetailsModal: React.FC<{
   );
   const totalPrice = (booking?.basePrice || 0) + totalServicePrice;
 
+  const statusDisplayInfo = {
+    completed: {
+      text: "Đã hoàn thành",
+      className: "bg-green-100 text-green-800",
+    },
+    deposited: {
+      text: "Đã cọc",
+      className: "bg-blue-100 text-blue-800",
+    },
+    pending: {
+      text: "Chờ đặt cọc",
+      className: "bg-yellow-100 text-yellow-800",
+    },
+    cancelled: {
+      text: "Đã hủy",
+      className: "bg-red-100 text-red-800",
+    },
+  };
+
   if (!booking) return null;
+  const currentStatusInfo =
+    statusDisplayInfo[booking.status] || statusDisplayInfo.pending;
 
   return (
     <div
@@ -878,6 +980,7 @@ const BookingDetailsModal: React.FC<{
                       <span
                         className={isLoadingUserInfo ? "text-gray-400" : ""}
                       >
+                        {" "}
                         {getDisplayName()}
                       </span>
                     </p>
@@ -886,6 +989,7 @@ const BookingDetailsModal: React.FC<{
                       <span
                         className={isLoadingUserInfo ? "text-gray-400" : ""}
                       >
+                        {" "}
                         {getDisplayPhone()}
                       </span>
                     </p>
@@ -894,36 +998,12 @@ const BookingDetailsModal: React.FC<{
                       <span
                         className={isLoadingUserInfo ? "text-gray-400" : ""}
                       >
+                        {" "}
                         {getDisplayEmail()}
                       </span>
                     </p>
                     <p>
-                      <span className="font-medium">Loại khách hàng:</span>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${userInfo &&
-                          typeof userInfo.uId === "number" &&
-                          userInfo.uId > 0
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                          }`}
-                      >
-                        {userInfo &&
-                          typeof userInfo.uId === "number" &&
-                          userInfo.uId > 0
-                          ? userInfo.admin
-                            ? "Quản trị viên"
-                            : userInfo.fieldOwner
-                              ? "Chủ sân"
-                              : userInfo.staff
-                                ? "Nhân viên"
-                                : userInfo.customers?.[0]
-                                  ? "Khách hàng thành viên"
-                                  : "Thành viên"
-                          : "Khách vãng lai"}
-                      </span>
-                    </p>
-                    <p>
-                      <span className="font-medium">Ngày đặt:</span>
+                      <span className="font-medium">Ngày đặt:</span>{" "}
                       {format(booking.date, "dd/MM/yyyy", { locale: vi })}
                     </p>
                     <p>
@@ -931,28 +1011,18 @@ const BookingDetailsModal: React.FC<{
                       {format(booking.date, "HH:mm", { locale: vi })}
                     </p>
                     <p>
-                      <span className="font-medium">Sân:</span>
-                      {booking.field}
+                      <span className="font-medium">Sân:</span> {booking.field}
                     </p>
                     <p>
-                      <span className="font-medium">Thời gian:</span>
+                      <span className="font-medium">Thời gian:</span>{" "}
                       {booking.duration} giờ
                     </p>
                     <p>
                       <span className="font-medium">Trạng thái:</span>
                       <span
-                        className={`ml-2 px-2 py-1 rounded-full text-xs ${booking.status === "confirmed"
-                          ? "bg-green-100 text-green-800"
-                          : booking.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                          }`}
+                        className={`ml-2 px-2 py-1 rounded-full text-xs ${currentStatusInfo.className}`}
                       >
-                        {booking.status === "confirmed"
-                          ? "Đã xác nhận"
-                          : booking.status === "pending"
-                            ? "Chờ xác nhận"
-                            : "Đã hủy"}
+                        {currentStatusInfo.text}
                       </span>
                     </p>
                   </div>
@@ -992,10 +1062,12 @@ const BookingDetailsModal: React.FC<{
                         <input
                           type="radio"
                           name="payment"
-                          value="cash"
-                          checked={paymentMethod === "cash"}
+                          value="Thanh toán tiền mặt"
+                          checked={paymentMethod === "Thanh toán tiền mặt"}
                           onChange={(e) =>
-                            setPaymentMethod(e.target.value as "cash")
+                            setPaymentMethod(
+                              e.target.value as "Thanh toán tiền mặt"
+                            )
                           }
                           className="mr-2"
                         />
@@ -1005,10 +1077,14 @@ const BookingDetailsModal: React.FC<{
                         <input
                           type="radio"
                           name="payment"
-                          value="transfer"
-                          checked={paymentMethod === "transfer"}
+                          value="Thanh toán qua ví điện tử"
+                          checked={
+                            paymentMethod === "Thanh toán qua ví điện tử"
+                          }
                           onChange={(e) =>
-                            setPaymentMethod(e.target.value as "transfer")
+                            setPaymentMethod(
+                              e.target.value as "Thanh toán qua ví điện tử"
+                            )
                           }
                           className="mr-2"
                         />
@@ -1025,16 +1101,7 @@ const BookingDetailsModal: React.FC<{
                   </h3>
                   <button
                     onClick={() => {
-                      console.log("[BookingDetailsModal] Click Thêm dịch vụ", {
-                        isProcessing,
-                        orderId,
-                        servicesCount: availableServices.length,
-                      });
                       if (isProcessing) {
-                        console.warn(
-                          "[BookingDetailsModal] Không mở modal: đang xử lý",
-                          { isProcessing }
-                        );
                         return;
                       }
                       setShowAddService(true);
@@ -1072,9 +1139,6 @@ const BookingDetailsModal: React.FC<{
                             <button
                               onClick={() => {
                                 if (!service.orderServiceId) {
-                                  console.warn(
-                                    "Missing orderServiceId; cannot decrease quantity"
-                                  );
                                   return;
                                 }
                                 handleUpdateServiceQuantity(
@@ -1098,9 +1162,6 @@ const BookingDetailsModal: React.FC<{
                             <button
                               onClick={() => {
                                 if (!service.orderServiceId) {
-                                  console.warn(
-                                    "Missing orderServiceId; cannot increase quantity"
-                                  );
                                   return;
                                 }
                                 handleUpdateServiceQuantity(
@@ -1124,9 +1185,6 @@ const BookingDetailsModal: React.FC<{
                           <button
                             onClick={() => {
                               if (!service.orderServiceId) {
-                                console.warn(
-                                  "Missing orderServiceId; cannot remove service"
-                                );
                                 return;
                               }
                               handleRemoveService(service.orderServiceId);
@@ -1151,13 +1209,15 @@ const BookingDetailsModal: React.FC<{
                 >
                   Hủy bỏ
                 </button>
-                <button
-                  onClick={handleConfirm}
-                  disabled={isProcessing || booking?.status === "confirmed"}
-                  className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? "Đang xử lý..." : "Xác nhận thanh toán"}
-                </button>
+                {booking.status === "deposited" && (
+                  <button
+                    onClick={handleConfirmPayment}
+                    disabled={isProcessing}
+                    className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? "Đang xử lý..." : "Xác nhận thanh toán"}
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -1193,285 +1253,284 @@ const CreateSlotModal: React.FC<{
   fieldName,
   facility,
 }) => {
-    const [formData, setFormData] = useState<CreateSlotData>({
-      fieldId: fieldId,
-      startDate: format(new Date(), "yyyy-MM-dd"),
-      endDate: format(new Date(), "yyyy-MM-dd"),
-      startTime: facility ? facility.openTime.substring(0, 5) : "06:00",
-      endTime: facility
-        ? `${(parseInt(facility.openTime.split(":")[0], 10) + 1)
+  const [formData, setFormData] = useState<CreateSlotData>({
+    fieldId: fieldId,
+    startDate: format(new Date(), "yyyy-MM-dd"),
+    endDate: format(new Date(), "yyyy-MM-dd"),
+    startTime: facility ? facility.openTime.substring(0, 5) : "06:00",
+    endTime: facility
+      ? `${(parseInt(facility.openTime.split(":")[0], 10) + 1)
           .toString()
           .padStart(2, "0")}:00`
-        : "07:00",
-      notes: "",
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
+      : "07:00",
+    notes: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = async (action: "create" | "update" | "delete") => {
-      if (isSubmitting) return;
+  const handleSubmit = async (action: "create" | "update" | "delete") => {
+    if (isSubmitting) return;
 
-      if (action === "create" || action === "update") {
-        if (
-          !formData.startDate ||
-          !formData.endDate ||
-          !formData.startTime ||
-          !formData.endTime
-        ) {
-          Swal.fire("Lỗi", "Vui lòng điền đầy đủ thông tin!", "error");
-          return;
-        }
-        if (formData.startTime >= formData.endTime) {
-          Swal.fire(
-            "Lỗi",
-            "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!",
-            "error"
-          );
-          return;
-        }
+    if (action === "create" || action === "update") {
+      if (
+        !formData.startDate ||
+        !formData.endDate ||
+        !formData.startTime ||
+        !formData.endTime
+      ) {
+        Swal.fire("Lỗi", "Vui lòng điền đầy đủ thông tin!", "error");
+        return;
       }
-
-      if (new Date(formData.startDate) > new Date(formData.endDate)) {
+      if (formData.startTime >= formData.endTime) {
         Swal.fire(
           "Lỗi",
-          "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!",
+          "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!",
           "error"
         );
         return;
       }
+    }
 
-      setIsSubmitting(true);
-      try {
-        if (action === "create") {
-          await onSubmit(formData);
-        } else if (action === "update") {
-          await onUpdate(formData);
-        } else if (action === "delete") {
-          await onDelete(formData);
-        }
-      } finally {
-        setIsSubmitting(false);
+    if (new Date(formData.startDate) > new Date(formData.endDate)) {
+      Swal.fire(
+        "Lỗi",
+        "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!",
+        "error"
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (action === "create") {
+        await onSubmit(formData);
+      } else if (action === "update") {
+        await onUpdate(formData);
+      } else if (action === "delete") {
+        await onDelete(formData);
       }
-    };
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const handleInputChange = (
-      field: keyof CreateSlotData,
-      value: string | number
-    ) => {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
-    };
+  const handleInputChange = (
+    field: keyof CreateSlotData,
+    value: string | number
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-    const generateTimeOptions = () => {
-      const times = [];
-      const startHour = facility
-        ? parseInt(facility.openTime.split(":")[0], 10)
-        : 6;
-      const endHour = facility
-        ? parseInt(facility.closeTime.split(":")[0], 10)
-        : 23;
+  const generateTimeOptions = () => {
+    const times = [];
+    const startHour = facility
+      ? parseInt(facility.openTime.split(":")[0], 10)
+      : 6;
+    const endHour = facility
+      ? parseInt(facility.closeTime.split(":")[0], 10)
+      : 23;
 
-      for (let hour = startHour; hour <= endHour; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
-          const timeString = `${hour.toString().padStart(2, "0")}:${minute
-            .toString()
-            .padStart(2, "0")}`;
-          times.push(timeString);
-        }
+    for (let hour = startHour; hour <= endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`;
+        times.push(timeString);
       }
-      return times;
-    };
+    }
+    return times;
+  };
 
-    if (!isOpen) return null;
+  if (!isOpen) return null;
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-          <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800">
-                Quản lý slot đặt sân
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                title="Đóng modal"
-              >
-                <FiX className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Quản lý slot đặt sân
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              title="Đóng modal"
+            >
+              <FiX className="w-6 h-6 text-gray-500" />
+            </button>
           </div>
-          <div className="p-6 space-y-6">
-            <div className="bg-blue-50 rounded-xl p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Thông tin sân</h3>
-              <p className="text-blue-800">
-                <span className="font-medium">Sân:</span>
-                {fieldName}
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="bg-blue-50 rounded-xl p-4">
+            <h3 className="font-semibold text-blue-900 mb-2">Thông tin sân</h3>
+            <p className="text-blue-800">
+              <span className="font-medium">Sân:</span>
+              {fieldName}
+            </p>
+            {facility && (
+              <p className="text-blue-800 mt-1">
+                <span className="font-medium">Giờ hoạt động:</span>
+                {facility.openTime.substring(0, 5)} -
+                {facility.closeTime.substring(0, 5)}
               </p>
-              {facility && (
-                <p className="text-blue-800 mt-1">
-                  <span className="font-medium">Giờ hoạt động:</span>
-                  {facility.openTime.substring(0, 5)} -
-                  {facility.closeTime.substring(0, 5)}
-                </p>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Ngày bắt đầu
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => handleInputChange("startDate", e.target.value)}
-                  min={format(new Date(), "yyyy-MM-dd")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  title="Chọn ngày bắt đầu"
-                  aria-label="Ngày bắt đầu"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Ngày kết thúc
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => handleInputChange("endDate", e.target.value)}
-                  min={formData.startDate}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  title="Chọn ngày kết thúc"
-                  aria-label="Ngày kết thúc"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Thời gian bắt đầu
-                  <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.startTime}
-                  onChange={(e) => handleInputChange("startTime", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  title="Chọn thời gian bắt đầu"
-                  aria-label="Thời gian bắt đầu"
-                  required
-                >
-                  {generateTimeOptions().map((time) => (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Thời gian kết thúc
-                  <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.endTime}
-                  onChange={(e) => handleInputChange("endTime", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  title="Chọn thời gian kết thúc"
-                  aria-label="Thời gian kết thúc"
-                  required
-                >
-                  {generateTimeOptions().map((time) => (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Ngày bắt đầu
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => handleInputChange("startDate", e.target.value)}
+                min={format(new Date(), "yyyy-MM-dd")}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                title="Chọn ngày bắt đầu"
+                aria-label="Ngày bắt đầu"
+                required
+              />
             </div>
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Ghi chú
+                Ngày kết thúc
+                <span className="text-red-500">*</span>
               </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => handleInputChange("notes", e.target.value)}
-                placeholder="Nhập ghi chú cho slot này..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => handleInputChange("endDate", e.target.value)}
+                min={formData.startDate}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                title="Chọn ngày kết thúc"
+                aria-label="Ngày kết thúc"
+                required
               />
             </div>
-            <div className="bg-yellow-50 rounded-xl p-4">
-              <h3 className="font-semibold text-yellow-900 mb-2">📋 Hướng dẫn</h3>
-              <div className="text-yellow-800 text-sm space-y-1">
-                <p>
-                  • <strong>Tạo slot</strong>: Thêm các khung giờ trống mới vào
-                  lịch.
-                </p>
-                <p>
-                  • <strong>Cập nhật slot</strong>: Ghi đè thông tin (giờ, ghi
-                  chú) cho các slot hiện có.
-                </p>
-                <p>
-                  • <strong>Xóa slot</strong>: Loại bỏ các slot trống (chưa được
-                  đặt) khỏi lịch trong khoảng ngày đã chọn.
-                </p>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-4 pt-4 border-t">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Thời gian bắt đầu
+                <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.startTime}
+                onChange={(e) => handleInputChange("startTime", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                title="Chọn thời gian bắt đầu"
+                aria-label="Thời gian bắt đầu"
+                required
               >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit("delete")}
-                disabled={isSubmitting}
-                className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
+                {generateTimeOptions().map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Thời gian kết thúc
+                <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.endTime}
+                onChange={(e) => handleInputChange("endTime", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                title="Chọn thời gian kết thúc"
+                aria-label="Thời gian kết thúc"
+                required
+              >
+                {generateTimeOptions().map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Ghi chú
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => handleInputChange("notes", e.target.value)}
+              placeholder="Nhập ghi chú cho slot này..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            />
+          </div>
+          <div className="bg-yellow-50 rounded-xl p-4">
+            <h3 className="font-semibold text-yellow-900 mb-2">📋 Hướng dẫn</h3>
+            <div className="text-yellow-800 text-sm space-y-1">
+              <p>
+                • <strong>Tạo slot</strong>: Thêm các khung giờ trống mới vào
+                lịch.
+              </p>
+              <p>
+                • <strong>Cập nhật slot</strong>: Ghi đè thông tin (giờ, ghi
+                chú) cho các slot hiện có.
+              </p>
+              <p>
+                • <strong>Xóa slot</strong>: Loại bỏ các slot trống (chưa được
+                đặt) khỏi lịch trong khoảng ngày đã chọn.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-4 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSubmit("delete")}
+              disabled={isSubmitting}
+              className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isSubmitting
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-red-500 hover:bg-red-600 hover:shadow-lg"
-                  }`}
-              >
-                Xóa slot
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit("update")}
-                disabled={isSubmitting}
-                className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
+              }`}
+            >
+              Xóa slot
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSubmit("update")}
+              disabled={isSubmitting}
+              className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isSubmitting
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-yellow-500 hover:bg-yellow-600 hover:shadow-lg"
-                  }`}
-              >
-                Cập nhật slot
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit("create")}
-                disabled={isSubmitting}
-                className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
+              }`}
+            >
+              Cập nhật slot
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSubmit("create")}
+              disabled={isSubmitting}
+              className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isSubmitting
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-green-500 hover:bg-green-600 hover:shadow-lg"
-                  }`}
-              >
-                {isSubmitting ? "Đang xử lý..." : "Tạo slot"}
-              </button>
-            </div>
+              }`}
+            >
+              {isSubmitting ? "Đang xử lý..." : "Tạo slot"}
+            </button>
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// =================================================================
-// === PHẦN CODE ĐÃ ĐƯỢC SỬA LỖI VÀ HOÀN THIỆN: PricingManagementModal
-// =================================================================
 const PricingManagementModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -1489,456 +1548,456 @@ const PricingManagementModal: React.FC<{
   fetchSchedule,
   onPricingUpdate,
 }) => {
-    const [pricingSlots, setPricingSlots] = useState<PricingSlot[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
+  const [pricingSlots, setPricingSlots] = useState<PricingSlot[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-    const getAuthHeaders = useCallback((): Record<string, string> => {
-      const token = localStorage.getItem("token");
-      return token ? { Authorization: `Bearer ${token}` } : {};
-    }, []);
+  const getAuthHeaders = useCallback((): Record<string, string> => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
 
-    const fetchPricingData = useCallback(async () => {
-      if (!fieldId) return;
-      setIsLoading(true);
-      try {
-        const headers = {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        };
-        const response = await fetch(
-          `${API_URL}/api/FieldPricing/byField/${fieldId}`,
-          {
-            method: "GET",
-            headers,
-          }
-        );
-
-        if (!response.ok) {
-          setPricingSlots([]);
-          return;
+  const fetchPricingData = useCallback(async () => {
+    if (!fieldId) return;
+    setIsLoading(true);
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      };
+      const response = await fetch(
+        `${API_URL}/api/FieldPricing/byField/${fieldId}`,
+        {
+          method: "GET",
+          headers,
         }
+      );
 
-        const result = await response.json();
-        const dataArray =
-          result.data && Array.isArray(result.data)
-            ? result.data
-            : Array.isArray(result)
-              ? result
-              : [];
-
-        if (dataArray.length > 0) {
-          const mappedPricing: PricingSlot[] = dataArray.map((p: any) => ({
-            id: p.fieldPricingId || p.pricingId || p.id,
-            startTime: p.startTime ? p.startTime.substring(0, 5) : "00:00",
-            endTime: p.endTime ? p.endTime.substring(0, 5) : "00:00",
-            price: p.price || 0,
-          }));
-          setPricingSlots(mappedPricing);
-        } else {
-          setPricingSlots([]);
-        }
-      } catch (err) {
-        console.error("Fetch pricing error:", err);
-        showToast("Không thể tải dữ liệu giá từ server.", "error");
+      if (!response.ok) {
         setPricingSlots([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }, [fieldId, getAuthHeaders, showToast]);
-
-    useEffect(() => {
-      if (isOpen && fieldId) {
-        fetchPricingData();
-      }
-    }, [isOpen, fieldId, fetchPricingData]);
-
-    const handleSlotChange = (
-      index: number,
-      field: keyof PricingSlot,
-      value: string | number
-    ) => {
-      const newSlots = [...pricingSlots];
-      newSlots[index] = { ...newSlots[index], [field]: value };
-      setPricingSlots(newSlots);
-    };
-
-    const validateSlot = (slot: PricingSlot): boolean => {
-      if (!slot.startTime || !slot.endTime || !slot.price || slot.price <= 0) {
-        showToast(
-          "Vui lòng điền đầy đủ thông tin và giá phải lớn hơn 0.",
-          "error"
-        );
-        return false;
-      }
-      if (slot.startTime >= slot.endTime) {
-        showToast("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.", "error");
-        return false;
-      }
-      return true;
-    };
-
-    const handleCreatePricing = async (index: number) => {
-      const slotToCreate = pricingSlots[index];
-      if (!validateSlot(slotToCreate)) return;
-
-      setIsProcessing(true);
-      try {
-        const body = {
-          fieldId: fieldId,
-          startTime: `${slotToCreate.startTime}:00`,
-          endTime: `${slotToCreate.endTime}:00`,
-          price: slotToCreate.price,
-        };
-        const response = await fetch(`${API_URL}/api/FieldPricing`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Tạo khung giá thất bại: ${errorText || response.statusText}`
-          );
-        }
-
-        showToast("Tạo khung giá thành công!", "success");
-        await fetchPricingData();
-        if (onPricingUpdate) await onPricingUpdate();
-        await fetchSchedule();
-      } catch (err) {
-        showToast((err as Error).message, "error");
-      } finally {
-        setIsProcessing(false);
-      }
-    };
-
-    const handleUpdatePricing = async (index: number) => {
-      const slotToUpdate = pricingSlots[index];
-      if (!slotToUpdate.id) {
-        showToast(
-          "Lỗi: Không tìm thấy ID của khung giá này để cập nhật.",
-          "error"
-        );
-        return;
-      }
-      if (!validateSlot(slotToUpdate)) return;
-
-      setIsProcessing(true);
-      try {
-        const body = {
-          startTime: `${slotToUpdate.startTime}:00`,
-          endTime: `${slotToUpdate.endTime}:00`,
-          price: slotToUpdate.price,
-        };
-        const response = await fetch(
-          `${API_URL}/api/FieldPricing/${slotToUpdate.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-            body: JSON.stringify(body),
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Cập nhật khung giá thất bại: ${errorText || response.statusText}`
-          );
-        }
-
-        showToast("Cập nhật thành công!", "success");
-        await fetchPricingData();
-        if (onPricingUpdate) await onPricingUpdate();
-        await fetchSchedule();
-      } catch (err) {
-        showToast((err as Error).message, "error");
-      } finally {
-        setIsProcessing(false);
-      }
-    };
-
-    const handleDeletePricing = async (index: number) => {
-      const slotToDelete = pricingSlots[index];
-      if (!slotToDelete.id) {
-        removeNewPricingSlot(index);
         return;
       }
 
-      const confirmation = await Swal.fire({
-        title: "Bạn chắc chắn chứ?",
-        text: `Bạn sắp xóa khung giờ ${slotToDelete.startTime} - ${slotToDelete.endTime}.`,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Vâng, xóa nó!",
-        cancelButtonText: "Hủy",
+      const result = await response.json();
+      const dataArray =
+        result.data && Array.isArray(result.data)
+          ? result.data
+          : Array.isArray(result)
+          ? result
+          : [];
+
+      if (dataArray.length > 0) {
+        const mappedPricing: PricingSlot[] = dataArray.map((p: any) => ({
+          id: p.fieldPricingId || p.pricingId || p.id,
+          startTime: p.startTime ? p.startTime.substring(0, 5) : "00:00",
+          endTime: p.endTime ? p.endTime.substring(0, 5) : "00:00",
+          price: p.price || 0,
+        }));
+        setPricingSlots(mappedPricing);
+      } else {
+        setPricingSlots([]);
+      }
+    } catch (err) {
+      console.error("Fetch pricing error:", err);
+      showToast("Không thể tải dữ liệu giá từ server.", "error");
+      setPricingSlots([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fieldId, getAuthHeaders, showToast]);
+
+  useEffect(() => {
+    if (isOpen && fieldId) {
+      fetchPricingData();
+    }
+  }, [isOpen, fieldId, fetchPricingData]);
+
+  const handleSlotChange = (
+    index: number,
+    field: keyof PricingSlot,
+    value: string | number
+  ) => {
+    const newSlots = [...pricingSlots];
+    newSlots[index] = { ...newSlots[index], [field]: value };
+    setPricingSlots(newSlots);
+  };
+
+  const validateSlot = (slot: PricingSlot): boolean => {
+    if (!slot.startTime || !slot.endTime || !slot.price || slot.price <= 0) {
+      showToast(
+        "Vui lòng điền đầy đủ thông tin và giá phải lớn hơn 0.",
+        "error"
+      );
+      return false;
+    }
+    if (slot.startTime >= slot.endTime) {
+      showToast("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.", "error");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCreatePricing = async (index: number) => {
+    const slotToCreate = pricingSlots[index];
+    if (!validateSlot(slotToCreate)) return;
+
+    setIsProcessing(true);
+    try {
+      const body = {
+        fieldId: fieldId,
+        startTime: `${slotToCreate.startTime}:00`,
+        endTime: `${slotToCreate.endTime}:00`,
+        price: slotToCreate.price,
+      };
+      const response = await fetch(`${API_URL}/api/FieldPricing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify(body),
       });
 
-      if (!confirmation.isConfirmed) return;
-
-      setIsProcessing(true);
-      try {
-        const response = await fetch(
-          `${API_URL}/api/FieldPricing/${slotToDelete.id}`,
-          {
-            method: "DELETE",
-            headers: getAuthHeaders(),
-          }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Tạo khung giá thất bại: ${errorText || response.statusText}`
         );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Xóa khung giá thất bại: ${errorText || response.statusText}`
-          );
-        }
-
-        showToast("Đã xóa khung giá!", "success");
-        setPricingSlots((prev) => prev.filter((p) => p.id !== slotToDelete.id));
-        if (onPricingUpdate) await onPricingUpdate();
-        await fetchSchedule(); // Cập nhật lại lịch
-      } catch (err) {
-        showToast((err as Error).message, "error");
-      } finally {
-        setIsProcessing(false);
       }
-    };
 
-    const addPricingSlot = () => {
-      setPricingSlots((prev) => [
-        ...prev,
-        { startTime: "06:00", endTime: "12:00", price: 100000 },
-      ]);
-    };
+      showToast("Tạo khung giá thành công!", "success");
+      await fetchPricingData();
+      if (onPricingUpdate) await onPricingUpdate();
+      await fetchSchedule();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
-    const removeNewPricingSlot = (index: number) => {
-      setPricingSlots((prev) => prev.filter((_, i) => i !== index));
-    };
+  const handleUpdatePricing = async (index: number) => {
+    const slotToUpdate = pricingSlots[index];
+    if (!slotToUpdate.id) {
+      showToast(
+        "Lỗi: Không tìm thấy ID của khung giá này để cập nhật.",
+        "error"
+      );
+      return;
+    }
+    if (!validateSlot(slotToUpdate)) return;
 
-    const generateTimeOptions = () => {
-      const times = [];
-      for (let h = 0; h <= 23; h++) {
-        for (let m = 0; m < 60; m += 30) {
-          times.push(
-            `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
-          );
+    setIsProcessing(true);
+    try {
+      const body = {
+        startTime: `${slotToUpdate.startTime}:00`,
+        endTime: `${slotToUpdate.endTime}:00`,
+        price: slotToUpdate.price,
+      };
+      const response = await fetch(
+        `${API_URL}/api/FieldPricing/${slotToUpdate.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify(body),
         }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Cập nhật khung giá thất bại: ${errorText || response.statusText}`
+        );
       }
-      times.push("24:00");
-      return times;
-    };
 
-    if (!isOpen) return null;
+      showToast("Cập nhật thành công!", "success");
+      await fetchPricingData();
+      if (onPricingUpdate) await onPricingUpdate();
+      await fetchSchedule();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-          <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl z-10">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800">
-                Quản lý giá đặt theo giờ
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full"
-                title="Đóng modal"
-              >
-                <FiX className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
+  const handleDeletePricing = async (index: number) => {
+    const slotToDelete = pricingSlots[index];
+    if (!slotToDelete.id) {
+      removeNewPricingSlot(index);
+      return;
+    }
+
+    const confirmation = await Swal.fire({
+      title: "Bạn chắc chắn chứ?",
+      text: `Bạn sắp xóa khung giờ ${slotToDelete.startTime} - ${slotToDelete.endTime}.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Vâng, xóa nó!",
+      cancelButtonText: "Hủy",
+    });
+
+    if (!confirmation.isConfirmed) return;
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/FieldPricing/${slotToDelete.id}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Xóa khung giá thất bại: ${errorText || response.statusText}`
+        );
+      }
+
+      showToast("Đã xóa khung giá!", "success");
+      setPricingSlots((prev) => prev.filter((p) => p.id !== slotToDelete.id));
+      if (onPricingUpdate) await onPricingUpdate();
+      await fetchSchedule();
+    } catch (err) {
+      showToast((err as Error).message, "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const addPricingSlot = () => {
+    setPricingSlots((prev) => [
+      ...prev,
+      { startTime: "06:00", endTime: "12:00", price: 100000 },
+    ]);
+  };
+
+  const removeNewPricingSlot = (index: number) => {
+    setPricingSlots((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const generateTimeOptions = () => {
+    const times = [];
+    for (let h = 0; h <= 23; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        times.push(
+          `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+        );
+      }
+    }
+    times.push("24:00");
+    return times;
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl z-10">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Quản lý giá đặt theo giờ
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full"
+              title="Đóng modal"
+            >
+              <FiX className="w-6 h-6 text-gray-500" />
+            </button>
           </div>
-          <div className="p-6 space-y-6">
-            <div className="bg-blue-50 rounded-xl p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Thông tin sân</h3>
-              <p className="text-blue-800">
-                <span className="font-medium">Sân:</span> {fieldName}
-              </p>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="bg-blue-50 rounded-xl p-4">
+            <h3 className="font-semibold text-blue-900 mb-2">Thông tin sân</h3>
+            <p className="text-blue-800">
+              <span className="font-medium">Sân:</span> {fieldName}
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Các khung giờ và giá
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={fetchPricingData}
+                  disabled={isLoading || isProcessing}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:bg-gray-300"
+                >
+                  <FiRefreshCw className="w-4 h-4" /> Làm mới
+                </button>
+                <button
+                  type="button"
+                  onClick={addPricingSlot}
+                  disabled={isLoading || isProcessing}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300"
+                >
+                  <FiPlus className="w-4 h-4" /> Thêm khung giờ
+                </button>
+              </div>
             </div>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Các khung giờ và giá
-                </h3>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={fetchPricingData}
-                    disabled={isLoading || isProcessing}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:bg-gray-300"
-                  >
-                    <FiRefreshCw className="w-4 h-4" /> Làm mới
-                  </button>
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="grid grid-cols-10 gap-4 mb-4 text-sm font-medium text-gray-700 px-2">
+                <div className="col-span-2">Giờ bắt đầu</div>
+                <div className="col-span-2">Giờ kết thúc</div>
+                <div className="col-span-3">Giá sân (VNĐ)/giờ</div>
+                <div className="col-span-3 text-center">Thao tác</div>
+              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <FiRefreshCw className="animate-spin h-6 w-6 text-blue-500" />
+                  <span className="ml-3 text-gray-600">
+                    Đang tải dữ liệu...
+                  </span>
+                </div>
+              ) : pricingSlots.length === 0 ? (
+                <div className="text-center py-12">
+                  <h3 className="text-lg font-semibold text-gray-700">
+                    Chưa có cấu hình giá
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Vui lòng thêm ít nhất một khung giá cho sân này.
+                  </p>
                   <button
                     type="button"
                     onClick={addPricingSlot}
-                    disabled={isLoading || isProcessing}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
                   >
-                    <FiPlus className="w-4 h-4" /> Thêm khung giờ
+                    <FiPlus /> Thêm khung giá đầu tiên
                   </button>
                 </div>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="grid grid-cols-10 gap-4 mb-4 text-sm font-medium text-gray-700 px-2">
-                  <div className="col-span-2">Giờ bắt đầu</div>
-                  <div className="col-span-2">Giờ kết thúc</div>
-                  <div className="col-span-3">Giá sân (VNĐ)/giờ</div>
-                  <div className="col-span-3 text-center">Thao tác</div>
-                </div>
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <FiRefreshCw className="animate-spin h-6 w-6 text-blue-500" />
-                    <span className="ml-3 text-gray-600">
-                      Đang tải dữ liệu...
-                    </span>
-                  </div>
-                ) : pricingSlots.length === 0 ? (
-                  <div className="text-center py-12">
-                    <h3 className="text-lg font-semibold text-gray-700">
-                      Chưa có cấu hình giá
-                    </h3>
-                    <p className="text-gray-500 mb-4">
-                      Vui lòng thêm ít nhất một khung giá cho sân này.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={addPricingSlot}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
+              ) : (
+                <div className="space-y-2">
+                  {pricingSlots.map((slot, index) => (
+                    <div
+                      key={slot.id || `new-${index}`}
+                      className="grid grid-cols-10 gap-4 items-center bg-white p-2 rounded-lg shadow-sm"
                     >
-                      <FiPlus /> Thêm khung giá đầu tiên
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {pricingSlots.map((slot, index) => (
-                      <div
-                        key={slot.id || `new-${index}`}
-                        className="grid grid-cols-10 gap-4 items-center bg-white p-2 rounded-lg shadow-sm"
-                      >
-                        <div className="col-span-2">
-                          <select
-                            value={slot.startTime}
-                            onChange={(e) =>
-                              handleSlotChange(index, "startTime", e.target.value)
-                            }
-                            disabled={isProcessing}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                            title="Giờ bắt đầu"
-                            aria-label="Giờ bắt đầu"
-                          >
-                            {generateTimeOptions().map((time) => (
-                              <option key={time} value={time}>
-                                {time}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-span-2">
-                          <select
-                            value={slot.endTime}
-                            onChange={(e) =>
-                              handleSlotChange(index, "endTime", e.target.value)
-                            }
-                            disabled={isProcessing}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                            title="Giờ kết thúc"
-                            aria-label="Giờ kết thúc"
-                          >
-                            {generateTimeOptions().map((time) => (
-                              <option key={time} value={time}>
-                                {time}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-span-3">
-                          <input
-                            type="number"
-                            value={slot.price}
-                            onChange={(e) =>
-                              handleSlotChange(
-                                index,
-                                "price",
-                                parseInt(e.target.value) || 0
-                              )
-                            }
-                            disabled={isProcessing}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                            title="Giá mỗi giờ (VNĐ)"
-                            placeholder="Giá (VNĐ)"
-                            min="0"
-                            step="1000"
-                          />
-                        </div>
-                        <div className="col-span-3 flex justify-center items-center gap-2">
-                          {slot.id ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleUpdatePricing(index)}
-                                disabled={isProcessing}
-                                className="p-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
-                                title="Cập nhật"
-                              >
-                                <FiEdit className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePricing(index)}
-                                disabled={isProcessing}
-                                className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 disabled:bg-red-300"
-                                title="Xóa"
-                              >
-                                <FiTrash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleCreatePricing(index)}
-                                disabled={isProcessing}
-                                className="p-2 text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-green-300"
-                                title="Lưu khung giá"
-                                aria-label="Lưu khung giá"
-                              >
-                                <FiSave className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePricing(index)}
-                                disabled={isProcessing}
-                                className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 disabled:bg-red-300"
-                                title="Xóa"
-                              >
-                                <FiTrash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
+                      <div className="col-span-2">
+                        <select
+                          value={slot.startTime}
+                          onChange={(e) =>
+                            handleSlotChange(index, "startTime", e.target.value)
+                          }
+                          disabled={isProcessing}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                          title="Giờ bắt đầu"
+                          aria-label="Giờ bắt đầu"
+                        >
+                          {generateTimeOptions().map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <div className="col-span-2">
+                        <select
+                          value={slot.endTime}
+                          onChange={(e) =>
+                            handleSlotChange(index, "endTime", e.target.value)
+                          }
+                          disabled={isProcessing}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                          title="Giờ kết thúc"
+                          aria-label="Giờ kết thúc"
+                        >
+                          {generateTimeOptions().map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-3">
+                        <input
+                          type="number"
+                          value={slot.price}
+                          onChange={(e) =>
+                            handleSlotChange(
+                              index,
+                              "price",
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          disabled={isProcessing}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                          title="Giá mỗi giờ (VNĐ)"
+                          placeholder="Giá (VNĐ)"
+                          min="0"
+                          step="1000"
+                        />
+                      </div>
+                      <div className="col-span-3 flex justify-center items-center gap-2">
+                        {slot.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdatePricing(index)}
+                              disabled={isProcessing}
+                              className="p-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
+                              title="Cập nhật"
+                            >
+                              <FiEdit className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePricing(index)}
+                              disabled={isProcessing}
+                              className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 disabled:bg-red-300"
+                              title="Xóa"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleCreatePricing(index)}
+                              disabled={isProcessing}
+                              className="p-2 text-white bg-green-500 rounded-md hover:bg-green-600 disabled:bg-green-300"
+                              title="Lưu khung giá"
+                              aria-label="Lưu khung giá"
+                            >
+                              <FiSave className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePricing(index)}
+                              disabled={isProcessing}
+                              className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 disabled:bg-red-300"
+                              title="Xóa"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex justify-end space-x-4 pt-4 border-t mt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Đóng
-              </button>
-            </div>
+          </div>
+          <div className="flex justify-end space-x-4 pt-4 border-t mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Đóng
+            </button>
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
 const WeeklySchedule: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -2045,6 +2104,10 @@ const WeeklySchedule: React.FC = () => {
       }
 
       let finalName = booking.customerName || "Khách hàng";
+      if (bookingDetail?.customerInfo?.name) {
+        finalName = bookingDetail.customerInfo.name;
+      }
+
       if (userInfo) {
         const name =
           userInfo.admin?.name ||
@@ -2072,6 +2135,9 @@ const WeeklySchedule: React.FC = () => {
         finalName = "Khách hàng";
 
       let finalPhone = booking.contact || "Chưa có thông tin";
+      if (bookingDetail?.customerInfo?.phone) {
+        finalPhone = bookingDetail.customerInfo.phone;
+      }
       if (userInfo) {
         const phone =
           userInfo.admin?.phone ||
@@ -2142,7 +2208,6 @@ const WeeklySchedule: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         const data = result.data || result;
-        console.log("Pricing configuration data:", data);
         const hasConfig = data && Array.isArray(data) && data.length > 0;
         setHasPricingConfiguration(hasConfig);
       } else {
@@ -2188,24 +2253,38 @@ const WeeklySchedule: React.FC = () => {
               (endDateTime.getTime() - startDateTime.getTime()) /
               (1000 * 60 * 60);
 
+            // Logic xử lý trạng thái dựa trên bảng bạn cung cấp
+            let mappedStatus:
+              | "completed"
+              | "deposited"
+              | "pending"
+              | "cancelled" = "pending"; // Mặc định là 'pending'
+
+            const isActualBooking =
+              schedule.bookingId && schedule.bookingId > 0;
+
+            if (isActualBooking) {
+              if (schedule.orderStatusPayment === "Success") {
+                mappedStatus = "completed"; // Đã hoàn thành (Ưu tiên cao nhất)
+              } else if (schedule.bookingStatus === "Success") {
+                mappedStatus = "deposited"; // Đã cọc
+              } else if (schedule.bookingStatus === "Pending") {
+                mappedStatus = "pending"; // Chờ đặt cọc
+              } else if (schedule.bookingStatus === "Cancelled") {
+                mappedStatus = "cancelled"; // Đã hủy
+              }
+            }
+
             return {
               id: schedule.scheduleId || 0,
               customerName: schedule.bookingTitle || "Không có tên",
               date: startDateTime,
               duration: Math.max(0, duration),
               field: schedule.fieldName || fieldName || "Không xác định",
-              status:
-                schedule.status === "Booked"
-                  ? "confirmed"
-                  : schedule.status === "Scheduled"
-                    ? "pending"
-                    : "cancelled",
+              status: mappedStatus, // Sử dụng trạng thái đã được xử lý
               contact: "Unknown",
               basePrice: schedule.price || 0,
-              bookingId:
-                schedule.bookingId && schedule.bookingId > 0
-                  ? schedule.bookingId
-                  : null,
+              bookingId: isActualBooking ? schedule.bookingId : null,
               userId: null,
               guestName: null,
               guestPhone: null,
@@ -2241,7 +2320,8 @@ const WeeklySchedule: React.FC = () => {
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(
-          `Lỗi khi lấy danh sách dịch vụ: ${response.status} - ${errorText || response.statusText
+          `Lỗi khi lấy danh sách dịch vụ: ${response.status} - ${
+            errorText || response.statusText
           }`
         );
       }
@@ -2372,8 +2452,7 @@ const WeeklySchedule: React.FC = () => {
   };
 
   const handleBookingConfirm = () => {
-    // Logic này không còn được sử dụng trực tiếp, đã được chuyển vào BookingDetailsModal
-    // giữ lại để không làm lỗi các hàm khác.
+    // This logic is now handled inside BookingDetailsModal
   };
 
   const handleCreateSlot = async (slotData: CreateSlotData) => {
@@ -2419,7 +2498,8 @@ const WeeklySchedule: React.FC = () => {
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(
-          `Lỗi khi tạo slot: ${response.status} - ${errorText || response.statusText
+          `Lỗi khi tạo slot: ${response.status} - ${
+            errorText || response.statusText
           }`
         );
       }
@@ -2549,10 +2629,9 @@ const WeeklySchedule: React.FC = () => {
                   {facility && (
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
-                        🏢 {facility.name}
+                        {facility.name}
                       </span>
                       <span className="flex items-center gap-1">
-                        🕐
                         {facility.openTime.substring(0, 5)} -
                         {facility.closeTime.substring(0, 5)}
                       </span>
@@ -2589,13 +2668,9 @@ const WeeklySchedule: React.FC = () => {
                 </button>
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-gray-800">
-                    {format(weekStart, "dd/MM", { locale: vi })} - {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
+                    {format(weekStart, "dd/MM", { locale: vi })} -{" "}
+                    {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
                   </h2>
-                  {/* <p className="text-sm text-gray-600 mt-1">
-                    Tuần
-                    {format(weekStart, "w", { locale: vi })} năm
-                    {format(weekStart, "yyyy")}
-                  </p> */}
                 </div>
                 <button
                   onClick={() => navigateWeek(1)}
@@ -2650,13 +2725,9 @@ const WeeklySchedule: React.FC = () => {
                       <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded"></div>
                       <span className="text-gray-600">Chờ đặt cọc</span>
                     </div>
-                    {/* <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-red-200 border border-red-400 rounded"></div>
                       <span className="text-gray-600">Đã hủy</span>
-                    </div> */}
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded"></div>
-                      <span className="text-gray-600">Chưa đặt</span>
                     </div>
                   </div>
                 </div>
@@ -2674,18 +2745,21 @@ const WeeklySchedule: React.FC = () => {
                       return (
                         <div
                           key={day.toString()}
-                          className={`bg-white rounded-lg text-center font-semibold py-4 ${isToday ? "ring-2 ring-blue-500" : ""
-                            }`}
+                          className={`bg-white rounded-lg text-center font-semibold py-4 ${
+                            isToday ? "ring-2 ring-blue-500" : ""
+                          }`}
                         >
                           <div
-                            className={`text-sm ${isToday ? "text-blue-600" : "text-gray-600"
-                              }`}
+                            className={`text-sm ${
+                              isToday ? "text-blue-600" : "text-gray-600"
+                            }`}
                           >
                             {format(day, "EEEE", { locale: vi })}
                           </div>
                           <div
-                            className={`text-lg font-bold ${isToday ? "text-blue-700" : "text-gray-800"
-                              }`}
+                            className={`text-lg font-bold ${
+                              isToday ? "text-blue-700" : "text-gray-800"
+                            }`}
                           >
                             {format(day, "dd/MM", { locale: vi })}
                           </div>
@@ -2706,8 +2780,6 @@ const WeeklySchedule: React.FC = () => {
                               booking.date.getHours() === hour
                           );
                           const isEmpty = dayBookings.length === 0;
-                          const cellStart = new Date(day);
-                          cellStart.setHours(hour, 0, 0, 0);
                           const cellEnd = new Date(day);
                           cellEnd.setHours(hour + 1, 0, 0, 0);
                           const now = new Date();
@@ -2715,16 +2787,19 @@ const WeeklySchedule: React.FC = () => {
                           return (
                             <div
                               key={`${day}-${hour}`}
-                              className={`rounded-lg min-h-[100px] p-2 border ${isEmpty ? "border-dashed" : "border-solid"
-                                } ${isEmpty && isExpired ? "bg-gray-50" : "bg-white"
-                                }`}
+                              className={`rounded-lg min-h-[100px] p-2 border ${
+                                isEmpty ? "border-dashed" : "border-solid"
+                              } ${
+                                isEmpty && isExpired ? "bg-gray-50" : "bg-white"
+                              }`}
                             >
                               {isEmpty ? (
                                 <div
-                                  className={`w-full h-full flex items-center justify-center text-sm ${isExpired
-                                    ? "text-gray-400"
-                                    : "text-gray-300"
-                                    }`}
+                                  className={`w-full h-full flex items-center justify-center text-sm ${
+                                    isExpired
+                                      ? "text-gray-400"
+                                      : "text-gray-300"
+                                  }`}
                                 >
                                   {isExpired ? "Hết hạn" : "Chưa đặt"}
                                 </div>
@@ -2759,28 +2834,31 @@ const WeeklySchedule: React.FC = () => {
               <h3 className="text-lg font-bold mb-2">Thông tin đặt sân</h3>
               <div className="space-y-2">
                 <p>
-                  <span className="font-medium">Tên khách hàng:</span>
+                  <span className="font-medium">Tên khách hàng:</span>{" "}
                   {quickLoading ? "Đang tải..." : quickCustomerName}
                 </p>
                 <p>
-                  <span className="font-medium">Số điện thoại:</span>
+                  <span className="font-medium">Số điện thoại:</span>{" "}
                   {quickLoading ? "Đang tải..." : quickCustomerPhone}
                 </p>
                 <p>
-                  <span className="font-medium">Sân:</span>
+                  <span className="font-medium">Sân:</span>{" "}
                   {selectedBooking.field}
                 </p>
                 <p>
-                  <span className="font-medium">Thời gian:</span>
+                  <span className="font-medium">Thời gian:</span>{" "}
                   {selectedBooking.duration} giờ
                 </p>
                 <p>
-                  <span className="font-medium">Trạng thái:</span>
-                  {selectedBooking.status === "confirmed"
-                    ? "Đã xác nhận"
-                    : selectedBooking.status === "pending"
-                      ? "Chờ xác nhận"
-                      : "Đã hủy"}
+                  <span className="font-medium">Trạng thái:</span>{" "}
+                  {
+                    {
+                      completed: "Đã hoàn thành",
+                      deposited: "Đã cọc",
+                      pending: "Chờ đặt cọc",
+                      cancelled: "Đã hủy",
+                    }[selectedBooking.status]
+                  }
                 </p>
               </div>
               <div className="flex justify-end gap-2 mt-4">

@@ -153,7 +153,7 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
         notes: booking.guestInfo?.notes || "Đặt sân qua hệ thống online",
         depositAmount,
       };
-    console.log('[DEBUG] bookingData gửi lên API:', bookingData);
+      console.log("[DEBUG] bookingData gửi lên API:", bookingData);
 
       let apiUrl = "https://localhost:7057/api/Payment/calculate-and-pay";
       let response: Response;
