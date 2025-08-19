@@ -63,5 +63,6 @@ namespace SportZone_API.DTOs
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
         public string? BookerType { get; set; } // "Customer" hoặc "Guest"
+        public string? FieldOwnerName { get; set; }
     }
 }
