@@ -90,16 +90,6 @@ namespace SportZone_API.Services
 
         }
 
-        //private string GenerateOwnerNotificationContent(Booking booking)
-        //{
-        //    var facilityName = booking.Field?.Fac?.Name ?? "Không xác định";
-        //    var fieldName = booking.Field?.FieldName ?? "Không xác định";
-        //    var date = booking.Date?.ToString("dd/MM/yyyy") ?? "Không xác định";
-        //    var timeRange = $"{booking.StartTime:HH:mm} - {booking.EndTime:HH:mm}";
-        //    var customerName = booking.UIdNavigation?.Customer?.Name ?? "Khách";
-
-        //    return $"Có đặt sân mới! {customerName} đã đặt sân {fieldName} tại {facilityName} vào ngày {date} từ {timeRange}. ";
-        //}
         private string GenerateOwnerNotificationContent(Booking booking)
         {
             var facilityName = booking.Field?.Fac?.Name ?? "Không xác định";
