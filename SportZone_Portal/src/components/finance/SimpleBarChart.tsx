@@ -28,9 +28,15 @@ interface SimpleBarChartProps {
   data: {
     monthlyRevenue: MonthlyRevenueItem[];
   };
+  chartLabel?: string;
+  chartTitle?: string;
 }
 
-const SimpleBarChart: React.FC<SimpleBarChartProps> = ({ data }) => {
+const SimpleBarChart: React.FC<SimpleBarChartProps> = ({
+  data,
+  chartLabel,
+  chartTitle,
+}) => {
   if (!data || !data.monthlyRevenue) return null;
   const labels = data.monthlyRevenue.map((item) => item.period);
   const revenues = data.monthlyRevenue.map((item) => item.revenue);
@@ -39,7 +45,7 @@ const SimpleBarChart: React.FC<SimpleBarChartProps> = ({ data }) => {
     labels,
     datasets: [
       {
-        label: "Doanh thu theo tháng",
+        label: chartLabel || "Doanh thu theo tháng",
         data: revenues,
         backgroundColor: "#16a34a",
       },
@@ -50,7 +56,10 @@ const SimpleBarChart: React.FC<SimpleBarChartProps> = ({ data }) => {
     responsive: true,
     plugins: {
       legend: { position: "top" as const },
-      title: { display: true, text: "Biểu đồ doanh thu theo tháng" },
+      title: {
+        display: true,
+        text: chartTitle || "Biểu đồ doanh thu theo tháng",
+      },
     },
   };
 

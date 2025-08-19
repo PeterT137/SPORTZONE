@@ -170,7 +170,7 @@ const BookingHistoryList: React.FC = () => {
                       <td className="px-4 py-3 font-semibold text-[#1a3c34]">
                         {booking.fieldName}
                       </td>
-                      <td className="px-4 py-3">{booking.facilityAddress}</td>
+                      <td className="px-4 py-3">{booking.facilityName}</td>
                       <td className="px-4 py-3">{booking.date}</td>
                       <td className="px-4 py-3">
                         {booking.startTime.slice(0, 5)} -{" "}

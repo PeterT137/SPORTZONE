@@ -72,29 +72,31 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
     if (booking.slots.length === 0) return "";
 
     // Sort slots by start time
-    const sortedSlots = booking.slots.sort((a, b) =>
+    const sortedSlots = [...booking.slots].sort((a, b) =>
       a.startTime.localeCompare(b.startTime)
     );
 
     // Group consecutive slots
     const slotGroups: FieldScheduleSlot[][] = [];
-    let currentGroup: FieldScheduleSlot[] = [sortedSlots[0]];
+    if (sortedSlots.length > 0) {
+      let currentGroup: FieldScheduleSlot[] = [sortedSlots[0]];
 
-    for (let i = 1; i < sortedSlots.length; i++) {
-      const currentSlot = sortedSlots[i];
-      const previousSlot = currentGroup[currentGroup.length - 1];
+      for (let i = 1; i < sortedSlots.length; i++) {
+        const currentSlot = sortedSlots[i];
+        const previousSlot = currentGroup[currentGroup.length - 1];
 
-      // Check if current slot is consecutive to the previous one
-      if (currentSlot.startTime === previousSlot.endTime) {
-        currentGroup.push(currentSlot);
-      } else {
-        slotGroups.push(currentGroup);
-        currentGroup = [currentSlot];
+        // Check if current slot is consecutive to the previous one
+        if (currentSlot.startTime === previousSlot.endTime) {
+          currentGroup.push(currentSlot);
+        } else {
+          slotGroups.push(currentGroup);
+          currentGroup = [currentSlot];
+        }
       }
+      slotGroups.push(currentGroup);
     }
-    slotGroups.push(currentGroup);
 
-    // Format each group as time range
+    // Format each group as a time range
     return slotGroups
       .map(
         (group) => `${group[0].startTime} - ${group[group.length - 1].endTime}`
@@ -103,27 +105,19 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
   };
 
   const calculateTotalDuration = () => {
-    if (booking.slots.length === 0) return 0;
+    if (booking.slots.length === 0) return "0 giờ";
 
-    let totalMinutes = 0;
-    booking.slots.forEach((slot) => {
-      const [startHour, startMinute] = slot.startTime.split(":").map(Number);
-      const [endHour, endMinute] = slot.endTime.split(":").map(Number);
-
-      const startTotalMinutes = startHour * 60 + startMinute;
-      const endTotalMinutes = endHour * 60 + endMinute;
-
-      totalMinutes += endTotalMinutes - startTotalMinutes;
-    });
-
+    const totalMinutes = booking.slots.length * 30; // Assuming each slot is 30 minutes
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
 
-    if (minutes === 0) {
-      return `${hours} giờ`;
-    } else {
+    if (hours > 0 && minutes > 0) {
       return `${hours} giờ ${minutes} phút`;
     }
+    if (hours > 0) {
+      return `${hours} giờ`;
+    }
+    return `${minutes} phút`;
   };
 
   const calculateSubtotal = () => {
@@ -134,6 +128,8 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
     return booking.services.reduce((sum, service) => sum + service.price, 0);
   };
 
+  const subtotal = calculateSubtotal();
+  const servicesTotal = calculateServicesTotal();
   const depositAmount = Math.round(booking.totalPrice * 0.5);
 
   const handlePayment = async () => {
@@ -157,8 +153,11 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
         notes: booking.guestInfo?.notes || "Đặt sân qua hệ thống online",
         depositAmount,
       };
+    console.log('[DEBUG] bookingData gửi lên API:', bookingData);
+
       let apiUrl = "https://localhost:7057/api/Payment/calculate-and-pay";
       let response: Response;
+
       try {
         response = await fetch(apiUrl, {
           method: "POST",
@@ -169,7 +168,7 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
           body: JSON.stringify(bookingData),
         });
       } catch {
-        apiUrl = "http://localhost:7057/api/Payment/calculate-and-pay";
+        apiUrl = "http://localhost:5085/api/Payment/calculate-and-pay";
         response = await fetch(apiUrl, {
           method: "POST",
           headers: {
@@ -183,11 +182,14 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
         const text = await response.text();
         throw new Error(text || `Lỗi API: ${response.status}`);
       }
+
       const result = await response.json();
       if (result.paymentUrl) {
         window.location.href = result.paymentUrl;
       } else {
-        throw new Error(result.message || "Không nhận được paymentUrl từ API");
+        throw new Error(
+          result.message || "Không nhận được URL thanh toán từ API"
+        );
       }
     } catch (err: unknown) {
       const message =
@@ -241,7 +243,7 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
                   alt={booking.field.fieldName}
                   className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                 />
-                <div className="flex-1">
+                <div>
                   <h4 className="font-medium text-lg">
                     {booking.field.fieldName}
                   </h4>
@@ -291,7 +293,7 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
               </div>
             </div>
 
-            {/* Chi tiết từng slot */}
+            {/* Slot Details */}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-2">
                 Chi tiết các slot đã chọn
@@ -361,9 +363,11 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
                   >
                     <div>
                       <p className="font-medium">{service.serviceName}</p>
-                      <p className="text-sm text-gray-600">
-                        {service.description}
-                      </p>
+                      {service.description && (
+                        <p className="text-sm text-gray-600">
+                          {service.description}
+                        </p>
+                      )}
                     </div>
                     <span className="font-medium text-green-600">
                       {service.price.toLocaleString()}đ
@@ -381,57 +385,73 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>
-                  Tổng tiền sân ({booking.slots.length} slot × 30 phút)
-                </span>
-                <span>{calculateSubtotal().toLocaleString()}đ</span>
-              </div>
-
-              <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                <p className="font-bold">Ghi chú:</p>
-                <p>• Chưa tính phí dịch vụ mà khách hàng sử dụng tại sân</p>
-                <p>• Khách hàng cọc trước 50% tổng tiền sân</p>
+                <span>Tiền sân ({booking.slots.length} slot)</span>
+                <span>{subtotal.toLocaleString()}đ</span>
               </div>
 
               {booking.services.length > 0 && (
                 <div className="flex justify-between">
                   <span>Dịch vụ thêm</span>
-                  <span>{calculateServicesTotal().toLocaleString()}đ</span>
+                  <span>{servicesTotal.toLocaleString()}đ</span>
                 </div>
               )}
 
+              {typeof selectedDiscountId === "number" &&
+                booking.totalPrice < subtotal + servicesTotal && (
+                  <div className="flex justify-between text-red-600">
+                    <span>Giảm giá</span>
+                    <span>
+                      -
+                      {(
+                        subtotal +
+                        servicesTotal -
+                        booking.totalPrice
+                      ).toLocaleString()}
+                      đ
+                    </span>
+                  </div>
+                )}
+
               <hr className="my-2" />
+
+              <div className="flex justify-between text-lg font-bold">
+                <span>Tổng cộng</span>
+                <span>{booking.totalPrice.toLocaleString()}đ</span>
+              </div>
+
               <div className="flex justify-between text-lg font-bold text-green-600">
-                <span>Tiền cọc</span>
+                <span>Tiền cọc (50%)</span>
                 <span>{depositAmount.toLocaleString()}đ</span>
               </div>
 
-              <div className="text-xs text-gray-500 mt-2">
-                * Mỗi slot = 30 phút. Tổng thời gian:{" "}
-                {(booking.slots.length * 0.5).toFixed(1)} giờ
+              <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                <p>• Vui lòng thanh toán tiền cọc để hoàn tất đặt sân.</p>
+                <p>• Chi phí dịch vụ phát sinh sẽ được thanh toán tại cơ sở.</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end space-x-3">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            Quay lại
-          </button>
-          <button
-            onClick={handlePayment}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? "Đang chuyển hướng..." : "Thanh toán"}
-          </button>
+        <div className="bg-gray-50 px-6 py-4 rounded-b-lg">
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Quay lại
+            </button>
+            <button
+              onClick={handlePayment}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-60"
+              disabled={loading}
+            >
+              {loading ? "Đang xử lý..." : "Thanh toán cọc"}
+            </button>
+          </div>
           {error && (
-            <div className="w-full text-center text-red-600 mt-2 text-sm">
-              {error}
+            <div className="w-full text-right text-red-600 mt-2 text-sm">
+              Lỗi: {error}
             </div>
           )}
         </div>

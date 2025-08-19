@@ -98,6 +98,27 @@ const OrdersTable: React.FC = () => {
     [key: string]: boolean;
   }>({});
 
+  const [confirmPopup, setConfirmPopup] = useState<{
+    show: boolean;
+    orderId: number | null;
+    newStatus: string;
+  }>(() => ({ show: false, orderId: null, newStatus: "" }));
+
+  const handleChangePaymentStatus = (orderId: number, newStatus: string) => {
+    setConfirmPopup({ show: true, orderId, newStatus });
+  };
+
+  const handleConfirmChangeStatus = () => {
+    if (confirmPopup.orderId && confirmPopup.newStatus) {
+      updatePaymentStatus(confirmPopup.orderId, confirmPopup.newStatus);
+    }
+    setConfirmPopup({ show: false, orderId: null, newStatus: "" });
+  };
+
+  const handleCancelChangeStatus = () => {
+    setConfirmPopup({ show: false, orderId: null, newStatus: "" });
+  };
+
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -1390,7 +1411,19 @@ const OrdersTable: React.FC = () => {
                                 }
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
                                   order.statusPayment
-                                )}`}
+                                )} ${
+                                  order.statusPayment === "Đã thanh toán"
+                                    ? "cursor-not-allowed opacity-60"
+                                    : ""
+                                }`}
+                                disabled={
+                                  order.statusPayment === "Đã thanh toán"
+                                }
+                                title={
+                                  order.statusPayment === "Đã thanh toán"
+                                    ? "Đơn hàng đã thanh toán, không thể đổi trạng thái"
+                                    : "Đổi trạng thái thanh toán"
+                                }
                               >
                                 {order.statusPayment}
                                 <svg
@@ -1409,44 +1442,80 @@ const OrdersTable: React.FC = () => {
                               </button>
                               {showDropdowns[
                                 `paymentStatus_${order.orderId}`
-                              ] && (
-                                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
-                                  <div className="py-1">
-                                    {paymentStatuses.map(
-                                      (status, statusIndex) => (
-                                        <div
-                                          key={statusIndex}
-                                          onClick={() => {
-                                            updatePaymentStatus(
-                                              order.orderId,
-                                              status
-                                            );
-                                            toggleDropdown(
-                                              `paymentStatus_${order.orderId}`
-                                            );
-                                          }}
-                                          className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 ${
-                                            status === order.statusPayment
-                                              ? "bg-blue-50 text-blue-700"
-                                              : "text-gray-700 hover:text-blue-600"
-                                          }`}
-                                        >
-                                          <span
-                                            className={`inline-block w-2 h-2 rounded-full mr-3 ${
-                                              getPaymentStatusColor(
+                              ] &&
+                                order.statusPayment !== "Đã thanh toán" && (
+                                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
+                                    <div className="py-1">
+                                      {paymentStatuses.map(
+                                        (status, statusIndex) => (
+                                          <div
+                                            key={statusIndex}
+                                            onClick={() => {
+                                              handleChangePaymentStatus(
+                                                order.orderId,
                                                 status
-                                              ).split(" ")[0]
+                                              );
+                                              toggleDropdown(
+                                                `paymentStatus_${order.orderId}`
+                                              );
+                                            }}
+                                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 ${
+                                              status === order.statusPayment
+                                                ? "bg-blue-50 text-blue-700"
+                                                : "text-gray-700 hover:text-blue-600"
                                             }`}
-                                          ></span>
-                                          {status}
-                                        </div>
-                                      )
-                                    )}
+                                          >
+                                            <span
+                                              className={`inline-block w-2 h-2 rounded-full mr-3 ${
+                                                getPaymentStatusColor(
+                                                  status
+                                                ).split(" ")[0]
+                                              }`}
+                                            ></span>
+                                            {status}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
                             </div>
                           </td>
+                          {confirmPopup.show && (
+                            <div className="fixed inset-0 flex items-center justify-center z-[100]">
+                              <div className="absolute inset-0 bg-gray-500 bg-opacity-30"></div>
+                              <div className="relative bg-white rounded-lg shadow-xl p-6 min-w-[320px]">
+                                <h3 className="text-lg font-semibold mb-2 text-gray-900">
+                                  Xác nhận chuyển trạng thái
+                                </h3>
+                                <p className="mb-4 text-gray-700">
+                                  Bạn có chắc muốn chuyển trạng thái đơn hàng{" "}
+                                  <span className="font-bold">
+                                    #{confirmPopup.orderId}
+                                  </span>{" "}
+                                  thành{" "}
+                                  <span className="font-bold">
+                                    {confirmPopup.newStatus}
+                                  </span>
+                                  ?
+                                </p>
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    onClick={handleCancelChangeStatus}
+                                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                                  >
+                                    Hủy
+                                  </button>
+                                  <button
+                                    onClick={handleConfirmChangeStatus}
+                                    className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+                                  >
+                                    Xác nhận
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <button
                               onClick={() => openOrderDetail(order)}
