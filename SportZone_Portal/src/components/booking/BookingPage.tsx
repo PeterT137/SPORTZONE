@@ -132,7 +132,7 @@ interface BookingFormData {
 // API Functions (Stable - defined outside the component)
 const fetchFields = async (facilityId: number): Promise<ApiFieldResponse[]> => {
   const response = await fetch(
-    `https://localhost:7057/api/Field/facility/${facilityId}`
+    `https://api.sportzone.top/api/Field/facility/${facilityId}`
   );
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
   const result = await response.json();
@@ -144,7 +144,7 @@ const fetchFacilityDetails = async (
   facilityId: number
 ): Promise<ApiFacilityWithDetails> => {
   const response = await fetch(
-    `https://localhost:7057/api/Facility/with-details`
+    `https://api.sportzone.top/api/Facility/with-details`
   );
   if (!response.ok) {
     const errorText = await response.text();
@@ -165,7 +165,7 @@ const fetchFacilityDetails = async (
       closeTime: facility.closeTime,
       images:
         facility.imageUrls?.map((url) =>
-          url.startsWith("http") ? url : `https://localhost:7057${url}`
+          url.startsWith("http") ? url : `https://api.sportzone.top${url}`
         ) || [],
     };
   }
@@ -176,7 +176,7 @@ const fetchFieldBookingSchedules = async (
   date: string
 ): Promise<ApiFieldBookingSchedule[]> => {
   const response = await fetch(
-    "https://localhost:7057/api/FieldBookingSchedule"
+    "https://api.sportzone.top/api/FieldBookingSchedule"
   );
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
   const schedules: ApiFieldBookingSchedule[] = await response.json();
@@ -191,7 +191,7 @@ const fetchFieldPricing = async (
     for (const fieldId of facilityFieldIds) {
       try {
         const response = await fetch(
-          `https://localhost:7057/api/FieldPricing/byField/${fieldId}`
+          `https://api.sportzone.top/api/FieldPricing/byField/${fieldId}`
         );
         if (!response.ok) {
           console.warn(
@@ -216,7 +216,7 @@ const fetchFieldPricing = async (
     }
     return allPricing;
   } else {
-    const response = await fetch("https://localhost:7057/api/FieldPricing");
+    const response = await fetch("https://api.sportzone.top/api/FieldPricing");
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const result = await response.json();
     if (Array.isArray(result)) return result;
@@ -235,7 +235,7 @@ const fetchFacilityDiscounts = async (
 
   try {
     const res = await fetch(
-      `https://localhost:7057/api/Discount/facility/${facilityId}`,
+      `https://api.sportzone.top/api/Discount/facility/${facilityId}`,
       { headers }
     );
     if (!res.ok) return [];
@@ -854,7 +854,7 @@ const BookingPage: React.FC = () => {
             );
 
           fetch(
-            `https://localhost:7057/api/RegulationFacility/facility/${firstField.facId}`
+            `https://api.sportzone.top/api/RegulationFacility/facility/${firstField.facId}`
           )
             .then(async (res) => {
               if (!res.ok) return [] as RegulationItem[];

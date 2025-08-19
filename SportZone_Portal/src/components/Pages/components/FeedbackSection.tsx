@@ -21,7 +21,7 @@ const FeedbackSection = () => {
       setError(null);
       try {
         const response = await fetch(
-          "https://localhost:7057/api/RegulationSystem"
+          "https://api.sportzone.top/api/RegulationSystem"
         );
         if (!response.ok) throw new Error("Không thể lấy quy định hệ thống");
         const data = await response.json();

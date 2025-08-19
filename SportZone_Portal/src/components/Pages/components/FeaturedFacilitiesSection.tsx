@@ -17,7 +17,7 @@ interface ApiFacilityResponse {
 // API Function
 const fetchFacilities = async (): Promise<ApiFacilityResponse[]> => {
   const response = await fetch(
-    "https://localhost:7057/api/Facility/with-details"
+    "https://api.sportzone.top/api/Facility/with-details"
   );
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
   return await response.json();

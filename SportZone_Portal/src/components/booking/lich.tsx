@@ -29,7 +29,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import Sidebar from "../../Sidebar";
 
-const API_URL = "https://localhost:7057";
+const API_URL = "https://api.sportzone.top";
 
 const updateBookingSlot = async (data: {
   fieldId: number;

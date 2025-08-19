@@ -85,7 +85,7 @@ const SignInForm: React.FC = () => {
       setLoading(true);
 
       const response = await axios.post(
-        "https://localhost:7057/api/Authentication/Login",
+        "https://api.sportzone.top/api/Authentication/Login",
         {
           uEmail: formData.email,
           uPassword: formData.password,
@@ -188,13 +188,13 @@ const SignInForm: React.FC = () => {
 
   const handleGoogleLogin = () => {
     window.location.href =
-      "https://localhost:7057/api/Authentication/googlelogin";
+      "https://api.sportzone.top/api/Authentication/googlelogin";
   };
 
   const handleForgotPasswordSubmit = async () => {
     setLoading(true);
     try {
-      await axios.post("https://localhost:7057/api/ForgotPassword/send-code", {
+      await axios.post("https://api.sportzone.top/api/ForgotPassword/send-code", {
         email: forgotEmail,
       });
       showToast("Mã OTP đã được gửi về email!");
@@ -219,7 +219,7 @@ const SignInForm: React.FC = () => {
 
     try {
       await axios.post(
-        "https://localhost:7057/api/ForgotPassword/verify-code",
+        "https://api.sportzone.top/api/ForgotPassword/verify-code",
         {
           email: forgotEmail,
 
@@ -259,7 +259,7 @@ const SignInForm: React.FC = () => {
 
     try {
       await axios.post(
-        "https://localhost:7057/api/ForgotPassword/reset-password",
+        "https://api.sportzone.top/api/ForgotPassword/reset-password",
         {
           email: forgotEmail,
 

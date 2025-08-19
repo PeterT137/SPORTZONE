@@ -119,7 +119,7 @@ const FacilityManager: React.FC = () => {
     }
 
     // If it's a relative path, prepend the server URL
-    const baseUrl = "https://localhost:7057";
+    const baseUrl = "https://api.sportzone.top";
     const cleanPath = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
     const fullUrl = `${baseUrl}${cleanPath}`;
 
@@ -161,7 +161,7 @@ const FacilityManager: React.FC = () => {
     }
 
     // Use the new API endpoint that returns complete data with facId
-    const baseUrl = `https://localhost:7057/api/Facility/with-details`;
+    const baseUrl = `https://api.sportzone.top/api/Facility/with-details`;
     const url = searchText
       ? `${baseUrl}?searchText=${encodeURIComponent(searchText)}`
       : baseUrl;
@@ -441,8 +441,8 @@ const FacilityManager: React.FC = () => {
       // Use the standard endpoint - backend only has one endpoint for updates
       const baseUrl =
         editId !== null
-          ? `https://localhost:7057/api/Facility/${editId}`
-          : "https://localhost:7057/api/Facility";
+          ? `https://api.sportzone.top/api/Facility/${editId}`
+          : "https://api.sportzone.top/api/Facility";
 
       const response = await fetch(baseUrl, {
         method: editId !== null ? "PUT" : "POST",
@@ -608,7 +608,7 @@ const FacilityManager: React.FC = () => {
 
     try {
       const response = await fetch(
-        `https://localhost:7057/api/Facility/${facilityToDelete}`,
+        `https://api.sportzone.top/api/Facility/${facilityToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -708,7 +708,7 @@ const FacilityManager: React.FC = () => {
 
     try {
       const response = await fetch(
-        `https://localhost:7057/api/Facility/${facility.fac_id}`,
+        `https://api.sportzone.top/api/Facility/${facility.fac_id}`,
         {
           method: "GET",
           headers: {

@@ -295,7 +295,7 @@ const PaymentPage: React.FC = () => {
         console.log("Testing API connectivity...");
         try {
           const testResponse = await fetch(
-            "https://localhost:7057/api/Booking/user/1",
+            "https://api.sportzone.top/api/Booking/user/1",
             {
               method: "GET",
               headers: {
@@ -331,7 +331,7 @@ const PaymentPage: React.FC = () => {
         console.log("Making actual booking request...");
 
         // Try HTTPS first, then HTTP if it fails
-        let apiUrl = "https://localhost:7057/api/Booking/CreateBooking";
+        let apiUrl = "https://api.sportzone.top/api/Booking/CreateBooking";
         let response;
 
         try {

@@ -111,7 +111,7 @@ const StaffManager: React.FC = () => {
 
       if (roleId === 3) {
         const response = await fetch(
-          `https://localhost:7057/api/Staff/GetAll`,
+          `https://api.sportzone.top/api/Staff/GetAll`,
           {
             method: "GET",
             headers: authHeaders,
@@ -140,7 +140,7 @@ const StaffManager: React.FC = () => {
         for (const facility of facilityList) {
           try {
             const response = await fetch(
-              `https://localhost:7057/api/Staff/by-facility/${facility.id}`,
+              `https://api.sportzone.top/api/Staff/by-facility/${facility.id}`,
               {
                 method: "GET",
                 headers: authHeaders,
@@ -196,7 +196,7 @@ const StaffManager: React.FC = () => {
           // Normalize image URL
           let image = item.image || "/default-avatar.jpg";
           if (image && !image.startsWith("http")) {
-            image = `https://localhost:7057${image}`;
+            image = `https://api.sportzone.top${image}`;
           }
           staffMap.set(uId, {
             id: uId,
@@ -267,7 +267,7 @@ const StaffManager: React.FC = () => {
           authHeaders.Authorization = `Bearer ${token}`;
         }
 
-        const response = await fetch(`https://localhost:7057/api/Staff/${id}`, {
+        const response = await fetch(`https://api.sportzone.top/api/Staff/${id}`, {
           method: "DELETE",
           headers: authHeaders,
         });
@@ -375,7 +375,7 @@ const StaffManager: React.FC = () => {
         if (token) {
           authHeaders["Authorization"] = `Bearer ${token}`;
         }
-        const url = `https://localhost:7057/api/Staff/${selectedStaff.id}`;
+        const url = `https://api.sportzone.top/api/Staff/${selectedStaff.id}`;
         const response = await fetch(url, {
           method: "PUT",
           headers: authHeaders,
@@ -452,7 +452,7 @@ const StaffManager: React.FC = () => {
         if (token) {
           authHeaders["Authorization"] = `Bearer ${token}`;
         }
-        const url = "https://localhost:7057/api/Register";
+        const url = "https://api.sportzone.top/api/Register";
         const response = await fetch(url, {
           method: "POST",
           headers: authHeaders,

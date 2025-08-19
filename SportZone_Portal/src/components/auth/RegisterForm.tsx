@@ -92,7 +92,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
     setLoading(true);
 
     try {
-      await axios.post("https://localhost:7057/api/Register", {
+      await axios.post("https://api.sportzone.top/api/Register", {
         roleName: roleNameMap[role],
         name: formData.name,
         phone: formData.phone,

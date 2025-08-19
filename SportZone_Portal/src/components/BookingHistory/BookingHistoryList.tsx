@@ -52,7 +52,7 @@ const BookingHistoryList: React.FC = () => {
       return;
     }
     const apiUrl =
-      (window as any).REACT_APP_API_URL || "https://localhost:7057";
+      (window as any).REACT_APP_API_URL || "https://api.sportzone.top";
     const token = localStorage.getItem("token");
     fetch(`${apiUrl}/api/Booking/user/${userId}`, {
       headers: {
@@ -203,7 +203,7 @@ const BookingHistoryList: React.FC = () => {
                                 try {
                                   const apiUrl =
                                     (window as any).REACT_APP_API_URL ||
-                                    "https://localhost:7057";
+                                    "https://api.sportzone.top";
                                   const token = localStorage.getItem("token");
                                   const res = await fetch(
                                     `${apiUrl}/api/Booking/CancelBooking/${booking.bookingId}`,

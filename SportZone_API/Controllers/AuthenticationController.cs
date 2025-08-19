@@ -86,7 +86,7 @@ namespace SportZone_API.Controllers
 
                 if (!result.Succeeded)
                 {
-                    return Redirect("http://localhost:5173/auth/callback?error=XacThucThatBai");
+                    return Redirect("https://api.sportzone.top/auth/callback?error=XacThucThatBai");
                 }
 
                 var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
@@ -107,12 +107,12 @@ namespace SportZone_API.Controllers
                 var userJson = Uri.EscapeDataString(System.Text.Json.JsonSerializer.Serialize(loggedInUser));
 
                 // Redirect về frontend cùng token và user
-                var redirectUrl = $"http://localhost:5173/google-auth-callback?token={token}&user={userJson}";
+                var redirectUrl = $"https://api.sportzone.top/google-auth-callback?token={token}&user={userJson}";
                 return Redirect(redirectUrl);
             }
             catch (Exception ex)
             {
-                return Redirect($"http://localhost:5173/google-auth-callback?error={Uri.EscapeDataString(ex.Message)}");
+                return Redirect($"https://api.sportzone.top/google-auth-callback?error={Uri.EscapeDataString(ex.Message)}");
             }
         }
 

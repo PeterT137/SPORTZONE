@@ -24,7 +24,7 @@ const FacilityCard = ({ facility }: FacilityCardProps) => {
   // Helper function to format image URL
   const getImageUrl = (imageUrl: string) => {
     if (imageUrl.startsWith("http")) return imageUrl;
-    return `https://localhost:7057${imageUrl}`;
+    return `https://api.sportzone.top${imageUrl}`;
   };
 
   return (
