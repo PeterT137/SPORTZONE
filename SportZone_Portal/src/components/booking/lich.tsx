@@ -2726,8 +2726,8 @@ const WeeklySchedule: React.FC = () => {
                       <span className="text-gray-600">Chờ đặt cọc</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-red-200 border border-red-400 rounded"></div>
-                      <span className="text-gray-600">Đã hủy</span>
+                      <div className="w-3 h-3 bg-gray-200 border border-gray-400 rounded"></div>
+                      <span className="text-gray-600">Chưa đặt</span>
                     </div>
                   </div>
                 </div>
