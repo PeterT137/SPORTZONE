@@ -708,7 +708,7 @@ const OrdersTable: React.FC = () => {
         totalServicePrice: order.totalServicePrice,
         fieldRentalPrice: order.totalPrice - order.totalServicePrice,
         discountAmount: 0,
-        deposit: Math.round(order.totalPrice * 0.5),
+        deposit: Math.round((order.totalPrice - order.totalServicePrice) * 0.5),
         contentPayment: order.contentPayment,
         statusPayment: order.statusPayment,
         paymentMethod: "N/A",
