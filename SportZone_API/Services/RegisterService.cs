@@ -200,8 +200,9 @@ namespace SportZone_API.Services
 
         private static bool IsValidPhoneNumber(string phoneNumber)
         {
-            var phonePattern = @"^[\+]?[0-9]?[\(\)\-\s\.]*[0-9]{8,15}$";
-            return Regex.IsMatch(phoneNumber, phonePattern);
+            var phonePattern = @"^(0|84|\+84)(9|3|7|8|5)[0-9]{8}$";
+            var cleanedPhoneNumber = Regex.Replace(phoneNumber, @"[\s.-]", "");
+            return Regex.IsMatch(cleanedPhoneNumber, phonePattern);
         }
 
         private static bool IsValidEmail(string email)
