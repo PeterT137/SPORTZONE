@@ -31,7 +31,7 @@ const FieldListPage: React.FC = () => {
       const fieldName = field.name.toLowerCase();
       const fieldLocation = field.location.toLowerCase();
       const fieldDescription = field.description.toLowerCase();
-      const fieldSubdescription = field.subdescription.toLowerCase();
+      const fieldSubdescription = field.subdescription; //.toLowerCase();
 
       const matchesSearch =
         searchLower === "" ||
@@ -129,11 +129,10 @@ const FieldListPage: React.FC = () => {
                   aria-label="Pagination"
                 >
                   <button
-                    className={`w-7 h-7 flex items-center justify-center rounded-[8px] border-0 text-gray-400 bg-white text-lg transition-all duration-150 ${
-                      currentPage === 1
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-gray-100"
-                    }`}
+                    className={`w-7 h-7 flex items-center justify-center rounded-[8px] border-0 text-gray-400 bg-white text-lg transition-all duration-150 ${currentPage === 1
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-100"
+                      }`}
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
                     aria-label="Trang trước"
@@ -187,10 +186,9 @@ const FieldListPage: React.FC = () => {
                         <button
                           key={page}
                           className={`w-9 h-8 flex items-center justify-center mx-0.5 rounded-[6px] border-0 text-base font-semibold transition-all duration-150
-                            ${
-                              currentPage === page
-                                ? "bg-green-500 text-white shadow font-bold"
-                                : "bg-white text-green-600 hover:bg-green-50 border border-green-200"
+                            ${currentPage === page
+                              ? "bg-green-500 text-white shadow font-bold"
+                              : "bg-white text-green-600 hover:bg-green-50 border border-green-200"
                             }
                           `}
                           onClick={() => handlePageChange(Number(page))}
@@ -205,11 +203,10 @@ const FieldListPage: React.FC = () => {
                     });
                   })()}
                   <button
-                    className={`w-7 h-7 flex items-center justify-center rounded-[8px] border-0 text-gray-400 bg-white text-lg transition-all duration-150 ${
-                      currentPage === totalPages
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-gray-100"
-                    }`}
+                    className={`w-7 h-7 flex items-center justify-center rounded-[8px] border-0 text-gray-400 bg-white text-lg transition-all duration-150 ${currentPage === totalPages
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-100"
+                      }`}
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
                     aria-label="Trang sau"

@@ -38,13 +38,19 @@ namespace SportZone_API.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task DeleteUserAsync(User user)
+        {
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<Staff?> GetByUIdAsync(int uId)
         {
-            return await _context.Staff
-                                 .Where(s => s.UId == uId)
-                                 .Include(s => s.UIdNavigation)
-                                 .Include(s => s.Fac)
-                                 .FirstOrDefaultAsync();
+            return await _context.Staff
+                .Where(s => s.UId == uId)
+                .Include(s => s.UIdNavigation)
+                .Include(s => s.Fac)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<Staff>> GetAllStaffAsync()
