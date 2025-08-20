@@ -252,11 +252,6 @@ namespace SportZone_API.Controllers
                         {
                             await _bookingService.CancelPendingBookingAsync(failedBooking.BookingId);
                         }
-<<<<<<< HEAD
-                        
-=======
-
->>>>>>> KhanhPQ
                         return Redirect("https://api.sportzone.top/payment-failed");
                     }
                 }
