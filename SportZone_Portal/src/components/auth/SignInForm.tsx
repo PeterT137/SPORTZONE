@@ -20,13 +20,14 @@ const showToast = (message: string, type: "success" | "error" = "success") => {
 
 const SignInForm: React.FC = () => {
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    rememberMe: false,
+  email: "",
+  password: "",
+  phone: "", 
+  rememberMe: false,
   });
 
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
+  const [errors, setErrors] = useState<{ email?: string; password?: string; phone?: string }>(
+    {} 
   );
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -50,7 +51,14 @@ const SignInForm: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
+    const phonePattern = /^(0|84|\+84)(9|3|7|8|5)[0-9]{8}$/;
+    const cleanedPhone = formData.phone.replace(/[\s.-]/g, '');
 
+    if (!formData.phone) {
+        newErrors.phone = "Số điện thoại không được để trống";
+    } else if (!phonePattern.test(cleanedPhone)) {
+        newErrors.phone = "Định dạng số điện thoại không hợp lệ";
+    }
     if (!formData.email) {
       newErrors.email = "Email không được để trống";
     } else if (!/\S+@\S+\.\S/.test(formData.email)) {

@@ -671,7 +671,7 @@ const StaffManager: React.FC = () => {
                               : staff.status}
                         </span>
                       </td>
-                      <td className="p-3 space-x-2 flex items-center">
+                      <td className="p-3 space-x-2 items-center">
                         <button
                           onClick={() => handleEdit(staff)}
                           className="text-green-600 hover:text-green-800"

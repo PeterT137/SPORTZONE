@@ -105,7 +105,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         startTime: null,
         endTime: null,
       });
-
       setFormData({
         name: "",
         phone: "",
@@ -113,7 +112,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         password: "",
         confirmPassword: "",
       });
-      setErrors({}); // ✅ Xóa tất cả lỗi xác thực
+      setErrors({});
       setSuccessMessage("Đăng ký thành công! Bạn có thể đăng nhập.");
       showToast("Đăng ký thành công!", "success");
     } catch (err) {
