@@ -101,7 +101,7 @@ type Category = {
   categoryName: string;
 };
 
-const API_URL = "https://api.sportzone.top";
+const API_URL = "https://localhost:7057";
 
 // *********************************************************************************
 // CUSTOM HOOK: useFacilityDetail
@@ -235,7 +235,7 @@ export const useFacilityDetail = () => {
     if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
       return imageUrl;
     }
-    const baseUrl = "https://api.sportzone.top";
+    const baseUrl = "https://localhost:7057";
     return `${baseUrl}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
   };
 

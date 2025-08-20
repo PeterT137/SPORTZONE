@@ -36,7 +36,7 @@ const RegulationManager: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     const token = localStorage.getItem("token");
-    fetch("https://api.sportzone.top/api/RegulationSystem", {
+    fetch("https://localhost:7057/api/RegulationSystem", {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -79,7 +79,7 @@ const RegulationManager: React.FC = () => {
     const token = localStorage.getItem("token");
     try {
       if (editRegulationId === null) {
-        const res = await fetch("https://api.sportzone.top/api/RegulationSystem", {
+        const res = await fetch("https://localhost:7057/api/RegulationSystem", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -95,7 +95,7 @@ const RegulationManager: React.FC = () => {
       } else {
         // Edit
         const res = await fetch(
-          `https://api.sportzone.top/api/RegulationSystem/${editRegulationId}`,
+          `https://localhost:7057/api/RegulationSystem/${editRegulationId}`,
           {
             method: "PUT",
             headers: {
@@ -112,7 +112,7 @@ const RegulationManager: React.FC = () => {
         if (!res.ok) throw new Error("Lỗi khi cập nhật quy định");
       }
       // Refresh list
-      const res = await fetch("https://api.sportzone.top/api/RegulationSystem", {
+      const res = await fetch("https://localhost:7057/api/RegulationSystem", {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -139,7 +139,7 @@ const RegulationManager: React.FC = () => {
       setError(null);
       try {
         const res = await fetch(
-          `https://api.sportzone.top/api/RegulationSystem/${deleteRegulationId}`,
+          `https://localhost:7057/api/RegulationSystem/${deleteRegulationId}`,
           {
             method: "DELETE",
             headers: {
@@ -150,7 +150,7 @@ const RegulationManager: React.FC = () => {
         if (!res.ok) throw new Error("Lỗi khi xóa quy định");
         // Refresh list
         const res2 = await fetch(
-          "https://api.sportzone.top/api/RegulationSystem",
+          "https://localhost:7057/api/RegulationSystem",
           {
             headers: {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),

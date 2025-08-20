@@ -155,7 +155,7 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
       };
       console.log("[DEBUG] bookingData gửi lên API:", bookingData);
 
-      let apiUrl = "https://api.sportzone.top/api/Payment/calculate-and-pay";
+      let apiUrl = "https://localhost:7057/api/Payment/calculate-and-pay";
       let response: Response;
 
       try {

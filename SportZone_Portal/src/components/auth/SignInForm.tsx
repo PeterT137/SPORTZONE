@@ -20,13 +20,13 @@ const showToast = (message: string, type: "success" | "error" = "success") => {
 
 const SignInForm: React.FC = () => {
   const [formData, setFormData] = useState({
-  email: "",
-  password: "",
-  rememberMe: false,
+    email: "",
+    password: "",
+    rememberMe: false,
   });
 
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {} 
+    {}
   );
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -50,9 +50,9 @@ const SignInForm: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
- 
 
-    
+
+
     if (!formData.email) {
       newErrors.email = "Email không được để trống";
     } else if (!/\S+@\S+\.\S/.test(formData.email)) {
@@ -87,7 +87,7 @@ const SignInForm: React.FC = () => {
       setLoading(true);
 
       const response = await axios.post(
-        "https://api.sportzone.top/api/Authentication/Login",
+        "https://localhost:7057/api/Authentication/Login",
         {
           uEmail: formData.email,
           uPassword: formData.password,
@@ -190,13 +190,13 @@ const SignInForm: React.FC = () => {
 
   const handleGoogleLogin = () => {
     window.location.href =
-      "https://api.sportzone.top/api/Authentication/googlelogin";
+      "https://localhost:7057/api/Authentication/googlelogin";
   };
 
   const handleForgotPasswordSubmit = async () => {
     setLoading(true);
     try {
-      await axios.post("https://api.sportzone.top/api/ForgotPassword/send-code", {
+      await axios.post("https://localhost:7057/api/ForgotPassword/send-code", {
         email: forgotEmail,
       });
       showToast("Mã OTP đã được gửi về email!");
@@ -221,7 +221,7 @@ const SignInForm: React.FC = () => {
 
     try {
       await axios.post(
-        "https://api.sportzone.top/api/ForgotPassword/verify-code",
+        "https://localhost:7057/api/ForgotPassword/verify-code",
         {
           email: forgotEmail,
 
@@ -261,7 +261,7 @@ const SignInForm: React.FC = () => {
 
     try {
       await axios.post(
-        "https://api.sportzone.top/api/ForgotPassword/reset-password",
+        "https://localhost:7057/api/ForgotPassword/reset-password",
         {
           email: forgotEmail,
 
