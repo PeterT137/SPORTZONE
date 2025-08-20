@@ -169,24 +169,6 @@ const FinanceManager: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="md:col-span-1 flex justify-center">
-                <div className="w-full max-w-xs">
-                  <RevenueFilter
-                    filter={filter}
-                    onChange={handleFilterChange}
-                    facilities={facilities.map((f) => ({
-                      facId: String(f.facId ?? ""),
-                      name: f.name ?? "",
-                      userId: String(f.userId ?? ""),
-                      ...Object.fromEntries(
-                        Object.entries(f).filter(
-                          ([key]) => !["facId", "name", "userId"].includes(key)
-                        )
-                      ),
-                    }))}
-                  />
-                </div>
-              </div>
             </div>
           </div>
         </main>

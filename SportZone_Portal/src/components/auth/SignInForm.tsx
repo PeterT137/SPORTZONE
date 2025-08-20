@@ -352,17 +352,7 @@ const SignInForm: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-400">
-          <label className="flex items-center space-x-2">
-            <input
-              name="rememberMe"
-              type="checkbox"
-              checked={formData.rememberMe}
-              onChange={handleChange}
-              className="w-3.5 h-3.5"
-            />
-            <span>Nhớ mật khẩu</span>
-          </label>
+        <div className="flex items-center justify-end text-xs text-gray-400">
           <button
             type="button"
             onClick={() => setShowForgotModal(true)}

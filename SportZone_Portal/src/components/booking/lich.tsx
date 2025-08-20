@@ -2787,7 +2787,7 @@ const WeeklySchedule: React.FC = () => {
                                 </div>
                               ) : !hasBookings ? (
                                 <div className="w-full h-full flex items-center justify-center text-sm text-gray-300">
-                                  Chưa đặt
+                                  Chưa tạo slot
                                 </div>
                               ) : (
                                 <div className="space-y-1">

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { FiEdit, FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import { FiEdit, FiPlus, FiTrash2, FiX, FiEye, FiEyeOff } from "react-icons/fi";
 import Swal from "sweetalert2";
 import Sidebar from "../../Sidebar";
 
@@ -59,6 +59,7 @@ const StaffManager: React.FC = () => {
   const [facilities, setFacilities] = useState<{ id: number; name: string }[]>(
     []
   );
+  const [showPassword, setShowPassword] = useState(false);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -573,7 +574,7 @@ const StaffManager: React.FC = () => {
               }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              <FiPlus /> Thêm nhân viên
+              Thêm nhân viên
             </button>
           </div>
 
@@ -829,7 +830,7 @@ const StaffManager: React.FC = () => {
                     />
                   </div>
                   {/* Only show password field when adding new staff */}
-                  {!selectedStaff && (
+                  {/* {!selectedStaff && (
                     <div className="flex flex-col col-span-2 sm:col-span-1">
                       <label className="mb-1 font-semibold text-gray-700">
                         Mật khẩu <span className="text-red-500">*</span>
@@ -843,6 +844,34 @@ const StaffManager: React.FC = () => {
                         className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
                         required
                       />
+                    </div>
+                  )} */}
+                  {!selectedStaff && (
+                    <div className="flex flex-col col-span-2 sm:col-span-1">
+                      <label className="mb-1 font-semibold text-gray-700">
+                        Mật khẩu <span className="text-red-500">*</span>
+                      </label>
+                      {/* Dùng div để bao bọc input và icon */}
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          placeholder="Nhập mật khẩu"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm pr-10"
+                          required
+                        />
+                        {/* Nút xem/ẩn mật khẩu */}
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                          title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                        >
+                          {showPassword ? <FiEyeOff /> : <FiEye />}
+                        </button>
+                      </div>
                     </div>
                   )}
                   <div className="flex flex-col col-span-2 sm:col-span-1">

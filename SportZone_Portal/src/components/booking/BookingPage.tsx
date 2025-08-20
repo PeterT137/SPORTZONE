@@ -411,7 +411,7 @@ const PricingModal = React.memo(
                                       {isEarlyMorning && (
                                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
                                           <Clock className="w-3 h-3" />
-                                          Giờ sáng sớm
+                                          Giờ sáng
                                         </span>
                                       )}
                                       {isPeakHour && !isEarlyMorning && (

@@ -20,7 +20,7 @@ interface Booking {
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {
-  Confirmed: { label: "Đã xác nhận", color: "bg-green-100 text-green-700" },
+  Success: { label: "Đã xác nhận", color: "bg-green-100 text-green-700" },
   Cancelled: { label: "Đã hủy", color: "bg-red-100 text-red-700" },
   Pending: { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-700" },
 };

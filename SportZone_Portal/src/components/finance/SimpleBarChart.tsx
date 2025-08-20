@@ -47,7 +47,8 @@ const SimpleBarChart: React.FC<SimpleBarChartProps> = ({
       {
         label: chartLabel || "Doanh thu theo tháng",
         data: revenues,
-        backgroundColor: "#16a34a",
+        // backgroundColor: "#16a34a",
+        backgroundColor: "#187ab7ff",
       },
     ],
   };
