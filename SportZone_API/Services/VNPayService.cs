@@ -97,9 +97,9 @@ namespace SportZone_API.Services
             vnpay.AddRequestData("vnp_ExpireDate", DateTime.Now.AddMinutes(15).ToString("yyyyMMddHHmmss"));
 
             string paymentUrl = vnpay.CreateRequestUrl(_paymentUrl, _hashSecret);
-            
+
             Console.WriteLine($"VNPay URL: {paymentUrl}");
-            
+
             return paymentUrl;
         }
 
@@ -117,7 +117,7 @@ namespace SportZone_API.Services
             vnpay.AddResponseData("vnp_OrderInfo", returnData.vnp_OrderInfo);
             vnpay.AddResponseData("vnp_OrderType", "other");
             vnpay.AddResponseData("vnp_Locale", "vn");
-            vnpay.AddResponseData("vnp_ReturnUrl", "https://localhost:7000/api/Payment/vnpay-return");
+            vnpay.AddResponseData("vnp_ReturnUrl", "https://api.sportzone.top/api/Payment/vnpay-return");
             vnpay.AddResponseData("vnp_IpAddr", ipAddress);
             vnpay.AddResponseData("vnp_ResponseCode", returnData.vnp_ResponseCode);
             vnpay.AddResponseData("vnp_TransactionNo", returnData.vnp_TransactionNo);
@@ -130,4 +130,4 @@ namespace SportZone_API.Services
 
 
     }
-} 
+}

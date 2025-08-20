@@ -21,7 +21,7 @@ namespace SportZone_API.Controllers
         private readonly IFieldService _fieldService;
         private readonly INotificationService _notificationService;
 
-        public PaymentController(IVNPayService vnpayService, 
+        public PaymentController(IVNPayService vnpayService,
                                IBookingService bookingService,
                                IOrderService orderService,
                                IOrderFieldIdService orderFieldIdService,
@@ -58,10 +58,10 @@ namespace SportZone_API.Controllers
                     return BadRequest(new { error = calculateResult.Message });
                 }
 
-                
+
                 string orderId = $"ORDER_{DateTime.Now:yyyyMMddHHmmss}_{Guid.NewGuid().ToString().Substring(0, 8)}";
 
-               
+
                 var pendingBookingResult = await _bookingService.CreatePendingBookingAsync(bookingData, orderId);
                 if (!pendingBookingResult.Success)
                 {
@@ -70,7 +70,7 @@ namespace SportZone_API.Controllers
 
                 decimal depositAmount = calculateResult.Data * 0.5m;
 
-                
+
                 var pendingBooking = new PendingBookingDto
                 {
                     BookingData = bookingData,
@@ -80,16 +80,16 @@ namespace SportZone_API.Controllers
                 };
                 _pendingBookings[orderId] = pendingBooking;
 
-                
+
                 var vnpayRequest = new VNPayRequestDto
                 {
                     Amount = depositAmount,
                     OrderId = orderId,
                     OrderInfo = $"Dat coc dat san - {bookingData.Title ?? "Booking"}",
-                    ReturnUrl = "https://localhost:7057/api/Payment/vnpay-return"
+                    ReturnUrl = "https://api.sportzone.top/api/Payment/vnpay-return"
                 };
 
-                
+
                 var paymentResult = await _vnpayService.CreatePaymentUrl(vnpayRequest);
 
                 if (!paymentResult.Success)
@@ -116,16 +116,16 @@ namespace SportZone_API.Controllers
             }
         }
 
-        [HttpGet("vnpay-return")]     
+        [HttpGet("vnpay-return")]
         public async Task<IActionResult> VNPayReturn()
         {
             try
             {
                 Console.WriteLine($"VNPay Return URL: {Request.QueryString}");
-                
-                
+
+
                 var vnpay = new VnPayLibrary();
-                
+
                 foreach (var param in Request.Query)
                 {
                     if (!string.IsNullOrEmpty(param.Key) && param.Key.StartsWith("vnp_"))
@@ -134,13 +134,13 @@ namespace SportZone_API.Controllers
                     }
                 }
 
-                
+
                 string vnp_ResponseCode = vnpay.GetResponseData("vnp_ResponseCode");
                 string vnp_TransactionStatus = vnpay.GetResponseData("vnp_TransactionStatus");
                 string vnp_SecureHash = vnpay.GetResponseData("vnp_SecureHash");
                 string vnp_TxnRef = vnpay.GetResponseData("vnp_TxnRef");
                 string vnp_Amount = vnpay.GetResponseData("vnp_Amount");
-                string vnp_BankCode = vnpay.GetResponseData("vnp_BankCode");    
+                string vnp_BankCode = vnpay.GetResponseData("vnp_BankCode");
                 string vnp_TransactionNo = vnpay.GetResponseData("vnp_TransactionNo");
 
                 Console.WriteLine($"Response Code: {vnp_ResponseCode}");
@@ -150,35 +150,35 @@ namespace SportZone_API.Controllers
 
                 // Xác thực chữ ký
                 bool checkSignature = vnpay.ValidateSignature(vnp_SecureHash, "RYJE8DNUWL15UQJV7PDEDBC3P5IW3FCJ");
-                
+
                 Console.WriteLine($"Signature Valid: {checkSignature}");
 
                 if (checkSignature)
                 {
                     if (vnp_ResponseCode == "00" && vnp_TransactionStatus == "00")
                     {
-                        
+
                         Console.WriteLine("Thanh toán thành công!");
-                        
-                        
+
+
                         if (_pendingBookings.TryGetValue(vnp_TxnRef, out var pendingBooking))
                         {
                             try
                             {
-                                
+
                                 var confirmResult = await _bookingService.ConfirmBookingAsync(pendingBooking.BookingId);
                                 if (!confirmResult)
                                 {
                                     throw new Exception("Không thể xác nhận booking");
                                 }
 
-                                
+
                                 var bookingEntity = await _bookingService.GetBookingDetailAsync(pendingBooking.BookingId);
                                 if (bookingEntity != null)
                                 {
                                     var fieldinfo = await _fieldService.GetFieldEntityByIdAsync(bookingEntity.FieldId);
                                     var facilityId = fieldinfo?.FacId;
-                                    
+
                                     var bookingModel = new Booking
                                     {
                                         BookingId = bookingEntity.BookingId,
@@ -190,17 +190,17 @@ namespace SportZone_API.Controllers
                                         Field = new Field { FacId = facilityId }
                                     };
 
-                                     var discountId = pendingBooking.BookingData.DiscountId;
-                                     var order = await _orderService.CreateOrderFromBookingAsync(bookingModel, discountId);
+                                    var discountId = pendingBooking.BookingData.DiscountId;
+                                    var order = await _orderService.CreateOrderFromBookingAsync(bookingModel, discountId);
 
-                                    
+
                                     await _orderFieldIdService.CreateOrderFieldIdAsync(order.OrderId, bookingEntity.FieldId);
                                 }
 
                                 _pendingBookings.Remove(vnp_TxnRef);
 
                                 Console.WriteLine($"Booking đã được xác nhận thành công! BookingId: {pendingBooking.BookingId}");
-                                
+
                                 try
                                 {
                                     var bookingForNotification = new Booking
@@ -215,59 +215,59 @@ namespace SportZone_API.Controllers
                                         EndTime = bookingEntity.EndTime,
                                         CreateAt = bookingEntity.CreateAt
                                     };
-                                    
+
                                     await _notificationService.CreateBookingSuccessNotificationAsync(bookingForNotification);
                                     Console.WriteLine($"Đã tạo notification cho booking {pendingBooking.BookingId}");
                                 }
                                 catch (Exception notificationEx)
                                 {
                                     Console.WriteLine($"Lỗi khi tạo notification: {notificationEx.Message}");
-                                   
+
                                 }
-                                
+
                                 // Redirect với thông tin booking // Sau có FE thì redirect sang các trang của FE
-                                return Redirect($"http://localhost:5173/payment-success?bookingId={pendingBooking.BookingId}&message=Booking confirmed successfully");
+                                return Redirect($"https://api.sportzone.top/payment-success?bookingId={pendingBooking.BookingId}&message=Booking confirmed successfully");
                             }
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"Lỗi khi xác nhận booking: {ex.Message}");
                                 // Hủy booking pending nếu xác nhận thất bại
                                 await _bookingService.CancelPendingBookingAsync(pendingBooking.BookingId);
-                                return Redirect("http://localhost:5173/payment-failed?error=Failed to confirm booking");
+                                return Redirect("https://api.sportzone.top/payment-failed?error=Failed to confirm booking");
                             }
                         }
                         else
                         {
                             Console.WriteLine($"Không tìm thấy booking data cho OrderId: {vnp_TxnRef}");
-                            return Redirect("http://localhost:5173/payment-failed?error=Booking data not found");
+                            return Redirect("https://api.sportzone.top/payment-failed?error=Booking data not found");
                         }
                     }
                     else
                     {
                         // Thanh toán thất bại
                         Console.WriteLine($"Thanh toán thất bại. Response Code: {vnp_ResponseCode}");
-                        
+
                         // Hủy booking pending khi thanh toán thất bại
                         if (_pendingBookings.TryGetValue(vnp_TxnRef, out var failedBooking))
                         {
                             await _bookingService.CancelPendingBookingAsync(failedBooking.BookingId);
                         }
-                        
-                        return Redirect("http://localhost:5173/payment-failed");
+
+                        return Redirect("https://api.sportzone.top/payment-failed");
                     }
                 }
                 else
                 {
                     // Chữ ký không hợp lệ
                     Console.WriteLine("Chữ ký không hợp lệ!");
-                    return Redirect("http://localhost:5173/payment-failed");
+                    return Redirect("https://api.sportzone.top/payment-failed");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Lỗi xử lý VNPay return: {ex.Message}");
-                return Redirect("http://localhost:5173/payment-failed");
+                return Redirect("https://api.sportzone.top/payment-failed");
             }
         }
     }
-} 
+}

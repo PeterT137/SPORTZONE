@@ -6,14 +6,14 @@ namespace SportZone_API.DTOs
     {
         [Required]
         public decimal Amount { get; set; }
-        
+
         [Required]
         public string OrderId { get; set; }
-        
+
         [Required]
         public string OrderInfo { get; set; }
-        
-        public string ReturnUrl { get; set; } = "https://localhost:7000/api/Payment/vnpay-return";
+
+        public string ReturnUrl { get; set; } = "https://api.sportzone.top/api/Payment/vnpay-return";
     }
 
     public class VNPayResponseDto
@@ -48,4 +48,4 @@ namespace SportZone_API.DTOs
         public DateTime CreatedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
     }
-} 
+}

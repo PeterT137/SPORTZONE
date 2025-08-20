@@ -37,12 +37,13 @@ builder.Services.AddControllers()
 // Cấu hình CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy
+            .SetIsOriginAllowed(_ => true)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -88,7 +89,6 @@ builder.Services.AddDbContext<SportZoneContext>(options =>
 builder.Services.AddAutoMapper(typeof(MappingField).Assembly);
 builder.Services.AddAutoMapper(typeof(MappingOrder).Assembly);
 builder.Services.AddAutoMapper(typeof(MappingBooking).Assembly);
-builder.Services.AddAutoMapper(typeof(MappingDiscount).Assembly);
 
 builder.Services.AddMemoryCache();
 builder.Services.Configure<SendEmail>(builder.Configuration.GetSection("SendEmail"));
@@ -171,21 +171,23 @@ app.UseExceptionHandler(appBuilder =>
 });
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    // Use the specific CORS policy for development to avoid conflicts
-    app.UseCors("AllowSpecificOrigin");
-}
-else
-{
-    // Use the specific CORS policy for production
-    app.UseCors("AllowSpecificOrigin");
-}
+// if (app.Environment.IsDevelopment())
+// {
+
+//     // Use the specific CORS policy for development to avoid conflicts
+//     app.UseCors("AllowSpecificOrigin");
+// }
+// else
+// {
+//     // Use the specific CORS policy for production
+// }
+
+app.UseSwagger();
+app.UseSwaggerUI();
+app.UseCors("AllowAll");
 
 app.UseStaticFiles();
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseRouting(); // Thêm UseRouting
 
 app.UseAuthentication();
