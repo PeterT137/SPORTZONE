@@ -28,7 +28,7 @@ namespace SportZone_API.Repositories
         {
             try
             {
-                var query =_context.Fields
+                var query = _context.Fields
                     .Include(f => f.Fac)
                     .Include(f => f.Category)
                     .AsQueryable();
@@ -148,6 +148,12 @@ namespace SportZone_API.Repositories
                     .Include(fbs => fbs.Booking)
                         .ThenInclude(b => b.UIdNavigation)
                             .ThenInclude(u => u.Customer)
+                    .Include(fbs => fbs.Booking)
+                        .ThenInclude(b => b.UIdNavigation)
+                            .ThenInclude(u => u.FieldOwner)
+                    .Include(fbs => fbs.Booking)
+                        .ThenInclude(b => b.UIdNavigation)
+                            .ThenInclude(u => u.Staff)
                     .Where(fbs => fbs.FieldId == fieldId)
                     .OrderBy(fbs => fbs.Date)
                     .ThenBy(fbs => fbs.StartTime)
@@ -170,9 +176,9 @@ namespace SportZone_API.Repositories
                     GuestPhone = s.Booking?.GuestPhone,
                     BookingStatus = s.Booking?.Status,
                     OrderStatusPayment = s.Booking?.Orders?.FirstOrDefault()?.StatusPayment,
-                    CustomerName = s.Booking?.UIdNavigation?.Customer?.Name,
-                    CustomerPhone = s.Booking?.UIdNavigation?.Customer?.Phone,
-                    BookerType = s.Booking?.UId != null ? "Customer" : "Guest",
+                    CustomerName = GetUserName(s.Booking?.UIdNavigation),
+                    CustomerPhone = GetUserPhone(s.Booking?.UIdNavigation),
+                    BookerType = GetBookerType(s.Booking?.UIdNavigation),
                 });
 
                 return scheduleDto;
@@ -181,6 +187,53 @@ namespace SportZone_API.Repositories
             {
                 throw new Exception($"Lỗi khi lấy lịch sân với ID {fieldId}: {ex.Message}", ex);
             }
+        }
+
+        // Helper method để lấy tên user từ các loại khác nhau
+        private string? GetUserName(User? user)
+        {
+            if (user == null) return null;
+
+            // Kiểm tra theo thứ tự ưu tiên: Customer -> FieldOwner -> Staff
+            if (user.Customer != null)
+                return user.Customer.Name;
+            if (user.FieldOwner != null)
+                return user.FieldOwner.Name;
+            if (user.Staff != null)
+                return user.Staff.Name;
+
+            return null;
+        }
+
+        // Helper method để lấy số điện thoại user từ các loại khác nhau
+        private string? GetUserPhone(User? user)
+        {
+            if (user == null) return null;
+
+            // Kiểm tra theo thứ tự ưu tiên: Customer -> FieldOwner -> Staff
+            if (user.Customer != null)
+                return user.Customer.Phone;
+            if (user.FieldOwner != null)
+                return user.FieldOwner.Phone;
+            if (user.Staff != null)
+                return user.Staff.Phone;
+
+            return null;
+        }
+
+        // Helper method để xác định loại người đặt sân
+        private string GetBookerType(User? user)
+        {
+            if (user == null) return "Guest";
+
+            if (user.Customer != null)
+                return "Customer";
+            if (user.FieldOwner != null)
+                return "Field Owner";
+            if (user.Staff != null)
+                return "Staff";
+
+            return "Guest";
         }
 
         public async Task<Field> CreateFieldAsync(FieldCreateDTO fieldDto)
