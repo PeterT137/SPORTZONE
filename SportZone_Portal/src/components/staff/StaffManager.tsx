@@ -453,7 +453,7 @@ const StaffManager: React.FC = () => {
         if (token) {
           authHeaders["Authorization"] = `Bearer ${token}`;
         }
-        const url = "https://localhost:7057/api/Register";
+        const url = "https://localhost:7057/api/Register/staff";
         const response = await fetch(url, {
           method: "POST",
           headers: authHeaders,
@@ -830,28 +830,11 @@ const StaffManager: React.FC = () => {
                     />
                   </div>
                   {/* Only show password field when adding new staff */}
-                  {/* {!selectedStaff && (
-                    <div className="flex flex-col col-span-2 sm:col-span-1">
-                      <label className="mb-1 font-semibold text-gray-700">
-                        Mật khẩu <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        name="password"
-                        placeholder="Nhập mật khẩu"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-                        required
-                      />
-                    </div>
-                  )} */}
                   {!selectedStaff && (
                     <div className="flex flex-col col-span-2 sm:col-span-1">
                       <label className="mb-1 font-semibold text-gray-700">
                         Mật khẩu <span className="text-red-500">*</span>
                       </label>
-                      {/* Dùng div để bao bọc input và icon */}
                       <div className="relative">
                         <input
                           type={showPassword ? "text" : "password"}
@@ -862,7 +845,6 @@ const StaffManager: React.FC = () => {
                           className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm pr-10"
                           required
                         />
-                        {/* Nút xem/ẩn mật khẩu */}
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
