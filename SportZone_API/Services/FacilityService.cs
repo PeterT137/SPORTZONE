@@ -9,8 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
-using Microsoft.AspNetCore.SignalR; // Thêm using này
-using SportZone_API.Hubs; // Thêm using này
+using Microsoft.AspNetCore.SignalR; 
+using SportZone_API.Hubs; 
 
 namespace SportZone_API.Services
 {
@@ -19,13 +19,13 @@ namespace SportZone_API.Services
         private readonly IFacilityRepository _repository;
         private readonly IMapper _mapper;
         private readonly IWebHostEnvironment _env;
-        private readonly IHubContext<NotificationHub> _hubContext; // Khai báo HubContext
+        private readonly IHubContext<NotificationHub> _hubContext; 
 
         public FacilityService(
             IFacilityRepository repository,
             IMapper mapper,
             IWebHostEnvironment env,
-            IHubContext<NotificationHub> hubContext) // Thêm vào constructor
+            IHubContext<NotificationHub> hubContext) 
         {
             _repository = repository;
             _mapper = mapper;
