@@ -10,8 +10,6 @@ import {
   Phone,
   Calendar,
   FileText,
-  DollarSign,
-  CheckCircle,
   XCircle,
   Star,
 } from "lucide-react";
@@ -322,7 +320,6 @@ const PricingModal = React.memo(
         <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <DollarSign className="w-6 h-6 text-green-600" />
               Bảng giá chi tiết theo sân
             </h2>
             <button
@@ -337,7 +334,6 @@ const PricingModal = React.memo(
 
           {Object.keys(groupedPricing).length === 0 ? (
             <div className="text-center py-8">
-              <DollarSign className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <p className="text-gray-500">
                 Chưa có thông tin giá cho các sân này
               </p>
@@ -372,9 +368,6 @@ const PricingModal = React.memo(
                               <th className="border border-gray-200 px-4 py-3 text-left font-medium text-green-800">
                                 Giá (VNĐ/giờ)
                               </th>
-                              <th className="border border-gray-200 px-4 py-3 text-left font-medium text-green-800">
-                                Phân loại
-                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -383,12 +376,6 @@ const PricingModal = React.memo(
                                 a.startTime.localeCompare(b.startTime)
                               )
                               .map((pricing, index) => {
-                                const startHour = parseInt(
-                                  pricing.startTime.split(":")[0]
-                                );
-                                const isEarlyMorning = startHour < 8;
-                                const isPeakHour = startHour >= 16;
-
                                 return (
                                   <tr
                                     key={index}
@@ -406,26 +393,6 @@ const PricingModal = React.memo(
                                       <span className="text-green-600 font-semibold text-lg">
                                         {pricing.price.toLocaleString()}đ
                                       </span>
-                                    </td>
-                                    <td className="border border-gray-200 px-4 py-3">
-                                      {isEarlyMorning && (
-                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                                          <Clock className="w-3 h-3" />
-                                          Giờ sáng sớm
-                                        </span>
-                                      )}
-                                      {isPeakHour && !isEarlyMorning && (
-                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
-                                          <Star className="w-3 h-3" />
-                                          Giờ cao điểm
-                                        </span>
-                                      )}
-                                      {!isEarlyMorning && !isPeakHour && (
-                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-green-100 text-green-700">
-                                          <CheckCircle className="w-3 h-3" />
-                                          Giờ thường
-                                        </span>
-                                      )}
                                     </td>
                                   </tr>
                                 );

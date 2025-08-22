@@ -10,7 +10,7 @@ const HeroSection = () => {
           Đặt Sân Nhanh - Dễ Dàng - Uy Tín
         </h1>
         <p className="text-xl mb-6">
-          Nền tảng hàng đầu giúp bạn đặt sân thể thao chỉ trong vài cú click.
+          Nền tảng hàng đầu giúp bạn đặt sân thể thao dễ dàng và nhanh chóng.
         </p>
         <button
           className="bg-white text-[#007a55] font-semibold px-6 py-3 rounded-lg shadow hover:bg-gray-100 transition"

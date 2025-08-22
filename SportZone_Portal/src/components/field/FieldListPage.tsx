@@ -31,7 +31,7 @@ const FieldListPage: React.FC = () => {
       const fieldName = field.name.toLowerCase();
       const fieldLocation = field.location.toLowerCase();
       const fieldDescription = field.description.toLowerCase();
-      const fieldSubdescription = field.subdescription; //.toLowerCase();
+      const fieldSubdescription = field.subdescription?.toLowerCase() ?? "";
 
       const matchesSearch =
         searchLower === "" ||

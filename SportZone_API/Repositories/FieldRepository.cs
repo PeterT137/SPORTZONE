@@ -193,7 +193,6 @@ namespace SportZone_API.Repositories
         private string? GetUserName(User? user)
         {
             if (user == null) return null;
-
             // Kiểm tra theo thứ tự ưu tiên: Customer -> FieldOwner -> Staff
             if (user.Customer != null)
                 return user.Customer.Name;
@@ -201,7 +200,6 @@ namespace SportZone_API.Repositories
                 return user.FieldOwner.Name;
             if (user.Staff != null)
                 return user.Staff.Name;
-
             return null;
         }
 
@@ -209,7 +207,6 @@ namespace SportZone_API.Repositories
         private string? GetUserPhone(User? user)
         {
             if (user == null) return null;
-
             // Kiểm tra theo thứ tự ưu tiên: Customer -> FieldOwner -> Staff
             if (user.Customer != null)
                 return user.Customer.Phone;
@@ -217,7 +214,6 @@ namespace SportZone_API.Repositories
                 return user.FieldOwner.Phone;
             if (user.Staff != null)
                 return user.Staff.Phone;
-
             return null;
         }
 
@@ -225,14 +221,12 @@ namespace SportZone_API.Repositories
         private string GetBookerType(User? user)
         {
             if (user == null) return "Guest";
-
             if (user.Customer != null)
                 return "Customer";
             if (user.FieldOwner != null)
                 return "Field Owner";
             if (user.Staff != null)
                 return "Staff";
-
             return "Guest";
         }
 

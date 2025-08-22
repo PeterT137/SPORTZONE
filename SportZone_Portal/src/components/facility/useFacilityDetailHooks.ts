@@ -635,6 +635,7 @@ export const useFacilityDetail = () => {
   // *********************************************************************************
 
   const closeModal = () => {
+    // Reset selections for Field/Service/Discount
     setSelectedField(null);
     setSelectedService(null);
     setSelectedDiscount(null);
@@ -647,6 +648,11 @@ export const useFacilityDetail = () => {
     setIsAddFieldModalOpen(false);
     setIsAddServiceModalOpen(false);
     setIsAddDiscountModalOpen(false);
+    // Close and reset Regulation modals/forms
+    setIsAddRegulationModalOpen(false);
+    setEditRegulation(null);
+    setRegulationFormData({ title: "", description: "", status: "Active" });
+    setNewRegulationFormData({ title: "", description: "", status: "Active" });
   };
 
   // --- Field Handlers ---
