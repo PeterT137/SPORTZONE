@@ -862,7 +862,9 @@ const BookingPage: React.FC = () => {
           fetchFacilityDiscounts(firstField.facId)
             .then((discounts) => {
               if (!isMounted) return;
-              const activeDiscounts = discounts.filter((d) => d.isActive);
+              const activeDiscounts = discounts.filter(
+                (d) => d.isActive && d.quantity > 0
+              );
               setAvailableDiscounts(activeDiscounts);
             })
             .catch(() => isMounted && setAvailableDiscounts([]));

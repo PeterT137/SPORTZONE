@@ -32,6 +32,28 @@ namespace SportZone_API.Repositories
                                  .Where(tp => tp.FieldId == fieldId)
                                  .ToListAsync();
         }
+        public async Task<Facility?> GetFacilityByFieldIdAsync(int fieldId)
+        {
+            return await _context.Fields
+                .Where(f => f.FieldId == fieldId)
+                .Select(f => f.Fac) 
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> HasOverlappingPricingAsync(int fieldId, TimeOnly startTime, TimeOnly endTime, int? excludePricingId = null)
+        {
+            var query = _context.FieldPricings
+                .Where(p => p.FieldId == fieldId);
+
+            if (excludePricingId.HasValue)
+            {
+                query = query.Where(p => p.PricingId != excludePricingId.Value);
+            }
+
+            return await query.AnyAsync(p =>
+                (startTime < p.EndTime && endTime > p.StartTime)
+            );
+        }
 
         public async Task AddPricingConfigAsync(FieldPricing pricingConfig)
         {

@@ -146,6 +146,14 @@ namespace SportZone_API.Services
 
         public async Task<ServiceResponse<FacilityDto>> CreateFacility(FacilityDto dto)
         {
+            if (dto.OpenTime >= dto.CloseTime)
+            {
+                return new ServiceResponse<FacilityDto>
+                {
+                    Success = false,
+                    Message = "Giờ mở cửa phải nhỏ hơn giờ đóng cửa."
+                };
+            }
             var imageUrls = new List<string>();
             var uploadedFilesPaths = new List<string>();
             const string subFolderName = "FacilityImages";
@@ -218,8 +226,19 @@ namespace SportZone_API.Services
                 var facility = await _repository.GetByIdAsync(id);
                 if (facility == null)
                     return new ServiceResponse<FacilityDto> { Success = false, Message = "Không tìm thấy cơ sở." };
+                var newOpenTime = dto.OpenTime ?? facility.OpenTime;
+                var newCloseTime = dto.CloseTime ?? facility.CloseTime;
 
-                var oldName = facility.Name; // Lưu tên cũ để dùng cho thông báo
+                if (newOpenTime >= newCloseTime)
+                {
+                    return new ServiceResponse<FacilityDto>
+                    {
+                        Success = false,
+                        Message = "Giờ mở cửa phải nhỏ hơn giờ đóng cửa."
+                    };
+                }
+
+                var oldName = facility.Name; 
 
                 var imageUrls = new List<string>();
                 if (dto.ExistingImageUrls != null)
@@ -252,24 +271,22 @@ namespace SportZone_API.Services
                 }
 
                 _mapper.Map(dto, facility);
+                facility.OpenTime = newOpenTime;
+                facility.CloseTime = newCloseTime;
 
                 var currentImageUrls = facility.Images.Select(img => img.ImageUrl).ToList();
                 
                 if (!currentImageUrls.SequenceEqual(imageUrls))
                 {
-                    // Remove all current images manually from database to avoid tracking conflicts
                     var existingImages = await _repository.GetImagesByFacilityIdAsync(facility.FacId);
                     await _repository.RemoveImagesAsync(existingImages);
                     await _repository.SaveChangesAsync();
                     
-                    // Clear the collection
                     facility.Images.Clear();
                     
-                    // Add new images
                     var newImages = imageUrls.Select(url => new Image { ImageUrl = url, FacId = facility.FacId }).ToList();
                     await _repository.AddImagesAsync(newImages);
                     
-                    // Update facility without images first
                     await _repository.UpdateAsync(facility);
                     await _repository.SaveChangesAsync();
                 }
@@ -281,7 +298,6 @@ namespace SportZone_API.Services
 
                 var updatedFacility = await _repository.GetByIdAsync(id);
 
-                // Gửi thông báo tới Admin khi có cơ sở được cập nhật
                 if (oldName != updatedFacility?.Name)
                 {
                     await _hubContext.Clients.Group("Admin").SendAsync("ReceiveNotification", $"Cơ sở '{oldName}' đã được cập nhật thành '{updatedFacility.Name}'.");

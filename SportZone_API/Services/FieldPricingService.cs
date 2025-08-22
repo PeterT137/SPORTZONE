@@ -51,12 +51,32 @@ namespace SportZone_API.Services
 
         public async Task<FieldPricingDto> CreateFieldPricingAsync(FieldPricingCreateDto createDto)
         {
+            var facility = await _fieldPricingRepository.GetFacilityByFieldIdAsync(createDto.FieldId);
+            if (facility == null)
+            {
+                throw new Exception("Không tìm thấy thông tin cơ sở cho sân này.");
+            }
+            if (createDto.StartTime < facility.OpenTime)
+            {
+                throw new Exception($"Thời gian bắt đầu phải từ {facility.OpenTime} trở đi.");
+            }
+            if (createDto.EndTime > facility.CloseTime)
+            {
+                throw new Exception($"Thời gian kết thúc phải trước hoặc bằng {facility.CloseTime}.");
+            }
+            if (createDto.StartTime >= createDto.EndTime)
+            {
+                throw new Exception("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.");
+            }
+
+            var isOverlapping = await _fieldPricingRepository.HasOverlappingPricingAsync(createDto.FieldId, createDto.StartTime, createDto.EndTime);
+            if (isOverlapping)
+            {
+                throw new Exception("Khung giờ giá này đã tồn tại hoặc bị chồng chéo với khung giờ khác.");
+            }
             var pricing = _mapper.Map<FieldPricing>(createDto);
             await _fieldPricingRepository.AddPricingConfigAsync(pricing);
-
-            // Cập nhật giá lịch và gửi thông báo
             await UpdateFieldBookingSchedulesPrice(createDto.FieldId);
-
             return _mapper.Map<FieldPricingDto>(pricing);
         }
 
@@ -67,12 +87,35 @@ namespace SportZone_API.Services
             {
                 return null;
             }
+
+            var facility = await _fieldPricingRepository.GetFacilityByFieldIdAsync(existingPricing.FieldId);
+            if (facility == null)
+            {
+                throw new Exception("Không tìm thấy thông tin cơ sở cho sân này.");
+            }
+
+            var newStartTime = updateDto.StartTime ?? existingPricing.StartTime;
+            var newEndTime = updateDto.EndTime ?? existingPricing.EndTime;
+            if (newStartTime < facility.OpenTime)
+            {
+                throw new Exception($"Thời gian bắt đầu phải từ {facility.OpenTime} trở đi.");
+            }
+            if (newEndTime > facility.CloseTime)
+            {
+                throw new Exception($"Thời gian kết thúc phải trước hoặc bằng {facility.CloseTime}.");
+            }
+            if (newStartTime >= newEndTime)
+            {
+                throw new Exception("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.");
+            }
+            var isOverlapping = await _fieldPricingRepository.HasOverlappingPricingAsync(existingPricing.FieldId, newStartTime, newEndTime, existingPricing.PricingId);
+            if (isOverlapping)
+            {
+                throw new Exception("Khung giờ giá này đã tồn tại hoặc bị chồng chéo với khung giờ khác.");
+            }
             _mapper.Map(updateDto, existingPricing);
             await _fieldPricingRepository.UpdatePricingConfigAsync(existingPricing);
-
-            // Cập nhật giá lịch và gửi thông báo
             await UpdateFieldBookingSchedulesPrice(existingPricing.FieldId);
-
             return _mapper.Map<FieldPricingDto>(existingPricing);
         }
 
@@ -103,7 +146,7 @@ namespace SportZone_API.Services
             {
                 if (schedule.StartTime.HasValue)
                 {
-                    decimal newPrice = CalculatePriceForSlot(schedule.StartTime.Value, allPricingConfigsForField);
+                    decimal newPrice = CalculatePriceForSlot(schedule.StartTime.Value, allPricingConfigsForField) / 2;
                     if (schedule.Price != newPrice)
                     {
                         schedule.Price = newPrice;
