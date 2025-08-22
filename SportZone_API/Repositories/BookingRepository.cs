@@ -183,6 +183,12 @@ namespace SportZone_API.Repository
                 var booking = await _context.Bookings
                     .Include(b => b.Field)
                         .ThenInclude(f => f.Fac)
+                            .ThenInclude(fac => fac.UIdNavigation)
+                                .ThenInclude(u => u.UIdNavigation)
+                    .Include(b => b.Field)
+                        .ThenInclude(f => f.Fac)
+                            .ThenInclude(fac => fac.Staff)
+                                .ThenInclude(u => u.UIdNavigation)
                     .Include(b => b.Field)
                         .ThenInclude(f => f.Category)
                     .Include(b => b.Field)
