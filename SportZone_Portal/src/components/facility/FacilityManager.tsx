@@ -150,7 +150,7 @@ const FacilityManager: React.FC = () => {
     }
 
     // Kiểm tra role = 2 (Field Owner)
-    if (user.RoleId !== 2) {
+    if (user.RoleId !== 2 && user.RoleId !== 4) {
       showToast(
         "Bạn không có quyền truy cập trang quản lý cơ sở. Chỉ Field Owner mới có thể sử dụng tính năng này.",
         "error"
@@ -218,7 +218,7 @@ const FacilityManager: React.FC = () => {
   useEffect(() => {
     // Kiểm tra quyền truy cập ngay khi component mount
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user.RoleId !== 2) {
+    if (user.RoleId !== 2 && user.RoleId !== 4) {
       showToast(
         "Bạn không có quyền truy cập trang quản lý cơ sở. Chỉ Field Owner mới có thể sử dụng tính năng này.",
         "error"
@@ -698,7 +698,7 @@ const FacilityManager: React.FC = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     // Kiểm tra role = 2 (Field Owner)
-    if (user.RoleId !== 2) {
+    if (user.RoleId !== 2 && user.RoleId !== 4) {
       showToast(
         "Bạn không có quyền xem chi tiết cơ sở. Chỉ Field Owner mới có thể sử dụng tính năng này.",
         "error"

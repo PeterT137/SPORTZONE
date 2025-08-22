@@ -170,7 +170,7 @@ const SignInForm: React.FC = () => {
       } else if (userStorage.RoleId === 1) {
         navigate("/homepage");
       } else if (userStorage.RoleId === 4) {
-        navigate("/weekly_schedule");
+        navigate("/facility_manager");
       } else {
         navigate("/homepage");
       }

@@ -2409,7 +2409,7 @@ const WeeklySchedule: React.FC = () => {
     const openHour = parseInt(facility.openTime.split(":")[0], 10);
     const closeHour = parseInt(facility.closeTime.split(":")[0], 10);
     const slots = [];
-    for (let hour = openHour; hour < closeHour; hour++) {
+    for (let hour = openHour; hour <= closeHour; hour++) {
       slots.push(hour);
     }
     return slots;
