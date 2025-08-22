@@ -446,6 +446,12 @@ namespace SportZone_API.Repositories
             {
                 var orders = await _context.Orders
                     .Include(o => o.Booking)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Customer)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.FieldOwner)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Staff)
                     .Include(o => o.Fac)
                     .Include(o => o.Discount)
                     .Include(o => o.OrderServices)
@@ -459,7 +465,47 @@ namespace SportZone_API.Repositories
                     return new List<OrderDTO>();
                 }
 
-                return _mapper.Map<List<OrderDTO>>(orders);
+                var orderDtos = _mapper.Map<List<OrderDTO>>(orders);
+
+                // Map thông tin user cho từng order
+                foreach (var order in orders)
+                {
+                    var orderDto = orderDtos.FirstOrDefault(od => od.OrderId == order.OrderId);
+                    if (orderDto != null && order.UIdNavigation != null)
+                    {
+                        var user = order.UIdNavigation;
+
+                        // Xác định role và lấy thông tin tương ứng
+                        if (user.Customer != null)
+                        {
+                            orderDto.UserName = user.Customer.Name;
+                            orderDto.UserPhone = user.Customer.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "Customer";
+
+                            // Giữ lại thông tin customer để tương thích ngược
+                            orderDto.CustomerName = user.Customer.Name;
+                            orderDto.CustomerPhone = user.Customer.Phone;
+                            orderDto.CustomerEmail = user.UEmail;
+                        }
+                        else if (user.FieldOwner != null)
+                        {
+                            orderDto.UserName = user.FieldOwner.Name;
+                            orderDto.UserPhone = user.FieldOwner.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "FieldOwner";
+                        }
+                        else if (user.Staff != null)
+                        {
+                            orderDto.UserName = user.Staff.Name;
+                            orderDto.UserPhone = user.Staff.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "Staff";
+                        }
+                    }
+                }
+
+                return orderDtos;
             }
             catch (Exception ex)
             {

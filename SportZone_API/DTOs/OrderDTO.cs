@@ -34,6 +34,16 @@
         public string? StatusPayment { get; set; }
         public DateTime? CreateAt { get; set; }
 
+        public string? UserName { get; set; }
+        public string? UserPhone { get; set; }
+        public string? UserEmail { get; set; }
+        public string? UserRole { get; set; } // "Customer", "FieldOwner", "Staff"
+
+        // Thông tin customer đã đăng ký (nếu có) - giữ lại để tương thích ngược
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
+        public string? CustomerEmail { get; set; }
+
         public List<OrderDetailServiceDTO> Services { get; set; } = new List<OrderDetailServiceDTO>();
     }
 
