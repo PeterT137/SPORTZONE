@@ -306,6 +306,10 @@ namespace SportZone_API.Repositories
                         .ThenInclude(os => os.Service)
                     .Include(o => o.UIdNavigation)
                         .ThenInclude(u => u.Customer)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.FieldOwner)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Staff)
                     .FirstOrDefaultAsync(o => o.BookingId == schedule.Booking.BookingId);
 
                 if (order == null)
@@ -345,16 +349,44 @@ namespace SportZone_API.Repositories
 
                 if (order.UId != null && order.UIdNavigation != null)
                 {
-                    orderDetail.CustomerInfo.CustomerType = "User";
-                    orderDetail.CustomerInfo.Name = order.UIdNavigation.Customer?.Name;
-                    orderDetail.CustomerInfo.Phone = order.UIdNavigation.Customer?.Phone;
-                    orderDetail.CustomerInfo.Email = order.UIdNavigation.UEmail;
+                    var user = order.UIdNavigation;
+
+                    // Xác định role và lấy thông tin tương ứng
+                    if (user.Customer != null)
+                    {
+                        orderDetail.CustomerInfo.CustomerType = "Customer";
+                        orderDetail.CustomerInfo.Name = user.Customer.Name;
+                        orderDetail.CustomerInfo.Phone = user.Customer.Phone;
+                        orderDetail.CustomerInfo.Email = user.UEmail;
+                    }
+                    else if (user.FieldOwner != null)
+                    {
+                        orderDetail.CustomerInfo.CustomerType = "FieldOwner";
+                        orderDetail.CustomerInfo.Name = user.FieldOwner.Name;
+                        orderDetail.CustomerInfo.Phone = user.FieldOwner.Phone;
+                        orderDetail.CustomerInfo.Email = user.UEmail;
+                    }
+                    else if (user.Staff != null)
+                    {
+                        orderDetail.CustomerInfo.CustomerType = "Staff";
+                        orderDetail.CustomerInfo.Name = user.Staff.Name;
+                        orderDetail.CustomerInfo.Phone = user.Staff.Phone;
+                        orderDetail.CustomerInfo.Email = user.UEmail;
+                    }
+                    else if (user.Admin != null)
+                    {
+                        orderDetail.CustomerInfo.CustomerType = "Admin";
+                        orderDetail.CustomerInfo.Name = user.Admin.Name;
+                        orderDetail.CustomerInfo.Phone = user.Admin.Phone;
+                        orderDetail.CustomerInfo.Email = user.UEmail;
+                    }
                 }
                 else if (!string.IsNullOrEmpty(order.GuestName))
                 {
                     orderDetail.CustomerInfo.CustomerType = "Guest";
                     orderDetail.CustomerInfo.Name = order.GuestName;
                     orderDetail.CustomerInfo.Phone = order.GuestPhone;
+                    orderDetail.CustomerInfo.Email = null;
                 }
 
                 foreach (var slot in bookedSlots)
