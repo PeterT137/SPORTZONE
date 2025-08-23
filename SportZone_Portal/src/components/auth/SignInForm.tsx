@@ -28,6 +28,8 @@ const SignInForm: React.FC = () => {
     {}
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotStep, setForgotStep] = useState<ForgotStep>("email");
   const [forgotEmail, setForgotEmail] = useState("");
@@ -39,6 +41,8 @@ const SignInForm: React.FC = () => {
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
   const togglePassword = () => setShowPassword((prev) => !prev);
+  const toggleNewPassword = () => setShowNewPassword((prev) => !prev);
+  const toggleConfirmPassword = () => setShowConfirmPassword((prev) => !prev);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -433,42 +437,68 @@ const SignInForm: React.FC = () => {
               </>
             )}
 
-            {forgotStep === "new-password" && (
-              <>
-                <h2 className="text-lg font-semibold mb-4">
-                  Nhập mật khẩu mới
-                </h2>
-                <input
-                  type="password"
-                  placeholder="Mật khẩu mới"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full mb-2 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                />
-                <input
-                  type="password"
-                  placeholder="Xác nhận mật khẩu"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full mb-4 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                />
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => setForgotStep("verify-otp")}
-                    className="text-sm px-4 py-2 bg-gray-200 rounded"
-                  >
-                    Trở lại
-                  </button>
-                  <button
-                    onClick={handleResetPasswordSubmit}
-                    disabled={forgotPasswordLoading}
-                    className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
-                  >
-                    {forgotPasswordLoading ? "Đang lưu..." : "Lưu"}
-                  </button>
-                </div>
-              </>
-            )}
+            {
+              forgotStep === "new-password" && (
+                <>
+                  <h2 className="text-lg font-semibold mb-4">Nhập mật khẩu mới</h2>
+                  <div className="relative mb-2">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Mật khẩu mới"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={toggleNewPassword}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                    >
+                      <i
+                        className={`far ${showNewPassword ? "fa-eye-slash" : "fa-eye"
+                          }`}
+                      ></i>
+                    </button>
+                  </div>
+
+                  <div className="relative mb-4">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Xác nhận mật khẩu"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={toggleConfirmPassword}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-500"
+                    >
+                      <i
+                        className={`far ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"
+                          }`}
+                      ></i>
+                    </button>
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={() => setForgotStep("verify-otp")}
+                      className="text-sm px-4 py-2 bg-gray-200 rounded"
+                    >
+                      Trở lại
+                    </button>
+                    <button
+                      onClick={handleResetPasswordSubmit}
+                      disabled={forgotPasswordLoading}
+                      className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
+                    >
+                      {forgotPasswordLoading ? "Đang lưu..." : "Lưu"}
+                    </button>
+                  </div>
+                </>
+              )
+            }
           </div>
         </div>
       )}

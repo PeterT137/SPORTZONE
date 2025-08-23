@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+
 interface RegisterFormProps {
   role: "player" | "fieldOwner"; // 'player' -> Customer, 'fieldOwner' -> Field Owner
 }
@@ -27,6 +29,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
   const [apiError, setApiError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Thêm state để theo dõi trạng thái ẩn/hiện mật khẩu
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
   const roleNameMap: Record<RegisterFormProps["role"], string> = {
     player: "Customer",
@@ -206,19 +212,27 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         <label className="block text-sm font-medium text-gray-500 mb-1">
           Mật khẩu
         </label>
-        <input
-          type="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${errors.password ? "border-red-500" : "border-gray-300"
-            }`}
-          placeholder="Nhập mật khẩu"
-          aria-label="Mật khẩu"
-        />
-        {errors.password && (
-          <p className="text-red-500 text-xs">{errors.password}</p>
-        )}
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            className={`w-full border px-4 py-2 pr-10 rounded text-sm ${errors.password ? "border-red-500" : "border-gray-300"
+              }`}
+            placeholder="Nhập mật khẩu"
+            aria-label="Mật khẩu"
+          />
+          <span
+            className="absolute right-3 top-1/2 -translate-y-1/2 transform cursor-pointer text-gray-400"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <FaEyeSlash /> : <FaEye />}
+          </span>
+          {errors.password && (
+            <p className="text-red-500 text-xs">{errors.password}</p>
+          )}
+        </div>
       </div>
 
       {/* Xác nhận mật khẩu */}
@@ -226,21 +240,28 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         <label className="block text-sm font-medium text-gray-500 mb-1">
           Xác nhận mật khẩu
         </label>
-        <input
-          type="password"
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          className={`w-full border px-4 py-2 rounded text-sm ${errors.confirmPassword ? "border-red-500" : "border-gray-300"
-            }`}
-          placeholder="Xác nhận mật khẩu"
-          aria-label="Xác nhận mật khẩu"
-        />
-        {errors.confirmPassword && (
-          <p className="text-red-500 text-xs">{errors.confirmPassword}</p>
-        )}
+        <div className="relative">
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className={`w-full border px-4 py-2 rounded text-sm ${errors.confirmPassword ? "border-red-500" : "border-gray-300"
+              }`}
+            placeholder="Xác nhận mật khẩu"
+            aria-label="Xác nhận mật khẩu"
+          />
+          <span
+            className="absolute right-3 top-1/2 -translate-y-1/2 transform cursor-pointer text-gray-400"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+          </span>
+          {errors.confirmPassword && (
+            <p className="text-red-500 text-xs">{errors.confirmPassword}</p>
+          )}
+        </div>
       </div>
-
       {/* Nút đăng ký */}
       <button
         type="submit"
