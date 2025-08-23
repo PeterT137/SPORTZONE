@@ -132,6 +132,8 @@ builder.Services.AddScoped<IRegulationFacilityService, RegulationFacilityService
 builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddScoped<IVNPayService, VNPayService>();
+builder.Services.AddScoped<IEmailRepository, EmailRepository>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHostedService<ScheduleStatusUpdaterService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();

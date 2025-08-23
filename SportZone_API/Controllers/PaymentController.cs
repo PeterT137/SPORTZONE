@@ -20,13 +20,17 @@ namespace SportZone_API.Controllers
         private readonly IOrderFieldIdService _orderFieldIdService;
         private readonly IFieldService _fieldService;
         private readonly INotificationService _notificationService;
+        private readonly IEmailService _emailService;
+        private readonly IEmailRepository _emailRepository;
 
         public PaymentController(IVNPayService vnpayService,
                                IBookingService bookingService,
                                IOrderService orderService,
                                IOrderFieldIdService orderFieldIdService,
                                IFieldService fieldService,
-                               INotificationService notificationService)
+                               INotificationService notificationService,
+                               IEmailService emailService,
+                               IEmailRepository emailRepository)
         {
             _vnpayService = vnpayService;
             _bookingService = bookingService;
@@ -34,6 +38,8 @@ namespace SportZone_API.Controllers
             _orderFieldIdService = orderFieldIdService;
             _fieldService = fieldService;
             _notificationService = notificationService;
+            _emailService = emailService;
+            _emailRepository = emailRepository;
         }
 
         // Dictionary để lưu booking data tạm thời (trong thực tế nên dùng Redis hoặc database)
@@ -222,7 +228,51 @@ namespace SportZone_API.Controllers
                                 catch (Exception notificationEx)
                                 {
                                     Console.WriteLine($"Lỗi khi tạo notification: {notificationEx.Message}");
+                                }
 
+                                try
+                                {
+                                    var fieldWithDetails = await _fieldService.GetFieldEntityByIdAsync(bookingEntity.FieldId);
+                                    if (fieldWithDetails != null)
+                                    {
+                                        string userEmail, userName, userPhone;
+
+                                        if (bookingEntity.UserId.HasValue)
+                                        {
+                                            userEmail = await _emailRepository.GetUserEmailAsync(bookingEntity.UserId);
+                                            userName = await _emailRepository.GetUserNameAsync(bookingEntity.UserId);
+                                            userPhone = await _emailRepository.GetUserPhoneAsync(bookingEntity.UserId);
+                                        }
+                                        else
+                                        {
+                                            userEmail = pendingBooking.BookingData.GuestEmail ?? string.Empty;
+                                            userName = bookingEntity.GuestName ?? "Khách";
+                                            userPhone = bookingEntity.GuestPhone ?? string.Empty;
+                                        }
+
+                                        if (!string.IsNullOrEmpty(userEmail))
+                                        {
+                                            var emailResult = await _emailService.SendBookingConfirmationEmailAsync(
+                                                bookingEntity, fieldWithDetails, userEmail, userName, userPhone);
+                                            
+                                            if (emailResult)
+                                            {
+                                                Console.WriteLine($"Đã gửi email xác nhận đặt sân thành công cho {userEmail}");
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine($"Lỗi gửi email xác nhận đặt sân cho {userEmail}");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Không thể gửi email vì không có địa chỉ email");
+                                        }
+                                    }
+                                }
+                                catch (Exception emailEx)
+                                {
+                                    Console.WriteLine($"Lỗi khi gửi email xác nhận đặt sân: {emailEx.Message}");
                                 }
 
                                 // Redirect với thông tin booking // Sau có FE thì redirect sang các trang của FE

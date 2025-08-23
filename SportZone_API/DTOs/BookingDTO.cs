@@ -28,6 +28,10 @@ namespace SportZone_API.DTOs
         [MaxLength(20, ErrorMessage = "Số điện thoại không được quá 20 ký tự")]
         public string? GuestPhone { get; set; }
 
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        [MaxLength(100, ErrorMessage = "Email không được quá 100 ký tự")]
+        public string? GuestEmail { get; set; }
+
         // Optional services and discount
         public List<int>? ServiceIds { get; set; }
         public int? DiscountId { get; set; }
