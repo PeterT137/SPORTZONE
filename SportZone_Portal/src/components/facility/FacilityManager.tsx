@@ -161,7 +161,6 @@ const FacilityManager: React.FC = () => {
     }
 
     // Use the new API endpoint that returns complete data with facId
-    // const baseUrl = `https://localhost:7057/api/Facility/with-details`;
     const baseUrl = `https://localhost:7057/api/Facility/by-user/${user.UId}`;
     const url = searchText
       ? `${baseUrl}?searchText=${encodeURIComponent(searchText)}`

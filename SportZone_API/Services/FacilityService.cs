@@ -17,20 +17,17 @@ namespace SportZone_API.Services
     public class FacilityService : IFacilityService
     {
         private readonly IFacilityRepository _repository;
-        private readonly IStaffRepository _staffRepository;
         private readonly IMapper _mapper;
         private readonly IWebHostEnvironment _env;
         private readonly IHubContext<NotificationHub> _hubContext; 
 
         public FacilityService(
             IFacilityRepository repository,
-            IStaffRepository staffRepository,
             IMapper mapper,
             IWebHostEnvironment env,
             IHubContext<NotificationHub> hubContext) 
         {
             _repository = repository;
-            _staffRepository = staffRepository;
             _mapper = mapper;
             _env = env;
             _hubContext = hubContext;
