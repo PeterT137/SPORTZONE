@@ -138,6 +138,20 @@ namespace SportZone_API.Repositories
 
         public async Task<List<Facility>> GetByUserIdAsync(int userId)
         {
+            var infoUser = await _context.Users.FindAsync(userId);
+            if (infoUser.RoleId == 4)
+            {
+                var facId = await _context.Staff
+                                                  .Where(s => s.UId == userId)
+                                                  .Select(s => s.FacId)
+                                                  .FirstOrDefaultAsync();
+
+                return await _context.Facilities
+                                        .Include(f => f.Images)
+                                        .Where(f => f.FacId == facId)
+                                        .ToListAsync();
+            }
+
             return await _context.Facilities
                                  .Include(f => f.Images)
                                  .Where(f => f.UId == userId)
