@@ -9,6 +9,7 @@ namespace SportZone_API.DTOs
 {
     public class FacilityDto
     {
+        public int FacId { get; set; }
         public int UserId { get; set; }
         public string Name { get; set; }
         public TimeOnly? OpenTime { get; set; }
