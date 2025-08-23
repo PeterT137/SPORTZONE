@@ -306,6 +306,10 @@ namespace SportZone_API.Repositories
                         .ThenInclude(os => os.Service)
                     .Include(o => o.UIdNavigation)
                         .ThenInclude(u => u.Customer)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.FieldOwner)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Staff)
                     .FirstOrDefaultAsync(o => o.BookingId == schedule.Booking.BookingId);
 
                 if (order == null)
@@ -345,16 +349,44 @@ namespace SportZone_API.Repositories
 
                 if (order.UId != null && order.UIdNavigation != null)
                 {
-                    orderDetail.CustomerInfo.CustomerType = "User";
-                    orderDetail.CustomerInfo.Name = order.UIdNavigation.Customer?.Name;
-                    orderDetail.CustomerInfo.Phone = order.UIdNavigation.Customer?.Phone;
-                    orderDetail.CustomerInfo.Email = order.UIdNavigation.UEmail;
+                    var user = order.UIdNavigation;
+
+                    // Xác định role và lấy thông tin tương ứng
+                    if (user.Customer != null)
+                    {
+                        orderDetail.CustomerInfo.CustomerType = "Customer";
+                        orderDetail.CustomerInfo.Name = user.Customer.Name;
+                        orderDetail.CustomerInfo.Phone = user.Customer.Phone;
+                        orderDetail.CustomerInfo.Email = user.UEmail;
+                    }
+                    else if (user.FieldOwner != null)
+                    {
+                        orderDetail.CustomerInfo.CustomerType = "FieldOwner";
+                        orderDetail.CustomerInfo.Name = user.FieldOwner.Name;
+                        orderDetail.CustomerInfo.Phone = user.FieldOwner.Phone;
+                        orderDetail.CustomerInfo.Email = user.UEmail;
+                    }
+                    else if (user.Staff != null)
+                    {
+                        orderDetail.CustomerInfo.CustomerType = "Staff";
+                        orderDetail.CustomerInfo.Name = user.Staff.Name;
+                        orderDetail.CustomerInfo.Phone = user.Staff.Phone;
+                        orderDetail.CustomerInfo.Email = user.UEmail;
+                    }
+                    else if (user.Admin != null)
+                    {
+                        orderDetail.CustomerInfo.CustomerType = "Admin";
+                        orderDetail.CustomerInfo.Name = user.Admin.Name;
+                        orderDetail.CustomerInfo.Phone = user.Admin.Phone;
+                        orderDetail.CustomerInfo.Email = user.UEmail;
+                    }
                 }
                 else if (!string.IsNullOrEmpty(order.GuestName))
                 {
                     orderDetail.CustomerInfo.CustomerType = "Guest";
                     orderDetail.CustomerInfo.Name = order.GuestName;
                     orderDetail.CustomerInfo.Phone = order.GuestPhone;
+                    orderDetail.CustomerInfo.Email = null;
                 }
 
                 foreach (var slot in bookedSlots)
@@ -446,6 +478,12 @@ namespace SportZone_API.Repositories
             {
                 var orders = await _context.Orders
                     .Include(o => o.Booking)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Customer)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.FieldOwner)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Staff)
                     .Include(o => o.Fac)
                     .Include(o => o.Discount)
                     .Include(o => o.OrderServices)
@@ -459,7 +497,126 @@ namespace SportZone_API.Repositories
                     return new List<OrderDTO>();
                 }
 
-                return _mapper.Map<List<OrderDTO>>(orders);
+                var orderDtos = _mapper.Map<List<OrderDTO>>(orders);
+
+                // Map thông tin user cho từng order
+                foreach (var order in orders)
+                {
+                    var orderDto = orderDtos.FirstOrDefault(od => od.OrderId == order.OrderId);
+                    if (orderDto != null && order.UIdNavigation != null)
+                    {
+                        var user = order.UIdNavigation;
+
+                        // Xác định role và lấy thông tin tương ứng
+                        if (user.Customer != null)
+                        {
+                            orderDto.UserName = user.Customer.Name;
+                            orderDto.UserPhone = user.Customer.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "Customer";
+
+                            // Giữ lại thông tin customer để tương thích ngược
+                            orderDto.CustomerName = user.Customer.Name;
+                            orderDto.CustomerPhone = user.Customer.Phone;
+                            orderDto.CustomerEmail = user.UEmail;
+                        }
+                        else if (user.FieldOwner != null)
+                        {
+                            orderDto.UserName = user.FieldOwner.Name;
+                            orderDto.UserPhone = user.FieldOwner.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "FieldOwner";
+                        }
+                        else if (user.Staff != null)
+                        {
+                            orderDto.UserName = user.Staff.Name;
+                            orderDto.UserPhone = user.Staff.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "Staff";
+                        }
+                    }
+                }
+
+                return orderDtos;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách Order theo FacilityId: {ex.Message}", ex);
+            }
+        }
+        public async Task<List<OrderDTO>> GetOrdersByFacilityByStaffId(int staffId)
+        {
+            try
+            {
+                var infoUser = await _context.Users.FindAsync(staffId);
+
+                var facilityId = await _context.Staff
+                                                   .Where(s => s.UId == staffId)
+                                                   .Select(s => s.FacId)
+                                                   .FirstOrDefaultAsync();
+
+                var orders = await _context.Orders
+                    .Include(o => o.Booking)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Customer)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.FieldOwner)
+                    .Include(o => o.UIdNavigation)
+                        .ThenInclude(u => u.Staff)
+                    .Include(o => o.Fac)
+                    .Include(o => o.Discount)
+                    .Include(o => o.OrderServices)
+                        .ThenInclude(os => os.Service)
+                    .Where(o => o.FacId == facilityId)
+                    .OrderByDescending(o => o.CreateAt)
+                    .ToListAsync();
+
+                if (!orders.Any())
+                {
+                    return new List<OrderDTO>();
+                }
+
+                var orderDtos = _mapper.Map<List<OrderDTO>>(orders);
+
+                // Map thông tin user cho từng order
+                foreach (var order in orders)
+                {
+                    var orderDto = orderDtos.FirstOrDefault(od => od.OrderId == order.OrderId);
+                    if (orderDto != null && order.UIdNavigation != null)
+                    {
+                        var user = order.UIdNavigation;
+
+                        // Xác định role và lấy thông tin tương ứng
+                        if (user.Customer != null)
+                        {
+                            orderDto.UserName = user.Customer.Name;
+                            orderDto.UserPhone = user.Customer.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "Customer";
+
+                            // Giữ lại thông tin customer để tương thích ngược
+                            orderDto.CustomerName = user.Customer.Name;
+                            orderDto.CustomerPhone = user.Customer.Phone;
+                            orderDto.CustomerEmail = user.UEmail;
+                        }
+                        else if (user.FieldOwner != null)
+                        {
+                            orderDto.UserName = user.FieldOwner.Name;
+                            orderDto.UserPhone = user.FieldOwner.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "FieldOwner";
+                        }
+                        else if (user.Staff != null)
+                        {
+                            orderDto.UserName = user.Staff.Name;
+                            orderDto.UserPhone = user.Staff.Phone;
+                            orderDto.UserEmail = user.UEmail;
+                            orderDto.UserRole = "Staff";
+                        }
+                    }
+                }
+
+                return orderDtos;
             }
             catch (Exception ex)
             {

@@ -379,5 +379,44 @@ namespace SportZone_API.Controllers
                 });
             }
         }
+
+        [HttpGet("facility-by-user/{userId}")]
+        [RoleAuthorize("2,4")]
+        [SwaggerOperation(Summary = "Lấy Order theo facility: FO, Staff")]
+        public async Task<IActionResult> GetOrdersByFacilityByStaff(int userId)
+        {
+            try
+            {
+                var orders = await _orderService.GetOrdersByFacilityByStaff(userId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Lấy danh sách Order theo Facility thành công",
+                    data = new
+                    {
+                        facilityId = userId,
+                        totalOrders = orders.Count,
+                        orders = orders
+                    }
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = "Có lỗi xảy ra khi lấy danh sách Order theo Facility",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

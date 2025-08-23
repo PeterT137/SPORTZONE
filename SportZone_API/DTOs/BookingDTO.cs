@@ -138,6 +138,8 @@ namespace SportZone_API.DTOs
         public decimal? Price { get; set; }
         public string? CategoryName { get; set; }
         public FacilityInfoDTO? Facility { get; set; }
+        public FieldOwnerInfoDTO? Owner { get; set; }
+        public List<StaffInfoDTO>? Staffs { get; set; }
     }
 
     /// <summary>
@@ -152,6 +154,29 @@ namespace SportZone_API.DTOs
         public string? Description { get; set; }
     }
 
+    /// <summary>
+    /// DTO thông tin chủ sân
+    /// </summary>
+    public class FieldOwnerInfoDTO
+    {
+        public int UserId { get; set; }
+        public string? Name { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+    }
+
+    /// <summary>
+    /// DTO thông tin nhân viên
+    /// </summary>
+    public class StaffInfoDTO
+    {
+        public int UserId { get; set; }
+        public int? FacilityId { get; set; }
+        public string? Name { get; set; }
+        public string? Phone { get; set; }
+        public string? Image { get; set; }
+        public string? Email { get; set; }
+    }
     /// <summary>
     /// DTO thông tin khách hàng trong booking
     /// </summary>
@@ -300,7 +325,7 @@ namespace SportZone_API.DTOs
                     FieldId = booking.Field.FieldId,
                     FieldName = booking.Field.FieldName,
                     Description = booking.Field.Description,
-                    Price = responseDto.FieldPrice, // Use the calculated FieldPrice
+                    Price = responseDto.FieldPrice, 
                     CategoryName = booking.Field.Category?.CategoryFieldName,
                     Facility = booking.Field.Fac != null ? new FacilityInfoDTO
                     {
@@ -309,7 +334,23 @@ namespace SportZone_API.DTOs
                         OpenTime = booking.Field.Fac.OpenTime,
                         CloseTime = booking.Field.Fac.CloseTime,
                         Description = booking.Field.Fac.Description
-                    } : null
+                    } : null,
+                    Owner = booking.Field.Fac?.UIdNavigation != null ? new FieldOwnerInfoDTO
+                    {
+                        UserId = booking.Field.Fac.UIdNavigation.UId,
+                        Name = booking.Field.Fac.UIdNavigation.Name,
+                        Phone = booking.Field.Fac.UIdNavigation.Phone,
+                        Email = booking.Field.Fac.UIdNavigation.UIdNavigation?.UEmail
+                    } : null,
+                    Staffs = booking.Field.Fac?.Staff?.Select(s => new StaffInfoDTO
+                    {
+                        UserId = s.UId,
+                        FacilityId = s.FacId,
+                        Name = s.Name,
+                        Phone = s.Phone,
+                        Image = s.Image,
+                        Email = s.UIdNavigation?.UEmail
+                    }).ToList()
                 } : null,
 
                 Customer = booking.UIdNavigation?.Customer != null ? new CustomerInfoDTO

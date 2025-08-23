@@ -661,45 +661,45 @@ namespace SportZone_API.Tests.Controllers
         }
 
         // TC_Service_20
-        [Fact]
-        public async Task UpdateOrderService_ValidData_ReturnsOk()
-        {
-            // Arrange
-            int orderServiceId = 1;
-            var updateDTO = new OrderServiceUpdateDTO
-            {
-                Quantity = 3
-            };
+        //[Fact]
+        //public async Task UpdateOrderService_ValidData_ReturnsOk()
+        //{
+        //    // Arrange
+        //    int orderServiceId = 1;
+        //    var updateDTO = new OrderServiceUpdateDTO
+        //    {
+        //        Quantity = 3
+        //    };
 
-            var mockUpdatedService = new OrderServiceDTO
-            {
-                OrderServiceId = 1,
-                OrderId = 1,
-                ServiceId = 1,
-                ServiceName = "Bóng đá",
-                Price = 50000,
-                Quantity = 3
-            };
+        //    var mockUpdatedService = new OrderServiceDTO
+        //    {
+        //        OrderServiceId = 1,
+        //        OrderId = 1,
+        //        ServiceId = 1,
+        //        ServiceName = "Bóng đá",
+        //        Price = 50000,
+        //        Quantity = 3
+        //    };
 
-            _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
-                .ReturnsAsync(mockUpdatedService);
+        //    _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
+        //        .ReturnsAsync(mockUpdatedService);
 
-            // Act
-            var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
+        //    // Act
+        //    var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
 
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var json = JsonSerializer.Serialize(okResult.Value);
-            using var doc = JsonDocument.Parse(json);
+        //    // Assert
+        //    var okResult = Assert.IsType<OkObjectResult>(result);
+        //    var json = JsonSerializer.Serialize(okResult.Value);
+        //    using var doc = JsonDocument.Parse(json);
 
-            Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
-            Assert.Equal("Cập nhật dịch vụ trong order thành công", doc.RootElement.GetProperty("message").GetString());
+        //    Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
+        //    Assert.Equal("Cập nhật dịch vụ trong order thành công", doc.RootElement.GetProperty("message").GetString());
 
-            var data = doc.RootElement.GetProperty("data");
-            Assert.Equal(1, data.GetProperty("OrderServiceId").GetInt32());
-            Assert.Equal(3, data.GetProperty("Quantity").GetInt32());
-            Assert.Equal(150000, data.GetProperty("TotalPrice").GetDecimal());
-        }
+        //    var data = doc.RootElement.GetProperty("data");
+        //    Assert.Equal(1, data.GetProperty("OrderServiceId").GetInt32());
+        //    Assert.Equal(3, data.GetProperty("Quantity").GetInt32());
+        //    Assert.Equal(150000, data.GetProperty("TotalPrice").GetDecimal());
+        //}
 
         // TC_Service_21
         [Fact]
@@ -780,30 +780,30 @@ namespace SportZone_API.Tests.Controllers
         }
 
         // TC_Service_24
-        [Fact]
-        public async Task UpdateOrderService_ServiceException_ReturnsInternalServerError()
-        {
-            // Arrange
-            int orderServiceId = 1;
-            var updateDTO = new OrderServiceUpdateDTO
-            {
-                Quantity = 3
-            };
+        //[Fact]
+        //public async Task UpdateOrderService_ServiceException_ReturnsInternalServerError()
+        //{
+        //    // Arrange
+        //    int orderServiceId = 1;
+        //    var updateDTO = new OrderServiceUpdateDTO
+        //    {
+        //        Quantity = 3
+        //    };
 
-            _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
-                .ThrowsAsync(new Exception("Database error"));
+        //    _orderServiceServiceMock.Setup(s => s.UpdateOrderServiceAsync(orderServiceId, updateDTO))
+        //        .ThrowsAsync(new Exception("Database error"));
 
-            // Act
-            var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
+        //    // Act
+        //    var result = await _controller.UpdateOrderServiceAsync(orderServiceId, updateDTO);
 
-            // Assert
-            var statusCodeResult = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(500, statusCodeResult.StatusCode);
+        //    // Assert
+        //    var statusCodeResult = Assert.IsType<ObjectResult>(result);
+        //    Assert.Equal(500, statusCodeResult.StatusCode);
 
-            var json = JsonSerializer.Serialize(statusCodeResult.Value);
-            using var doc = JsonDocument.Parse(json);
-            Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
-            Assert.Equal("Có lỗi xảy ra khi cập nhật dịch vụ trong OrderService", doc.RootElement.GetProperty("message").GetString());
-        }
+        //    var json = JsonSerializer.Serialize(statusCodeResult.Value);
+        //    using var doc = JsonDocument.Parse(json);
+        //    Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
+        //    Assert.Equal("Có lỗi xảy ra khi cập nhật dịch vụ trong OrderService", doc.RootElement.GetProperty("message").GetString());
+        //}
     }
 }

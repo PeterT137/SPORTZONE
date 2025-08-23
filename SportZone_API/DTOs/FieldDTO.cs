@@ -36,6 +36,7 @@ namespace SportZone_API.DTOs
         public int FieldId { get; set; }
         public int? FacId { get; set; }
         public string? FacilityAddress { get; set; }
+        public string? OwnerPhone { get; set; }
         public int? CategoryId { get; set; }
         public string? CategoryName { get; set; }
         public string? FieldName { get; set; }

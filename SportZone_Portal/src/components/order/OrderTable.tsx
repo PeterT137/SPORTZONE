@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "../../Sidebar";
 
-// Định nghĩa các giao diện (interfaces) để đảm bảo type-safety
 interface Order {
   orderId: number;
   bookingId: number;
@@ -161,7 +160,9 @@ const OrdersTable: React.FC = () => {
         return ordersList;
       const uniqueBookingIds = Array.from(
         new Set(
-          ordersList.map((o) => o.bookingId).filter((id) => Number.isFinite(id))
+          ordersList
+            .map((o) => o.bookingId)
+            .filter((id) => Number.isFinite(id))
         )
       ) as number[];
 
@@ -183,13 +184,15 @@ const OrdersTable: React.FC = () => {
         const d = idToDetail.get(o.bookingId);
         if (!d) return o;
 
-        const bookedSlots = ((d["bookedSlots"] as unknown) || []) as Array<
-          Record<string, unknown>
-        >;
+        const bookedSlots = ((d["bookedSlots"] as unknown) ||
+          []) as Array<Record<string, unknown>>;
         const firstSlot = bookedSlots[0] || {};
 
         const bookingDate = getString(
-          d["date"] ?? d["Date"] ?? firstSlot["date"] ?? firstSlot["Date"],
+          d["date"] ??
+          d["Date"] ??
+          firstSlot["date"] ??
+          firstSlot["Date"],
           o.bookingDate
         );
         const startTime = getString(
@@ -208,7 +211,8 @@ const OrdersTable: React.FC = () => {
         ).slice(0, 5);
 
         const fieldObj =
-          (d["field"] as Record<string, unknown> | undefined) || undefined;
+          (d["field"] as Record<string, unknown> | undefined) ||
+          undefined;
         const fieldName = getString(
           fieldObj?.["fieldName"] ??
           fieldObj?.["FieldName"] ??
@@ -237,7 +241,9 @@ const OrdersTable: React.FC = () => {
       if (!userRaw) {
         setOrders([]);
         setLoading(false);
-        setError("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập.");
+        setError(
+          "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập."
+        );
         return;
       }
       const user = JSON.parse(userRaw);
@@ -251,28 +257,19 @@ const OrdersTable: React.FC = () => {
       }
 
       try {
-        const [allFacilitiesRes, allAccountsRes] = await Promise.all([
-          fetch(`${API_URL}/api/Facility/with-details`, {
+        const allFacilitiesRes = await fetch(
+          `${API_URL}/api/Facility/with-details`,
+          {
             method: "GET",
             headers: getAuthHeaders(),
-          }),
-          fetch(`${API_URL}/get-all-account`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              ...getAuthHeaders(),
-            },
-          }),
-        ]);
+          }
+        );
 
-        if (!allFacilitiesRes.ok || !allAccountsRes.ok) {
+        if (!allFacilitiesRes.ok) {
           throw new Error("Failed to fetch necessary data.");
         }
 
-        const [allFacilitiesJson, accountsJson] = await Promise.all([
-          allFacilitiesRes.json(),
-          allAccountsRes.json(),
-        ]);
+        const allFacilitiesJson = await allFacilitiesRes.json();
 
         // Helpers for safe extraction
         const getStr = (v: unknown, fb = ""): string =>
@@ -283,64 +280,18 @@ const OrdersTable: React.FC = () => {
           return Number.isFinite(n) ? n : fb;
         };
 
-        const facilitiesMap = new Map<number, Record<string, unknown>>();
+        const facilitiesMap = new Map<
+          number,
+          Record<string, unknown>
+        >();
         if (Array.isArray(allFacilitiesJson)) {
-          (allFacilitiesJson as Array<Record<string, unknown>>).forEach((f) => {
+          (
+            allFacilitiesJson as Array<Record<string, unknown>>
+          ).forEach((f) => {
             const facId = getNum(f["facId"] ?? f["FacId"], NaN);
             if (Number.isFinite(facId)) {
               facilitiesMap.set(facId, f);
             }
-          });
-        }
-
-        const accountsContainer =
-          (accountsJson as Record<string, unknown>) || {};
-        const accountsDataRaw = accountsContainer["data"] ?? accountsJson;
-        const accountsData: Array<Record<string, unknown>> = Array.isArray(
-          accountsDataRaw
-        )
-          ? (accountsDataRaw as Array<Record<string, unknown>>)
-          : [];
-
-        // Cập nhật map để lưu cả email
-        const userIdToInfo = new Map<
-          number,
-          { name: string; phone: string; email: string }
-        >();
-        if (accountsData.length > 0) {
-          accountsData.forEach((u) => {
-            const uId = getNum(u["uId"] ?? u["UId"], NaN);
-            if (!Number.isFinite(uId)) return;
-            const customer = (u["customer"] ?? u["Customer"]) as
-              | Record<string, unknown>
-              | undefined;
-            const fieldOwner = (u["fieldOwner"] ?? u["FieldOwner"]) as
-              | Record<string, unknown>
-              | undefined;
-            const staff = (u["staff"] ?? u["Staff"]) as
-              | Record<string, unknown>
-              | undefined;
-            const name = getStr(
-              customer?.["name"] ??
-              customer?.["Name"] ??
-              fieldOwner?.["name"] ??
-              fieldOwner?.["Name"] ??
-              staff?.["name"] ??
-              staff?.["Name"],
-              ""
-            );
-            const phone = getStr(
-              customer?.["phone"] ??
-              customer?.["Phone"] ??
-              fieldOwner?.["phone"] ??
-              fieldOwner?.["Phone"] ??
-              staff?.["phone"] ??
-              staff?.["Phone"],
-              ""
-            );
-            // Lấy email từ API
-            const email = getStr(u["uEmail"], "");
-            userIdToInfo.set(uId, { name, phone, email });
           });
         }
 
@@ -352,15 +303,45 @@ const OrdersTable: React.FC = () => {
             Number(userId)
         );
 
-        if (userFacilities.length === 0) {
-          setOrders([]);
-          setLoading(false);
-          return;
+        // if (userFacilities.length === 0) {
+        //     setOrders([]);
+        //     setLoading(false);
+        //     return;
+        // }
+
+        const userStr = localStorage.getItem("user");
+        const user = userStr ? JSON.parse(userStr) : null;
+
+        let facilityIds: number[] = [];
+
+        if (user && user.RoleId === 4) {
+          const facInfoStr = localStorage.getItem("facilityInfo");
+          if (facInfoStr) {
+            try {
+              const facInfo = JSON.parse(facInfoStr);
+              const facId = getNum(
+                facInfo["facId"] ?? facInfo["FacId"],
+                NaN
+              );
+              if (Number.isFinite(facId)) {
+                facilityIds = [facId];
+              }
+            } catch (err) {
+              console.error("Failed to parse facilityInfo:", err);
+            }
+          }
+        } else {
+          facilityIds = userFacilities.map((f) =>
+            getNum(f["facId"] ?? f["FacId"], NaN)
+          );
         }
 
-        const facilityIds: number[] = userFacilities.map((f) =>
-          getNum(f["facId"] ?? f["FacId"], NaN)
-        );
+        // const facilityIds: number[] = userFacilities.map((f) =>
+        //     getNum(f["facId"] ?? f["FacId"], NaN)
+        // );
+
+        console.log(facilityIds);
+
         const allOrders: Order[] = [];
 
         const orderPromises: Array<Promise<Order[]>> = facilityIds.map(
@@ -373,7 +354,9 @@ const OrdersTable: React.FC = () => {
               }
             );
             if (!ordersRes.ok) {
-              console.error(`Failed to fetch orders for facilityId ${facId}`);
+              console.error(
+                `Failed to fetch orders for facilityId ${facId}`
+              );
               return [];
             }
 
@@ -381,7 +364,10 @@ const OrdersTable: React.FC = () => {
             const ordersContainer =
               (ordersJson as Record<string, unknown>) || {};
             let ordersDataRaw: unknown = ordersJson;
-            if (ordersContainer && ordersContainer["data"] !== undefined) {
+            if (
+              ordersContainer &&
+              ordersContainer["data"] !== undefined
+            ) {
               ordersDataRaw = ordersContainer["data"] as unknown;
             }
             if (
@@ -390,9 +376,9 @@ const OrdersTable: React.FC = () => {
               !Array.isArray(ordersDataRaw) &&
               (ordersDataRaw as Record<string, unknown>)["orders"]
             ) {
-              ordersDataRaw = (ordersDataRaw as Record<string, unknown>)[
-                "orders"
-              ];
+              ordersDataRaw = (
+                ordersDataRaw as Record<string, unknown>
+              )["orders"];
             }
             if (!Array.isArray(ordersDataRaw)) {
               return [];
@@ -402,23 +388,28 @@ const OrdersTable: React.FC = () => {
               | Record<string, unknown>
               | undefined;
             const facilityName = getStr(
-              currentFacility?.["name"] ?? currentFacility?.["Name"],
+              currentFacility?.["name"] ??
+              currentFacility?.["Name"],
               "N/A"
             );
 
-            const ordersData = ordersDataRaw as Array<Record<string, unknown>>;
+            const ordersData = ordersDataRaw as Array<
+              Record<string, unknown>
+            >;
             return ordersData.map((o: Record<string, unknown>) => {
               const bookedSlots = (o["bookedSlots"] ??
                 o["BookedSlots"] ??
                 []) as Array<Record<string, unknown>>;
-              const firstSlot = bookedSlots.length > 0 ? bookedSlots[0] : {};
+              const firstSlot =
+                bookedSlots.length > 0 ? bookedSlots[0] : {};
 
               const bookingDate = getStr(
                 firstSlot["date"] ?? firstSlot["Date"],
                 ""
               );
               const startTime = getStr(
-                firstSlot["startTime"] ?? firstSlot["StartTime"],
+                firstSlot["startTime"] ??
+                firstSlot["StartTime"],
                 ""
               ).slice(0, 5);
               const endTime = getStr(
@@ -426,30 +417,29 @@ const OrdersTable: React.FC = () => {
                 ""
               ).slice(0, 5);
               const fieldName = getStr(
-                firstSlot["fieldName"] ?? firstSlot["FieldName"],
+                firstSlot["fieldName"] ??
+                firstSlot["FieldName"],
                 "N/A"
               );
 
-              const guestName = o["guestName"] ?? o["GuestName"];
-              const guestPhone = o["guestPhone"] ?? o["GuestPhone"];
-              const userIdFromOrder = getNum(o["uId"] ?? o["UId"], NaN);
+              const guestName = getStr(
+                o["guestName"] ?? o["GuestName"]
+              );
+              const guestPhone = getStr(
+                o["guestPhone"] ?? o["GuestPhone"]
+              );
+              const userName = getStr(
+                o["userName"] ?? o["UserName"]
+              );
+              const userPhone = getStr(
+                o["userPhone"] ?? o["UserPhone"]
+              );
+              const userEmail = getStr(
+                o["userEmail"] ?? o["UserEmail"]
+              );
 
-              let customerName = getStr(guestName, "");
-              let customerPhone = getStr(guestPhone, "");
-              let customerEmail = "N/A"; // Khởi tạo email
-
-              if (
-                !customerName &&
-                !customerPhone &&
-                Number.isFinite(userIdFromOrder)
-              ) {
-                const fallbackUserInfo = userIdToInfo.get(userIdFromOrder);
-                if (fallbackUserInfo) {
-                  customerName = fallbackUserInfo.name;
-                  customerPhone = fallbackUserInfo.phone;
-                  customerEmail = fallbackUserInfo.email; // Gán email thật
-                }
-              }
+              const customerName = guestName || userName;
+              const customerPhone = guestPhone || userPhone;
 
               const statusPaymentRaw = getStr(
                 o["statusPayment"] ?? o["StatusPayment"],
@@ -457,27 +447,41 @@ const OrdersTable: React.FC = () => {
               );
 
               return {
-                orderId: getNum(o["orderId"] ?? o["OrderId"], 0),
-                bookingId: getNum(o["bookingId"] ?? o["BookingId"], 0),
+                orderId: getNum(
+                  o["orderId"] ?? o["OrderId"],
+                  0
+                ),
+                bookingId: getNum(
+                  o["bookingId"] ?? o["BookingId"],
+                  0
+                ),
                 facilityName: facilityName,
                 fieldName: fieldName,
                 customerName: customerName || "Khách hàng",
                 customerPhone: customerPhone || "N/A",
-                customerEmail: customerEmail, // Lưu email vào object Order
-                totalPrice: getNum(o["totalPrice"] ?? o["TotalPrice"], 0),
+                customerEmail: userEmail || "N/A",
+                totalPrice: getNum(
+                  o["totalPrice"] ?? o["TotalPrice"],
+                  0
+                ),
                 totalServicePrice: getNum(
-                  o["totalServicePrice"] ?? o["TotalServicePrice"],
+                  o["totalServicePrice"] ??
+                  o["TotalServicePrice"],
                   0
                 ),
                 contentPayment: getStr(
                   o["contentPayment"] ?? o["ContentPayment"],
                   ""
                 ),
-                statusPayment: mapPaymentStatus(statusPaymentRaw),
+                statusPayment:
+                  mapPaymentStatus(statusPaymentRaw),
                 bookingDate,
                 startTime,
                 endTime,
-                createAt: getStr(o["createAt"] ?? o["CreateAt"], ""),
+                createAt: getStr(
+                  o["createAt"] ?? o["CreateAt"],
+                  ""
+                ),
                 action: "Chi tiết",
               } as Order;
             });
@@ -489,14 +493,19 @@ const OrdersTable: React.FC = () => {
 
         allOrders.sort(
           (a, b) =>
-            new Date(b.createAt).getTime() - new Date(a.createAt).getTime()
+            new Date(b.createAt).getTime() -
+            new Date(a.createAt).getTime()
         );
 
-        const enriched = await enrichOrdersWithBookingDetails(allOrders);
+        const enriched = await enrichOrdersWithBookingDetails(
+          allOrders
+        );
         setOrders(enriched);
       } catch (error) {
         console.error("Error loading orders:", error);
-        setError("Không thể tải danh sách đơn hàng. Vui lòng thử lại sau.");
+        setError(
+          "Không thể tải danh sách đơn hàng. Vui lòng thử lại sau."
+        );
         setOrders([]);
       } finally {
         setLoading(false);
@@ -537,7 +546,8 @@ const OrdersTable: React.FC = () => {
     const fetchedBookingDetail = await fetchBookingDetail(order.bookingId);
 
     if (fetchedBookingDetail) {
-      const container = (fetchedBookingDetail as Record<string, unknown>) || {};
+      const container =
+        (fetchedBookingDetail as Record<string, unknown>) || {};
       const bookingData =
         (container["data"] as Record<string, unknown>) || container;
 
@@ -576,7 +586,10 @@ const OrdersTable: React.FC = () => {
         []) as Array<Record<string, unknown>>;
       const mappedServices = servicesRaw.map((s) => ({
         serviceId: getNumber(s["serviceId"] ?? s["ServiceId"], 0),
-        serviceName: getString(s["serviceName"] ?? s["ServiceName"], "Dịch vụ"),
+        serviceName: getString(
+          s["serviceName"] ?? s["ServiceName"],
+          "Dịch vụ"
+        ),
         price: getNumber(s["price"] ?? s["Price"], 0),
         quantity: getNumber(s["quantity"] ?? s["Quantity"], 1),
         imageUrl: undefined,
@@ -588,12 +601,16 @@ const OrdersTable: React.FC = () => {
       );
 
       const facilityName = getString(
-        (bookingData["facility"] as Record<string, unknown> | undefined)?.[
-        "facilityName"
-        ] ??
-        (bookingData["facility"] as Record<string, unknown> | undefined)?.[
-        "FacilityName"
-        ] ??
+        (
+          bookingData["facility"] as
+          | Record<string, unknown>
+          | undefined
+        )?.["facilityName"] ??
+        (
+          bookingData["facility"] as
+          | Record<string, unknown>
+          | undefined
+        )?.["FacilityName"] ??
         bookingData["facilityName"] ??
         bookingData["FacilityName"] ??
         order.facilityName,
@@ -604,9 +621,11 @@ const OrdersTable: React.FC = () => {
         (bookingData["field"] as Record<string, unknown> | undefined)?.[
         "fieldName"
         ] ??
-        (bookingData["field"] as Record<string, unknown> | undefined)?.[
-        "FieldName"
-        ] ??
+        (
+          bookingData["field"] as
+          | Record<string, unknown>
+          | undefined
+        )?.["FieldName"] ??
         firstSlot["fieldName"] ??
         firstSlot["FieldName"] ??
         order.fieldName,
@@ -639,7 +658,9 @@ const OrdersTable: React.FC = () => {
       ).slice(0, 5);
 
       const bookingCreateAt = getString(
-        bookingData["createAt"] ?? bookingData["CreateAt"] ?? order.createAt,
+        bookingData["createAt"] ??
+        bookingData["CreateAt"] ??
+        order.createAt,
         order.createAt
       );
 
@@ -654,7 +675,9 @@ const OrdersTable: React.FC = () => {
         categoryFieldName: getString(
           typeof bookingData["field"] === "object" &&
             bookingData["field"] !== null
-            ? (bookingData["field"] as Record<string, unknown>)["categoryName"]
+            ? (bookingData["field"] as Record<string, unknown>)[
+            "categoryName"
+            ]
             : undefined,
           "N/A"
         ),
@@ -665,7 +688,9 @@ const OrdersTable: React.FC = () => {
         totalServicePrice,
         fieldRentalPrice: Math.max(totalAmount - totalServicePrice, 0),
         discountAmount: 0,
-        deposit: Math.round((Math.max(totalAmount - totalServicePrice, 0)) * 0.5),
+        deposit: Math.round(
+          Math.max(totalAmount - totalServicePrice, 0) * 0.5
+        ),
         contentPayment: getString(
           orderObj?.["contentPayment"] ?? order.contentPayment,
           ""
@@ -691,7 +716,9 @@ const OrdersTable: React.FC = () => {
           imageUrl: s.imageUrl,
         })),
         createAt: new Date(order.createAt).toLocaleString("vi-VN"),
-        bookingCreateAt: new Date(bookingCreateAt).toLocaleString("vi-VN"),
+        bookingCreateAt: new Date(bookingCreateAt).toLocaleString(
+          "vi-VN"
+        ),
       };
       setOrderDetail(detail);
     } else {
@@ -708,7 +735,9 @@ const OrdersTable: React.FC = () => {
         totalServicePrice: order.totalServicePrice,
         fieldRentalPrice: order.totalPrice - order.totalServicePrice,
         discountAmount: 0,
-        deposit: Math.round((order.totalPrice - order.totalServicePrice) * 0.5),
+        deposit: Math.round(
+          (order.totalPrice - order.totalServicePrice) * 0.5
+        ),
         contentPayment: order.contentPayment,
         statusPayment: order.statusPayment,
         paymentMethod: "N/A",
@@ -738,7 +767,8 @@ const OrdersTable: React.FC = () => {
     const matchesCustomer =
       !filters.customer || order.customerName.includes(filters.customer);
     const matchesPaymentStatus =
-      !filters.paymentStatus || order.statusPayment === filters.paymentStatus;
+      !filters.paymentStatus ||
+      order.statusPayment === filters.paymentStatus;
 
     let matchesPrice = true;
     if (filters.priceFrom && order.totalPrice < parseInt(filters.priceFrom))
@@ -840,7 +870,9 @@ const OrdersTable: React.FC = () => {
         );
       })
       .catch((err) => {
-        alert("Không thể cập nhật trạng thái thanh toán: " + err.message);
+        alert(
+          "Không thể cập nhật trạng thái thanh toán: " + err.message
+        );
       });
   };
 
@@ -887,10 +919,13 @@ const OrdersTable: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
                   Quản lý đơn đặt sân
                 </h1>
+
                 <p className="text-gray-600 text-sm">
-                  Quản lý và theo dõi tất cả đơn đặt sân của hệ thống
+                  Quản lý và theo dõi tất cả đơn đặt sân của
+                  hệ thống
                 </p>
               </div>
+
               <div className="flex items-center space-x-3">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
                   <span className="text-blue-700 font-medium text-sm">
@@ -901,6 +936,7 @@ const OrdersTable: React.FC = () => {
                 </div>
               </div>
             </div>
+
             {error && (
               <div
                 className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
@@ -916,6 +952,7 @@ const OrdersTable: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900">
                 Bộ lọc tìm kiếm
               </h3>
+
               {(filters.facility ||
                 filters.customer ||
                 filters.priceFrom ||
@@ -950,6 +987,7 @@ const OrdersTable: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Cơ sở
                 </label>
+
                 <button
                   onClick={() => toggleDropdown("facility")}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
@@ -957,6 +995,7 @@ const OrdersTable: React.FC = () => {
                   <span className="text-gray-900">
                     {filters.facility || "Chọn cơ sở"}
                   </span>
+
                   <svg
                     className="w-5 h-5 text-gray-400"
                     fill="none"
@@ -971,6 +1010,7 @@ const OrdersTable: React.FC = () => {
                     />
                   </svg>
                 </button>
+
                 {showDropdowns.facility && (
                   <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
                     <div className="p-3">
@@ -981,33 +1021,50 @@ const OrdersTable: React.FC = () => {
                         onChange={(e) =>
                           setFilters((prev) => ({
                             ...prev,
-                            facility: e.target.value,
+                            facility:
+                              e.target.value,
                           }))
                         }
                         className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                       />
+
                       <div className="mt-2 max-h-48 overflow-y-auto">
                         <div
                           onClick={() => {
-                            setFilters((prev) => ({ ...prev, facility: "" }));
-                            toggleDropdown("facility");
+                            setFilters((prev) => ({
+                              ...prev,
+                              facility: "",
+                            }));
+                            toggleDropdown(
+                              "facility"
+                            );
                           }}
                           className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
                         >
                           Tất cả cơ sở
                         </div>
-                        {uniqueFacilities.map((facility, index) => (
-                          <div
-                            key={index}
-                            onClick={() => {
-                              setFilters((prev) => ({ ...prev, facility }));
-                              toggleDropdown("facility");
-                            }}
-                            className="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 hover:text-blue-600"
-                          >
-                            {facility}
-                          </div>
-                        ))}
+
+                        {uniqueFacilities.map(
+                          (facility, index) => (
+                            <div
+                              key={index}
+                              onClick={() => {
+                                setFilters(
+                                  (prev) => ({
+                                    ...prev,
+                                    facility,
+                                  })
+                                );
+                                toggleDropdown(
+                                  "facility"
+                                );
+                              }}
+                              className="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 hover:text-blue-600"
+                            >
+                              {facility}
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1018,6 +1075,7 @@ const OrdersTable: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Khách hàng
                 </label>
+
                 <button
                   onClick={() => toggleDropdown("customer")}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
@@ -1025,6 +1083,7 @@ const OrdersTable: React.FC = () => {
                   <span className="text-gray-900">
                     {filters.customer || "Chọn khách hàng"}
                   </span>
+
                   <svg
                     className="w-5 h-5 text-gray-400"
                     fill="none"
@@ -1039,6 +1098,7 @@ const OrdersTable: React.FC = () => {
                     />
                   </svg>
                 </button>
+
                 {showDropdowns.customer && (
                   <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
                     <div className="p-3">
@@ -1049,33 +1109,50 @@ const OrdersTable: React.FC = () => {
                         onChange={(e) =>
                           setFilters((prev) => ({
                             ...prev,
-                            customer: e.target.value,
+                            customer:
+                              e.target.value,
                           }))
                         }
                         className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                       />
+
                       <div className="mt-2 max-h-48 overflow-y-auto">
                         <div
                           onClick={() => {
-                            setFilters((prev) => ({ ...prev, customer: "" }));
-                            toggleDropdown("customer");
+                            setFilters((prev) => ({
+                              ...prev,
+                              customer: "",
+                            }));
+                            toggleDropdown(
+                              "customer"
+                            );
                           }}
                           className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
                         >
                           Tất cả khách hàng
                         </div>
-                        {uniqueCustomers.map((customer, index) => (
-                          <div
-                            key={index}
-                            onClick={() => {
-                              setFilters((prev) => ({ ...prev, customer }));
-                              toggleDropdown("customer");
-                            }}
-                            className="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 hover:text-blue-600"
-                          >
-                            {customer}
-                          </div>
-                        ))}
+
+                        {uniqueCustomers.map(
+                          (customer, index) => (
+                            <div
+                              key={index}
+                              onClick={() => {
+                                setFilters(
+                                  (prev) => ({
+                                    ...prev,
+                                    customer,
+                                  })
+                                );
+                                toggleDropdown(
+                                  "customer"
+                                );
+                              }}
+                              className="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 hover:text-blue-600"
+                            >
+                              {customer}
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1086,6 +1163,7 @@ const OrdersTable: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Khoảng giá
                 </label>
+
                 <button
                   onClick={() => toggleDropdown("price")}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
@@ -1096,6 +1174,7 @@ const OrdersTable: React.FC = () => {
                       }`
                       : "Chọn khoảng giá"}
                   </span>
+
                   <svg
                     className="w-5 h-5 text-gray-400"
                     fill="none"
@@ -1110,6 +1189,7 @@ const OrdersTable: React.FC = () => {
                     />
                   </svg>
                 </button>
+
                 {showDropdowns.price && (
                   <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
                     <div className="p-4">
@@ -1118,41 +1198,57 @@ const OrdersTable: React.FC = () => {
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Từ (VND)
                           </label>
+
                           <input
                             type="number"
                             placeholder="0"
-                            value={filters.priceFrom}
+                            value={
+                              filters.priceFrom
+                            }
                             onChange={(e) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                priceFrom: e.target.value,
-                              }))
+                              setFilters(
+                                (prev) => ({
+                                  ...prev,
+                                  priceFrom:
+                                    e.target
+                                      .value,
+                                })
+                              )
                             }
                             className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                             title="Giá từ"
                           />
                         </div>
+
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Đến (VND)
                           </label>
+
                           <input
                             type="number"
                             placeholder="1000000"
                             value={filters.priceTo}
                             onChange={(e) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                priceTo: e.target.value,
-                              }))
+                              setFilters(
+                                (prev) => ({
+                                  ...prev,
+                                  priceTo:
+                                    e.target
+                                      .value,
+                                })
+                              )
                             }
                             className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                             title="Giá đến"
                           />
                         </div>
                       </div>
+
                       <button
-                        onClick={() => toggleDropdown("price")}
+                        onClick={() =>
+                          toggleDropdown("price")
+                        }
                         className="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
                       >
                         Áp dụng
@@ -1166,13 +1262,18 @@ const OrdersTable: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Trạng thái thanh toán
                 </label>
+
                 <button
-                  onClick={() => toggleDropdown("paymentStatus")}
+                  onClick={() =>
+                    toggleDropdown("paymentStatus")
+                  }
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
                 >
                   <span className="text-gray-900">
-                    {filters.paymentStatus || "Chọn trạng thái"}
+                    {filters.paymentStatus ||
+                      "Chọn trạng thái"}
                   </span>
+
                   <svg
                     className="w-5 h-5 text-gray-400"
                     fill="none"
@@ -1187,6 +1288,7 @@ const OrdersTable: React.FC = () => {
                     />
                   </svg>
                 </button>
+
                 {showDropdowns.paymentStatus && (
                   <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
                     <div className="p-2">
@@ -1196,31 +1298,43 @@ const OrdersTable: React.FC = () => {
                             ...prev,
                             paymentStatus: "",
                           }));
-                          toggleDropdown("paymentStatus");
+                          toggleDropdown(
+                            "paymentStatus"
+                          );
                         }}
                         className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
                       >
                         Tất cả trạng thái
                       </div>
-                      {paymentStatuses.map((status, index) => (
-                        <div
-                          key={index}
-                          onClick={() => {
-                            setFilters((prev) => ({
-                              ...prev,
-                              paymentStatus: status,
-                            }));
-                            toggleDropdown("paymentStatus");
-                          }}
-                          className="p-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center text-gray-700 hover:text-blue-600"
-                        >
-                          <span
-                            className={`inline-block w-3 h-3 rounded-full mr-3 ${getPaymentStatusColor(status).split(" ")[0]
-                              }`}
-                          ></span>
-                          {status}
-                        </div>
-                      ))}
+
+                      {paymentStatuses.map(
+                        (status, index) => (
+                          <div
+                            key={index}
+                            onClick={() => {
+                              setFilters(
+                                (prev) => ({
+                                  ...prev,
+                                  paymentStatus:
+                                    status,
+                                })
+                              );
+                              toggleDropdown(
+                                "paymentStatus"
+                              );
+                            }}
+                            className="p-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center text-gray-700 hover:text-blue-600"
+                          >
+                            <span
+                              className={`inline-block w-3 h-3 rounded-full mr-3 ${getPaymentStatusColor(
+                                status
+                              ).split(" ")[0]
+                                }`}
+                            ></span>
+                            {status}
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 )}
@@ -1230,6 +1344,7 @@ const OrdersTable: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Khoảng thời gian
                 </label>
+
                 <button
                   onClick={() => toggleDropdown("date")}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
@@ -1240,6 +1355,7 @@ const OrdersTable: React.FC = () => {
                       }`
                       : "Chọn thời gian"}
                   </span>
+
                   <svg
                     className="w-5 h-5 text-gray-400"
                     fill="none"
@@ -1254,6 +1370,7 @@ const OrdersTable: React.FC = () => {
                     />
                   </svg>
                 </button>
+
                 {showDropdowns.date && (
                   <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
                     <div className="p-4">
@@ -1262,39 +1379,53 @@ const OrdersTable: React.FC = () => {
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Từ ngày
                           </label>
+
                           <input
                             type="date"
                             value={filters.dateFrom}
                             onChange={(e) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                dateFrom: e.target.value,
-                              }))
+                              setFilters(
+                                (prev) => ({
+                                  ...prev,
+                                  dateFrom:
+                                    e.target
+                                      .value,
+                                })
+                              )
                             }
                             className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                             title="Ngày từ"
                           />
                         </div>
+
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Đến ngày
                           </label>
+
                           <input
                             type="date"
                             value={filters.dateTo}
                             onChange={(e) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                dateTo: e.target.value,
-                              }))
+                              setFilters(
+                                (prev) => ({
+                                  ...prev,
+                                  dateTo: e
+                                    .target
+                                    .value,
+                                })
+                              )
                             }
                             className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                             title="Ngày đến"
                           />
                         </div>
                       </div>
+
                       <button
-                        onClick={() => toggleDropdown("date")}
+                        onClick={() =>
+                          toggleDropdown("date")
+                        }
                         className="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
                       >
                         Áp dụng
@@ -1312,6 +1443,7 @@ const OrdersTable: React.FC = () => {
                 Danh sách đơn đặt sân
               </h3>
             </div>
+
             <div className="overflow-x-auto">
               {loading ? (
                 <div className="p-6 text-center text-gray-500">
@@ -1324,194 +1456,274 @@ const OrdersTable: React.FC = () => {
                       <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
                         STT
                       </th>
+
                       <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
                         Mã đơn
                       </th>
+
                       <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
                         Cơ sở / Sân
                       </th>
+
                       <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
                         Khách hàng
                       </th>
+
                       <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
                         Thời gian đặt
                       </th>
+
                       <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
                         Tổng tiền
                       </th>
+
                       <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
                         Trạng thái thanh toán
                       </th>
+
                       <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
                         Thao tác
                       </th>
                     </tr>
                   </thead>
+
                   <tbody className="bg-white divide-y divide-gray-200">
                     {paginatedOrders.length > 0 ? (
-                      paginatedOrders.map((order, index) => (
-                        <tr
-                          key={order.orderId}
-                          className={
-                            index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                          }
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-black-600 font-bold">
-                            {(currentPage - 1) * ordersPerPage + index + 1}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
-                            #{order.orderId}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            <div>
-                              <div className="font-medium">
-                                {order.facilityName}
+                      paginatedOrders.map(
+                        (order, index) => (
+                          <tr
+                            key={order.orderId}
+                            className={
+                              index % 2 === 0
+                                ? "bg-white"
+                                : "bg-gray-50"
+                            }
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-black-600 font-bold">
+                              {(currentPage - 1) *
+                                ordersPerPage +
+                                index +
+                                1}
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
+                              #{order.orderId}
+                            </td>
+
+                            <td className="px-6 py-4 text-sm text-gray-900">
+                              <div>
+                                <div className="font-medium">
+                                  {
+                                    order.facilityName
+                                  }
+                                </div>
+
+                                <div className="text-gray-500 text-xs">
+                                  {
+                                    order.fieldName
+                                  }
+                                </div>
                               </div>
-                              <div className="text-gray-500 text-xs">
-                                {order.fieldName}
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <div>
+                                <div className="font-medium">
+                                  {
+                                    order.customerName
+                                  }
+                                </div>
+
+                                <div className="text-gray-500 text-xs">
+                                  {
+                                    order.customerPhone
+                                  }
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div>
-                              <div className="font-medium">
-                                {order.customerName}
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <div>
+                                <div className="font-medium">
+                                  {new Date(
+                                    order.bookingDate
+                                  ).toLocaleDateString(
+                                    "vi-VN"
+                                  )}
+                                </div>
+
+                                <div className="text-gray-500 text-xs">
+                                  {
+                                    order.startTime
+                                  }{" "}
+                                  -{" "}
+                                  {
+                                    order.endTime
+                                  }
+                                </div>
                               </div>
-                              <div className="text-gray-500 text-xs">
-                                {order.customerPhone}
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              <div>
+                                <div className="text-blue-600">
+                                  {order.totalPrice.toLocaleString()}
+                                  đ
+                                </div>
+
+                                <div className="text-gray-500 text-xs">
+                                  DV:
+                                  {order.totalServicePrice.toLocaleString()}
+                                  đ
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div>
-                              <div className="font-medium">
-                                {new Date(order.bookingDate).toLocaleDateString(
-                                  "vi-VN"
-                                )}
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="relative dropdown-container">
+                                <button
+                                  onClick={() =>
+                                    toggleDropdown(
+                                      `paymentStatus_${order.orderId}`
+                                    )
+                                  }
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
+                                    order.statusPayment
+                                  )} ${order.statusPayment !==
+                                      "Chờ thanh toán"
+                                      ? "cursor-not-allowed opacity-60"
+                                      : ""
+                                    }`}
+                                  disabled={
+                                    order.statusPayment !==
+                                    "Chờ thanh toán"
+                                  }
+                                  title={
+                                    order.statusPayment !==
+                                      "Chờ thanh toán"
+                                      ? "Chỉ có thể thay đổi trạng thái khi đơn hàng đang 'Chờ thanh toán'"
+                                      : "Đổi trạng thái thanh toán"
+                                  }
+                                >
+                                  {
+                                    order.statusPayment
+                                  }
+
+                                  {order.statusPayment ===
+                                    "Chờ thanh toán" && (
+                                      <svg
+                                        className="w-3 h-3 ml-1"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={
+                                            2
+                                          }
+                                          d="M19 9l-7 7-7-7"
+                                        />
+                                      </svg>
+                                    )}
+                                </button>
+
+                                {showDropdowns[
+                                  `paymentStatus_${order.orderId}`
+                                ] &&
+                                  order.statusPayment ===
+                                  "Chờ thanh toán" && (
+                                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
+                                      <div className="py-1">
+                                        {paymentStatuses
+                                          .filter(
+                                            (
+                                              status
+                                            ) =>
+                                              status !==
+                                              "Chờ thanh toán"
+                                          ) // Lọc bỏ trạng thái hiện tại
+                                          .map(
+                                            (
+                                              status,
+                                              statusIndex
+                                            ) => (
+                                              <div
+                                                key={
+                                                  statusIndex
+                                                }
+                                                onClick={() => {
+                                                  handleChangePaymentStatus(
+                                                    order.orderId,
+                                                    status
+                                                  );
+                                                  toggleDropdown(
+                                                    `paymentStatus_${order.orderId}`
+                                                  );
+                                                }}
+                                                className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 text-gray-700 hover:text-blue-600`}
+                                              >
+                                                <span
+                                                  className={`inline-block w-2 h-2 rounded-full mr-3 ${getPaymentStatusColor(
+                                                    status
+                                                  ).split(
+                                                    " "
+                                                  )[0]
+                                                    }`}
+                                                ></span>
+
+                                                {
+                                                  status
+                                                }
+                                              </div>
+                                            )
+                                          )}
+                                      </div>
+                                    </div>
+                                  )}
                               </div>
-                              <div className="text-gray-500 text-xs">
-                                {order.startTime} - {order.endTime}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            <div>
-                              <div className="text-blue-600">
-                                {order.totalPrice.toLocaleString()}đ
-                              </div>
-                              <div className="text-gray-500 text-xs">
-                                DV: {order.totalServicePrice.toLocaleString()}đ
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="relative dropdown-container">
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <button
                                 onClick={() =>
-                                  toggleDropdown(
-                                    `paymentStatus_${order.orderId}`
+                                  openOrderDetail(
+                                    order
                                   )
                                 }
-                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
-                                  order.statusPayment
-                                )} ${order.statusPayment !== "Chờ thanh toán"
-                                  ? "cursor-not-allowed opacity-60"
-                                  : ""
-                                  }`}
-                                disabled={
-                                  order.statusPayment !== "Chờ thanh toán"
-                                }
-                                title={
-                                  order.statusPayment !== "Chờ thanh toán"
-                                    ? "Chỉ có thể thay đổi trạng thái khi đơn hàng đang 'Chờ thanh toán'"
-                                    : "Đổi trạng thái thanh toán"
-                                }
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                               >
-                                {order.statusPayment}
-                                {order.statusPayment === "Chờ thanh toán" && (
-                                  <svg
-                                    className="w-3 h-3 ml-1"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 9l-7 7-7-7"
-                                    />
-                                  </svg>
-                                )}
+                                <svg
+                                  className="w-3 h-3 mr-1"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={
+                                      2
+                                    }
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                  />
+
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={
+                                      2
+                                    }
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                  />
+                                </svg>
+                                {order.action}
                               </button>
-                              {showDropdowns[
-                                `paymentStatus_${order.orderId}`
-                              ] &&
-                                order.statusPayment === "Chờ thanh toán" && (
-                                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
-                                    <div className="py-1">
-                                      {paymentStatuses
-                                        .filter(
-                                          (status) =>
-                                            status !== "Chờ thanh toán"
-                                        ) // Lọc bỏ trạng thái hiện tại
-                                        .map((status, statusIndex) => (
-                                          <div
-                                            key={statusIndex}
-                                            onClick={() => {
-                                              handleChangePaymentStatus(
-                                                order.orderId,
-                                                status
-                                              );
-                                              toggleDropdown(
-                                                `paymentStatus_${order.orderId}`
-                                              );
-                                            }}
-                                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 text-gray-700 hover:text-blue-600`}
-                                          >
-                                            <span
-                                              className={`inline-block w-2 h-2 rounded-full mr-3 ${getPaymentStatusColor(
-                                                status
-                                              ).split(" ")[0]
-                                                }`}
-                                            ></span>
-                                            {status}
-                                          </div>
-                                        ))}
-                                    </div>
-                                  </div>
-                                )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button
-                              onClick={() => openOrderDetail(order)}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                            >
-                              <svg
-                                className="w-3 h-3 mr-1"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                />
-                              </svg>
-                              {order.action}
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                            </td>
+                          </tr>
+                        )
+                      )
                     ) : (
                       <tr>
                         <td
@@ -1532,21 +1744,25 @@ const OrdersTable: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <span className="text-sm text-gray-700">
-                  Hiển thị{" "}
+                  Hiển thị
                   <span className="font-medium">
                     {filteredOrders.length > 0
-                      ? (currentPage - 1) * ordersPerPage + 1
+                      ? (currentPage - 1) *
+                      ordersPerPage +
+                      1
                       : 0}
-                  </span>{" "}
-                  đến{" "}
+                  </span>
+                  đến
                   <span className="font-medium">
                     {Math.min(
                       currentPage * ordersPerPage,
                       filteredOrders.length
                     )}
-                  </span>{" "}
-                  của{" "}
-                  <span className="font-medium">{filteredOrders.length}</span>{" "}
+                  </span>
+                  của
+                  <span className="font-medium">
+                    {filteredOrders.length}
+                  </span>
                   kết quả
                 </span>
               </div>
@@ -1559,11 +1775,14 @@ const OrdersTable: React.FC = () => {
                   >
                     Hiển thị:
                   </label>
+
                   <select
                     id="ordersPerPage"
                     value={ordersPerPage}
                     onChange={(e) => {
-                      setOrdersPerPage(Number(e.target.value));
+                      setOrdersPerPage(
+                        Number(e.target.value)
+                      );
                       setCurrentPage(1);
                     }}
                     className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
@@ -1580,8 +1799,8 @@ const OrdersTable: React.FC = () => {
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
                     className={`p-2 rounded-lg border ${currentPage === 1
-                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
                       } transition-colors duration-200`}
                     aria-label="Trang đầu"
                   >
@@ -1602,12 +1821,14 @@ const OrdersTable: React.FC = () => {
 
                   <button
                     onClick={() =>
-                      setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      setCurrentPage((prev) =>
+                        Math.max(prev - 1, 1)
+                      )
                     }
                     disabled={currentPage === 1}
                     className={`p-2 rounded-lg border ${currentPage === 1
-                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
                       } transition-colors duration-200`}
                     aria-label="Trang trước"
                   >
@@ -1627,41 +1848,56 @@ const OrdersTable: React.FC = () => {
                   </button>
 
                   <div className="flex items-center space-x-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNumber;
-                      if (totalPages <= 5) {
-                        pageNumber = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNumber = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNumber = totalPages - 4 + i;
-                      } else {
-                        pageNumber = currentPage - 2 + i;
-                      }
+                    {Array.from(
+                      { length: Math.min(5, totalPages) },
+                      (_, i) => {
+                        let pageNumber;
+                        if (totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNumber = i + 1;
+                        } else if (
+                          currentPage >=
+                          totalPages - 2
+                        ) {
+                          pageNumber =
+                            totalPages - 4 + i;
+                        } else {
+                          pageNumber =
+                            currentPage - 2 + i;
+                        }
 
-                      return (
-                        <button
-                          key={pageNumber}
-                          onClick={() => setCurrentPage(pageNumber)}
-                          className={`w-8 h-8 rounded-lg border text-sm font-medium transition-colors duration-200 ${pageNumber === currentPage
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                            }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
+                        return (
+                          <button
+                            key={pageNumber}
+                            onClick={() =>
+                              setCurrentPage(
+                                pageNumber
+                              )
+                            }
+                            className={`w-8 h-8 rounded-lg border text-sm font-medium transition-colors duration-200 ${pageNumber ===
+                                currentPage
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                              }`}
+                          >
+                            {pageNumber}
+                          </button>
+                        );
+                      }
+                    )}
                   </div>
 
                   <button
                     onClick={() =>
-                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      setCurrentPage((prev) =>
+                        Math.min(prev + 1, totalPages)
+                      )
                     }
                     disabled={currentPage === totalPages}
                     className={`p-2 rounded-lg border ${currentPage === totalPages
-                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
                       } transition-colors duration-200`}
                     aria-label="Trang tiếp"
                   >
@@ -1681,11 +1917,13 @@ const OrdersTable: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => setCurrentPage(totalPages)}
+                    onClick={() =>
+                      setCurrentPage(totalPages)
+                    }
                     disabled={currentPage === totalPages}
                     className={`p-2 rounded-lg border ${currentPage === totalPages
-                      ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
                       } transition-colors duration-200`}
                     aria-label="Trang cuối"
                   >
@@ -1716,11 +1954,15 @@ const OrdersTable: React.FC = () => {
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold">Chi tiết đơn đặt sân</h2>
+                  <h2 className="text-xl font-bold">
+                    Chi tiết đơn đặt sân
+                  </h2>
+
                   <p className="text-blue-100 text-sm">
                     Đơn hàng #{selectedOrder?.orderId}
                   </p>
                 </div>
+
                 <button
                   onClick={closeModal}
                   title="Đóng modal"
@@ -1768,27 +2010,44 @@ const OrdersTable: React.FC = () => {
                         </svg>
                         Thông tin sân
                       </h3>
+
                       <div className="grid grid-cols-1 gap-3">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Cơ sở:</span>
+                          <span className="text-gray-600">
+                            Cơ sở:
+                          </span>
+
                           <span className="font-medium">
-                            {orderDetail.facilityName}
+                            {
+                              orderDetail.facilityName
+                            }
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Tên sân:</span>
+                          <span className="text-gray-600">
+                            Tên sân:
+                          </span>
+
                           <span className="font-medium">
                             {orderDetail.fieldName}
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Loại sân:</span>
+                          <span className="text-gray-600">
+                            Loại sân:
+                          </span>
+
                           <span className="font-medium">
-                            {orderDetail.categoryFieldName}
+                            {
+                              orderDetail.categoryFieldName
+                            }
                           </span>
                         </div>
                       </div>
                     </div>
+
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                         <svg
@@ -1806,19 +2065,30 @@ const OrdersTable: React.FC = () => {
                         </svg>
                         Thông tin đơn hàng
                       </h3>
+
                       <div className="grid grid-cols-1 gap-3">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Ngày đặt sân:</span>
+                          <span className="text-gray-600">
+                            Ngày đặt sân:
+                          </span>
+
                           <span className="font-medium">
                             {new Date(
                               orderDetail.bookingDate
-                            ).toLocaleDateString("vi-VN")}
+                            ).toLocaleDateString(
+                              "vi-VN"
+                            )}
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Thời gian sân:</span>
+                          <span className="text-gray-600">
+                            Thời gian sân:
+                          </span>
+
                           <span className="font-medium">
-                            {orderDetail.startTime} - {orderDetail.endTime}
+                            {orderDetail.startTime}-{" "}
+                            {orderDetail.endTime}
                           </span>
                         </div>
                       </div>
@@ -1841,23 +2111,41 @@ const OrdersTable: React.FC = () => {
                         </svg>
                         Thông tin khách hàng
                       </h3>
+
                       <div className="grid grid-cols-1 gap-3">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Họ tên:</span>
+                          <span className="text-gray-600">
+                            Họ tên:
+                          </span>
+
                           <span className="font-medium">
-                            {orderDetail.customerName}
+                            {
+                              orderDetail.customerName
+                            }
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Số điện thoại:</span>
+                          <span className="text-gray-600">
+                            Số điện thoại:
+                          </span>
+
                           <span className="font-medium">
-                            {orderDetail.customerPhone}
+                            {
+                              orderDetail.customerPhone
+                            }
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Email:</span>
+                          <span className="text-gray-600">
+                            Email:
+                          </span>
+
                           <span className="font-medium">
-                            {orderDetail.customerEmail}
+                            {
+                              orderDetail.customerEmail
+                            }
                           </span>
                         </div>
                       </div>
@@ -1865,8 +2153,6 @@ const OrdersTable: React.FC = () => {
                   </div>
 
                   <div className="space-y-6">
-
-
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                         <svg
@@ -1884,37 +2170,51 @@ const OrdersTable: React.FC = () => {
                         </svg>
                         Dịch vụ đi kèm
                       </h3>
+
                       <div className="space-y-2">
-                        {orderDetail.services.length > 0 ? (
-                          orderDetail.services.map((service, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center justify-between"
-                            >
-                              <div className="flex items-center">
-                                <svg
-                                  className="w-4 h-4 text-green-500 mr-2"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                                <span className="text-gray-700">
-                                  {service.serviceName}
-                                </span>
+                        {orderDetail.services.length >
+                          0 ? (
+                          orderDetail.services.map(
+                            (service, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between"
+                              >
+                                <div className="flex items-center">
+                                  <svg
+                                    className="w-4 h-4 text-green-500 mr-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={
+                                        2
+                                      }
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+
+                                  <span className="text-gray-700">
+                                    {
+                                      service.serviceName
+                                    }
+                                  </span>
+                                </div>
+
+                                <div className="text-sm text-gray-600">
+                                  {
+                                    service.quantity
+                                  }
+                                  x
+                                  {service.price.toLocaleString()}
+                                  đ
+                                </div>
                               </div>
-                              <div className="text-sm text-gray-600">
-                                {service.quantity}x{" "}
-                                {service.price.toLocaleString()}đ
-                              </div>
-                            </div>
-                          ))
+                            )
+                          )
                         ) : (
                           <div className="text-sm text-gray-500 italic">
                             Không có dịch vụ đi kèm.
@@ -1940,61 +2240,105 @@ const OrdersTable: React.FC = () => {
                         </svg>
                         Thông tin thanh toán
                       </h3>
+
                       <div className="grid grid-cols-1 gap-3">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Giá thuê sân:</span>
+                          <span className="text-gray-600">
+                            Giá thuê sân:
+                          </span>
+
                           <span className="font-medium">
-                            {orderDetail.fieldRentalPrice.toLocaleString()}đ
+                            {orderDetail.fieldRentalPrice.toLocaleString()}
+                            đ
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Tiền dịch vụ:</span>
+                          <span className="text-gray-600">
+                            Tiền dịch vụ:
+                          </span>
+
                           <span className="font-medium">
-                            {orderDetail.totalServicePrice.toLocaleString()}đ
+                            {orderDetail.totalServicePrice.toLocaleString()}
+                            đ
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Giảm giá:</span>
+                          <span className="text-gray-600">
+                            Giảm giá:
+                          </span>
+
                           <span className="font-medium text-red-600">
-                            -{orderDetail.discountAmount.toLocaleString()}đ
+                            -
+                            {orderDetail.discountAmount.toLocaleString()}
+                            đ
                           </span>
                         </div>
+
                         <div className="border-t pt-2">
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Tổng tiền:</span>
+                            <span className="text-gray-600">
+                              Tổng tiền:
+                            </span>
+
                             <span className="font-bold text-lg text-blue-600">
-                              {orderDetail.totalPrice.toLocaleString()}đ
+                              {orderDetail.totalPrice.toLocaleString()}
+                              đ
                             </span>
                           </div>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Đã cọc:</span>
+                          <span className="text-gray-600">
+                            Đã cọc:
+                          </span>
+
                           <span className="font-medium text-green-600">
-                            {orderDetail.deposit.toLocaleString()}đ
+                            {orderDetail.deposit.toLocaleString()}
+                            đ
                           </span>
                         </div>
+
                         <div className="flex justify-between">
                           <span className="text-gray-600">
                             Còn lại cần thanh toán:
                           </span>
+
                           <span className="font-medium text-orange-600">
                             {(
-                              orderDetail.totalPrice - orderDetail.deposit
+                              orderDetail.totalPrice -
+                              orderDetail.deposit
                             ).toLocaleString()}
                             đ
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Trạng thái:</span>
+                          <span className="text-gray-600">
+                            Trạng thái:
+                          </span>
+
                           <span
-                            className={`px-3 py-1 rounded-full text-100 font-medium ${getPaymentStatusColor(orderDetail.statusPayment)}`}>
-                            {mapBookingStatus(orderDetail.statusPayment)}
+                            className={`px-3 py-1 rounded-full text-100 font-medium ${getPaymentStatusColor(
+                              orderDetail.statusPayment
+                            )}`}
+                          >
+                            {mapBookingStatus(
+                              orderDetail.statusPayment
+                            )}
                           </span>
                         </div>
+
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Phương thức:</span>
+                          <span className="text-gray-600">
+                            Phương thức:
+                          </span>
+
                           <span className="font-medium text-sm">
-                            {orderDetail.contentPayment}
+                            {
+                              orderDetail.contentPayment
+                            }
                           </span>
                         </div>
                       </div>
@@ -2026,15 +2370,24 @@ const OrdersTable: React.FC = () => {
             className="absolute inset-0 bg-gray-500 bg-opacity-30"
             onClick={handleCancelChangeStatus}
           ></div>
+
           <div className="relative bg-white rounded-lg shadow-xl p-6 min-w-[320px]">
             <h3 className="text-lg font-semibold mb-2 text-gray-900">
               Xác nhận chuyển trạng thái
             </h3>
+
             <p className="mb-4 text-gray-700">
-              Bạn có chắc muốn chuyển trạng thái đơn hàng{" "}
-              <span className="font-bold">#{confirmPopup.orderId}</span> thành{" "}
-              <span className="font-bold">{confirmPopup.newStatus}</span>?
+              Bạn có chắc muốn chuyển trạng thái đơn hàng
+              <span className="font-bold">
+                #{confirmPopup.orderId}
+              </span>
+              thành
+              <span className="font-bold">
+                {confirmPopup.newStatus}
+              </span>
+              ?
             </p>
+
             <div className="flex justify-end space-x-2">
               <button
                 onClick={handleCancelChangeStatus}
@@ -2042,6 +2395,7 @@ const OrdersTable: React.FC = () => {
               >
                 Hủy
               </button>
+
               <button
                 onClick={handleConfirmChangeStatus}
                 className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"

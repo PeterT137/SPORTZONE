@@ -60,6 +60,7 @@ const StaffManager: React.FC = () => {
     []
   );
   const [showPassword, setShowPassword] = useState(false);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -87,13 +88,15 @@ const StaffManager: React.FC = () => {
     setError(null);
     try {
       const userString = localStorage.getItem("user");
-      const facilityInfoString = localStorage.getItem("facilityInfo");
-      const facilityInfo = facilityInfoString
-        ? JSON.parse(facilityInfoString)
-        : null;
       const user = userString ? JSON.parse(userString) : null;
-      const roleId = user?.roleId;
-      console.log("[DEBUG] User facilityInfo:", facilityInfo);
+      if (!user || !user.UId) {
+        throw new Error(
+          "Không tìm thấy thông tin người dùng hoặc ID người dùng. Vui lòng đăng nhập lại."
+        );
+      }
+      const userId = user.UId;
+      const roleId = user.RoleId;
+
       const token = localStorage.getItem("token");
       const authHeaders: Record<string, string> = {
         "Content-Type": "application/json",
@@ -101,16 +104,48 @@ const StaffManager: React.FC = () => {
       if (token) {
         authHeaders.Authorization = `Bearer ${token}`;
       }
-      const facilityList =
-        facilityInfo?.facilities?.map((f: any) => ({
+
+      let facilityList: { id: number; name: string }[] = [];
+      const facilityResponse = await fetch(
+        `https://localhost:7057/api/Facility/by-user/${userId}`,
+        {
+          method: "GET",
+          headers: authHeaders,
+        }
+      );
+
+      if (!facilityResponse.ok) {
+        if (facilityResponse.status === 401) {
+          throw new Error(
+            "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+          );
+        }
+        throw new Error(
+          `Lỗi tải danh sách cơ sở (HTTP ${facilityResponse.status})`
+        );
+      }
+
+      const facilityApiResponse = await facilityResponse.json();
+      console.log("[DEBUG] Dữ liệu API Facility trả về:", facilityApiResponse);
+
+      if (Array.isArray(facilityApiResponse)) {
+        facilityList = facilityApiResponse.map((f: any) => ({
           id: f.facId,
           name: f.name || `Facility ${f.facId}`,
-        })) || [];
+        }));
+      } else {
+        console.error(
+          "API cơ sở trả về dữ liệu không hợp lệ:",
+          facilityApiResponse
+        );
+        facilityList = [];
+      }
       setFacilities(facilityList);
 
       let allStaffs: any[] = [];
 
       if (roleId === 3) {
+        // Admin Role
         const response = await fetch(
           `https://localhost:7057/api/Staff/GetAll`,
           {
@@ -118,15 +153,6 @@ const StaffManager: React.FC = () => {
             headers: authHeaders,
           }
         );
-        console.log("[DEBUG] API /api/Staff/GetAll status:", response.status);
-        const responseText = await response.text();
-        let apiResponse: any = {};
-        try {
-          apiResponse = JSON.parse(responseText);
-        } catch {
-          apiResponse = { error: responseText };
-        }
-        console.log("[DEBUG] API /api/Staff/GetAll response:", apiResponse);
         if (!response.ok) {
           if (response.status === 401) {
             throw new Error(
@@ -135,9 +161,16 @@ const StaffManager: React.FC = () => {
           }
           throw new Error(`Lỗi tải tất cả nhân viên (HTTP ${response.status})`);
         }
-        if (apiResponse.success) allStaffs = apiResponse.data || [];
-        else throw new Error(apiResponse.message || "Không thể lấy nhân viên.");
+        const apiResponse = await response.json();
+        if (apiResponse.success) {
+          allStaffs = apiResponse.data || [];
+        } else {
+          throw new Error(
+            apiResponse.message || "Không thể lấy danh sách nhân viên."
+          );
+        }
       } else {
+        // Other roles (e.g., Facility Owner)
         for (const facility of facilityList) {
           try {
             const response = await fetch(
@@ -147,29 +180,19 @@ const StaffManager: React.FC = () => {
                 headers: authHeaders,
               }
             );
-            console.log(
-              `[DEBUG] API /api/Staff/by-facility/${facility.id} status:`,
-              response.status
-            );
-            const responseText = await response.text();
-            let apiResponse: any = {};
-            try {
-              apiResponse = JSON.parse(responseText);
-            } catch {
-              apiResponse = { error: responseText };
-            }
-            console.log(
-              `[DEBUG] API /api/Staff/by-facility/${facility.id} response:`,
-              apiResponse
-            );
             if (response.ok) {
+              const apiResponse = await response.json();
               if (apiResponse.success && apiResponse.data) {
                 allStaffs = allStaffs.concat(apiResponse.data);
               }
+            } else {
+              console.warn(
+                `Lỗi tải nhân viên cho cơ sở ${facility.id} (HTTP ${response.status})`
+              );
             }
           } catch (err) {
             console.warn(
-              `Không thể tải nhân viên cho facility ${facility.id}:`,
+              `Không thể tải nhân viên cho cơ sở ${facility.id}:`,
               err
             );
           }
@@ -178,15 +201,15 @@ const StaffManager: React.FC = () => {
 
       // Gộp danh sách staff không trùng uId
       const staffMap = new Map<number, Staff>();
-
       allStaffs.forEach((item: any) => {
         const uId = item.uId;
         const facId = item.fac?.facId || item.facId;
-        // Ưu tiên lấy tên cơ sở từ API, nếu không có thì lấy từ facilities state
         const facName =
           item.facilityName ||
-          facilities.find((f) => f.id === facId)?.name ||
+          // **FIX:** Dùng biến cục bộ `facilityList` thay vì state `facilities`
+          facilityList.find((f) => f.id === facId)?.name ||
           "Unknown";
+
         if (staffMap.has(uId)) {
           const existing = staffMap.get(uId);
           if (existing && !existing.facIds.includes(facId)) {
@@ -194,7 +217,6 @@ const StaffManager: React.FC = () => {
             existing.facilityNames.push(facName);
           }
         } else {
-          // Normalize image URL
           let image = item.image || "/default-avatar.jpg";
           if (image && !image.startsWith("http")) {
             image = `https://localhost:7057${image}`;
@@ -223,7 +245,7 @@ const StaffManager: React.FC = () => {
       const errorMessage =
         err.message || "Lỗi khi tải danh sách nhân viên. Vui lòng thử lại.";
       setError(errorMessage);
-      Swal.fire(errorMessage, "error");
+      Swal.fire("Lỗi", errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -245,7 +267,7 @@ const StaffManager: React.FC = () => {
           s.facilityNames.some((name) => name.toLowerCase().includes(term))
       )
     );
-    setCurrentPage(1); // Reset về trang đầu khi search
+    setCurrentPage(1);
   }, [searchTerm, staffs]);
 
   // Delete staff via API
@@ -283,7 +305,7 @@ const StaffManager: React.FC = () => {
           }
           throw new Error(
             apiResponse.message ||
-            `Lỗi khi xóa nhân viên (HTTP ${response.status})`
+              `Lỗi khi xóa nhân viên (HTTP ${response.status})`
           );
         }
 
@@ -328,11 +350,10 @@ const StaffManager: React.FC = () => {
       return;
     }
     if (!formData.facilityId) {
-      Swal.fire("Vui lòng chọn cơ sở làm việc", "error");
+      Swal.fire("Vui lòng chọn cơ sở làm việc", "", "error");
       return;
     }
 
-    // Helper để tạo thông báo lỗi chi tiết từ API
     const buildErrorMsg = (apiResponse: any, defaultMsg: string) => {
       let errorMsg = apiResponse?.message || apiResponse?.error || defaultMsg;
       if (apiResponse?.errors) {
@@ -354,7 +375,7 @@ const StaffManager: React.FC = () => {
 
     const isEdit = !!selectedStaff;
     if (isEdit) {
-      // Update: giữ nguyên logic cũ (FormData)
+      // Update staff
       const form = new FormData();
       form.append("Email", formData.email);
       form.append("Status", formData.status);
@@ -390,46 +411,30 @@ const StaffManager: React.FC = () => {
           apiResponse = { error: responseText };
         }
         if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
-            );
-          }
           const errorMsg = buildErrorMsg(
             apiResponse,
             `Lỗi khi cập nhật nhân viên (HTTP ${response.status}).`
           );
-          Swal.fire("Lỗi khi cập nhật nhân viên", errorMsg, "error");
+          Swal.fire("Lỗi khi cập nhật", errorMsg, "error");
           throw new Error(errorMsg);
         }
-        if (apiResponse.success) {
-          setError(null);
-          Swal.fire({
-            title: "Thành công",
-            text: "Đã cập nhật nhân viên",
-            icon: "success",
-            timer: 1500,
-            showConfirmButton: false,
-          }).then(() => {
-            fetchStaffs();
-            closeModal();
-          });
-        } else {
-          const errorMsg = buildErrorMsg(
-            apiResponse,
-            `Lỗi khi cập nhật nhân viên.`
-          );
-          Swal.fire("Lỗi khi cập nhật nhân viên", errorMsg, "error");
-          throw new Error(errorMsg);
-        }
+        Swal.fire({
+          title: "Thành công",
+          text: "Đã cập nhật nhân viên",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          fetchStaffs();
+          closeModal();
+        });
       } catch (err: any) {
         const errorMessage = err.message || `Lỗi khi lưu thông tin nhân viên.`;
         setError(errorMessage);
-        Swal.fire("Lỗi khi cập nhật nhân viên", errorMessage, "error");
-        closeModal();
+        Swal.fire("Lỗi khi cập nhật", errorMessage, "error");
       }
     } else {
-      // Thêm mới: gửi multipart/form-data lên /api/Register
+      // Add new staff
       if (!formData.password) {
         Swal.fire("Vui lòng nhập mật khẩu", "", "error");
         return;
@@ -440,7 +445,7 @@ const StaffManager: React.FC = () => {
       form.append("Phone", formData.phone);
       form.append("Email", formData.email);
       form.append("Password", formData.password);
-      form.append("ConfirmPassword", formData.password); // FE không có confirm riêng nên dùng lại password
+      form.append("ConfirmPassword", formData.password);
       if (formData.dob) form.append("Dob", formData.dob);
       if (formData.imageFile) form.append("ImageFile", formData.imageFile);
       if (formData.facilityId)
@@ -466,23 +471,15 @@ const StaffManager: React.FC = () => {
         } catch {
           apiResponse = { error: responseText };
         }
-        console.log("[DEBUG] API /api/Register status:", response.status);
-        console.log("[DEBUG] API /api/Register response:", apiResponse);
+
         if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
-            );
-          }
           const errorMsg = buildErrorMsg(
             apiResponse,
             `Lỗi khi thêm nhân viên (HTTP ${response.status}).`
           );
           Swal.fire("Lỗi khi thêm nhân viên", errorMsg, "error");
-          return; // Không đóng modal, chỉ báo lỗi
+          return;
         }
-        // Nếu response.ok (status 200), luôn coi là thành công
-        setError(null); // Ẩn thông báo lỗi nếu có
         Swal.fire({
           title: "Thành công",
           text: "Đã thêm nhân viên mới",
@@ -497,7 +494,6 @@ const StaffManager: React.FC = () => {
         const errorMessage = err.message || `Lỗi khi lưu thông tin nhân viên.`;
         setError(errorMessage);
         Swal.fire("Lỗi khi thêm nhân viên", errorMessage, "error");
-        closeModal();
       }
     }
   };
@@ -521,7 +517,6 @@ const StaffManager: React.FC = () => {
     }));
   };
 
-  // Handle multiple facility selection
   const handleFacilityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, facilityId: Number(e.target.value) }));
   };
@@ -544,6 +539,7 @@ const StaffManager: React.FC = () => {
     setIsModalOpen(false);
   };
 
+  // The rest of the component (JSX) remains the same...
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       <div className="flex min-h-[calc(100vh-64px)]">
@@ -574,6 +570,7 @@ const StaffManager: React.FC = () => {
               }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
+              <FiPlus />
               Thêm nhân viên
             </button>
           </div>
@@ -596,7 +593,6 @@ const StaffManager: React.FC = () => {
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
-                style={{ display: "block" }}
               >
                 <path
                   strokeLinecap="round"
@@ -612,7 +608,6 @@ const StaffManager: React.FC = () => {
               className="flex-1 bg-transparent border-none outline-none h-full px-2 text-base"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ minHeight: "2.5rem" }}
             />
           </div>
 
@@ -658,18 +653,15 @@ const StaffManager: React.FC = () => {
                       <td className="p-3">{staff.facilityNames.join(", ")}</td>
                       <td className="p-3">
                         <span
-                          className={`px-2 py-1 rounded text-white ${staff.status === "Active"
-                            ? "bg-green-600"
-                            : staff.status === "Inactive"
-                              ? "bg-red-600"
-                              : "bg-gray-500"
-                            }`}
+                          className={`px-2 py-1 rounded text-white ${
+                            staff.status === "Active"
+                              ? "bg-green-600"
+                              : "bg-red-600"
+                          }`}
                         >
                           {staff.status === "Active"
                             ? "Hoạt động"
-                            : staff.status === "Inactive"
-                              ? "Không hoạt động"
-                              : staff.status}
+                            : "Không hoạt động"}
                         </span>
                       </td>
                       <td className="p-3 space-x-2 items-center">
@@ -699,11 +691,11 @@ const StaffManager: React.FC = () => {
                 )}
               </tbody>
             </table>
-            {/* Pagination controls */}
             <div className="mt-4 rounded-xl border bg-white shadow flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="text-gray-700 font-medium">Hiển thị</span>
                 <select
+                  title="Chọn số lượng nhân viên hiển thị"
                   className="border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none"
                   value={rowsPerPage}
                   onChange={(e) => {
@@ -711,7 +703,7 @@ const StaffManager: React.FC = () => {
                     setCurrentPage(1);
                   }}
                 >
-                  {[5, 10, 20, 50, 100].map((n) => (
+                  {[5, 10, 20, 50].map((n) => (
                     <option key={n} value={n}>
                       {n}
                     </option>
@@ -763,25 +755,22 @@ const StaffManager: React.FC = () => {
         </main>
       </div>
 
-      {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 transition-all">
-          <div className="relative w-full max-w-lg mx-2 animate-fadeInUp">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative w-full max-w-lg mx-2">
             <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-h-[90vh] flex flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-blue-100">
+              <div className="flex items-center justify-between px-6 py-4 border-b">
                 <h3 className="text-xl font-bold text-blue-800">
                   {selectedStaff ? "Cập nhật nhân viên" : "Thêm nhân viên"}
                 </h3>
                 <button
-                  onClick={closeModal}
-                  className="text-gray-500 hover:text-blue-700 transition-colors"
                   title="Đóng"
+                  onClick={closeModal}
+                  className="text-gray-500 hover:text-blue-700"
                 >
                   <FiX size={22} />
                 </button>
               </div>
-              {/* Body */}
               <div className="px-6 py-6 bg-white overflow-y-auto flex-1">
                 <form className="grid grid-cols-2 gap-5 text-sm">
                   <div className="flex flex-col col-span-2 sm:col-span-1">
@@ -794,8 +783,7 @@ const StaffManager: React.FC = () => {
                       placeholder="Nhập tên nhân viên"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-                      maxLength={100}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                       required
                     />
                   </div>
@@ -809,9 +797,7 @@ const StaffManager: React.FC = () => {
                       placeholder="Nhập số điện thoại"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-                      maxLength={20}
-                      minLength={10}
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                       required
                     />
                   </div>
@@ -825,11 +811,11 @@ const StaffManager: React.FC = () => {
                       placeholder="Nhập email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                       required
+                      disabled={!!selectedStaff} // Disable email editing
                     />
                   </div>
-                  {/* Only show password field when adding new staff */}
                   {!selectedStaff && (
                     <div className="flex flex-col col-span-2 sm:col-span-1">
                       <label className="mb-1 font-semibold text-gray-700">
@@ -842,14 +828,13 @@ const StaffManager: React.FC = () => {
                           placeholder="Nhập mật khẩu"
                           value={formData.password}
                           onChange={handleInputChange}
-                          className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm pr-10"
+                          className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 pr-10"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-                          title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                         >
                           {showPassword ? <FiEyeOff /> : <FiEye />}
                         </button>
@@ -866,36 +851,35 @@ const StaffManager: React.FC = () => {
                       placeholder="Ngày sinh"
                       value={formData.dob}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                   </div>
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
-                      Ngày bắt đầu làm việc
+                      Ngày bắt đầu
                     </label>
                     <input
                       type="date"
                       name="startTime"
-                      placeholder="Ngày bắt đầu làm việc"
                       value={formData.startTime}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      placeholder="Ngày bắt đầu làm việc"
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                   </div>
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
-                      Ngày kết thúc làm việc
+                      Ngày kết thúc
                     </label>
                     <input
                       type="date"
                       name="endTime"
-                      placeholder="Ngày kết thúc làm việc"
                       value={formData.endTime}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      placeholder="Ngày kết thúc làm việc"
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                   </div>
-                  {/* Image upload */}
                   <div className="flex flex-col col-span-2">
                     <label className="mb-1 font-semibold text-gray-700">
                       Ảnh đại diện
@@ -904,20 +888,14 @@ const StaffManager: React.FC = () => {
                       type="file"
                       accept="image/*"
                       onChange={handleFileChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
+                      placeholder="Chọn ảnh đại diện"
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Chọn file ảnh (không bắt buộc)
-                    </p>
                     {(formData.imageFile || formData.image) && (
                       <img
-                        src={
-                          formData.imageFile
-                            ? URL.createObjectURL(formData.imageFile)
-                            : formData.image
-                        }
+                        src={formData.image}
                         alt="Preview"
-                        className="mt-3 w-24 h-24 object-cover rounded-lg shadow border border-gray-200"
+                        className="mt-3 w-24 h-24 object-cover rounded-lg shadow"
                       />
                     )}
                   </div>
@@ -926,11 +904,11 @@ const StaffManager: React.FC = () => {
                       Cơ sở <span className="text-red-500">*</span>
                     </label>
                     <select
+                      title="Chọn cơ sở"
                       name="facilityId"
                       value={formData.facilityId ?? ""}
                       onChange={handleFacilityChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-                      title="Chọn cơ sở làm việc"
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                       required
                     >
                       <option value="" disabled>
@@ -949,10 +927,10 @@ const StaffManager: React.FC = () => {
                     </label>
                     <select
                       name="status"
+                      title="Chọn trạng thái"
                       value={formData.status}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm"
-                      title="Chọn trạng thái hoạt động"
+                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     >
                       <option value="Active">Hoạt động</option>
                       <option value="Inactive">Không hoạt động</option>
@@ -960,17 +938,16 @@ const StaffManager: React.FC = () => {
                   </div>
                 </form>
               </div>
-              {/* Footer */}
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
                 <button
                   onClick={closeModal}
-                  className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-100 transition-colors font-medium shadow-sm"
+                  className="px-4 py-2 border rounded-lg bg-white text-gray-700 hover:bg-gray-100"
                 >
                   Hủy
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-sm"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Lưu
                 </button>

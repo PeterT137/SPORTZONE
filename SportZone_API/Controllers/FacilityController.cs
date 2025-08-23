@@ -175,11 +175,11 @@ namespace SportZone_API.Controllers
 
         [HttpGet("by-user/{userId}")]
         [Authorize]
-        public async Task<IActionResult> GetFacilitiesByUserId(int userId)
+        public async Task<IActionResult> GetFacilitiesByUserId(int userId, [FromQuery] string? searchText)
         {
             try
             {
-                var result = await _facilityService.GetFacilitiesByUserId(userId);
+                var result = await _facilityService.GetFacilitiesByUserId(userId, searchText);
 
                 if (result.Success)
                 {
@@ -189,7 +189,7 @@ namespace SportZone_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi lấy danh sách cơ sở theo ID người dùng. Vui lòng thử lại sau." }); 
+                return BadRequest(new { error = "Đã xảy ra lỗi không mong muốn khi lấy danh sách cơ sở theo ID người dùng. Vui lòng thử lại sau." });
             }
         }
 

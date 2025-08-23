@@ -43,7 +43,7 @@ const AppContent: React.FC = () => {
       <Route
         path="/facility_manager"
         element={
-          <ProtectedRoute requireAuth allowRoles={[2]}>
+          <ProtectedRoute requireAuth allowRoles={[2, 4]}>
             <FacilityManager />
           </ProtectedRoute>
         }
@@ -51,7 +51,7 @@ const AppContent: React.FC = () => {
       <Route
         path="/field_manager"
         element={
-          <ProtectedRoute requireAuth allowRoles={[2]}>
+          <ProtectedRoute requireAuth allowRoles={[2, 4]}>
             <FieldManager />
           </ProtectedRoute>
         }
@@ -59,7 +59,7 @@ const AppContent: React.FC = () => {
       <Route
         path="/weekly_schedule"
         element={
-          <ProtectedRoute requireAuth allowRoles={[2]}>
+          <ProtectedRoute requireAuth allowRoles={[2, 4]}>
             <WeeklySchedule />
           </ProtectedRoute>
         }
@@ -68,7 +68,7 @@ const AppContent: React.FC = () => {
       <Route
         path="/service_manager"
         element={
-          <ProtectedRoute requireAuth allowRoles={[2]}>
+          <ProtectedRoute requireAuth allowRoles={[2, 4]}>
             <ServiceManager />
           </ProtectedRoute>
         }
