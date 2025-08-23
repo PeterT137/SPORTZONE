@@ -17,17 +17,20 @@ namespace SportZone_API.Services
     public class FacilityService : IFacilityService
     {
         private readonly IFacilityRepository _repository;
+        private readonly IStaffRepository _staffRepository;
         private readonly IMapper _mapper;
         private readonly IWebHostEnvironment _env;
         private readonly IHubContext<NotificationHub> _hubContext; 
 
         public FacilityService(
             IFacilityRepository repository,
+            IStaffRepository staffRepository,
             IMapper mapper,
             IWebHostEnvironment env,
             IHubContext<NotificationHub> hubContext) 
         {
             _repository = repository;
+            _staffRepository = staffRepository;
             _mapper = mapper;
             _env = env;
             _hubContext = hubContext;
@@ -358,18 +361,29 @@ namespace SportZone_API.Services
             }
         }
 
-        public async Task<ServiceResponse<List<FacilityDto>>> GetFacilitiesByUserId(int userId)
+
+        public async Task<ServiceResponse<List<FacilityDto>>> GetFacilitiesByUserId(int userId, string? searchText = null)
         {
             try
             {
                 var facilities = await _repository.GetByUserIdAsync(userId);
-                var facilityDtos = _mapper.Map<List<FacilityDto>>(facilities);
+                var searchLower = searchText?.ToLower();
+                var filteredFacilities = facilities
+                    .Where(f => string.IsNullOrWhiteSpace(searchLower) ||
+                                f.Name != null && f.Name.ToLower().Contains(searchLower) ||
+                                f.Address != null && f.Address.ToLower().Contains(searchLower) ||
+                                f.Description != null && f.Description.ToLower().Contains(searchLower) ||
+                                f.Subdescription != null && f.Subdescription.ToLower().Contains(searchLower))
+                    .ToList();
+
+                var facilityDtos = _mapper.Map<List<FacilityDto>>(filteredFacilities);
+
                 if (facilityDtos == null || !facilityDtos.Any())
                 {
                     return new ServiceResponse<List<FacilityDto>>
                     {
                         Success = true,
-                        Message = $"Không tìm thấy cơ sở nào cho người dùng có ID {userId}.",
+                        Message = $"Không tìm thấy cơ sở nào cho người dùng có ID {userId} với từ khóa tìm kiếm đã cho.",
                         Data = new List<FacilityDto>()
                     };
                 }
