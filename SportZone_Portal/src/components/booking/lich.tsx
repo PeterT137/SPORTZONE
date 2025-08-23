@@ -16,7 +16,6 @@ import {
   FiCalendar,
   FiChevronLeft,
   FiChevronRight,
-  FiDollarSign,
   FiEdit,
   FiMinus,
   FiPlus,
@@ -32,7 +31,6 @@ import Sidebar from "../../Sidebar";
 
 const API_URL = "https://localhost:7057";
 
-// === CÁC HÀM API VÀ INTERFACE (KHÔNG THAY ĐỔI) ===
 const updateBookingSlot = async (data: {
   fieldId: number;
   startDate: string;
@@ -104,7 +102,7 @@ interface Booking {
   date: Date;
   duration: number;
   field: string;
-  status: "confirmed" | "pending" | "cancelled";
+  status: "completed" | "deposited" | "pending" | "cancelled";
   contact: string;
   basePrice: number;
   userId?: number | null;
@@ -139,6 +137,12 @@ interface Schedule {
   notes: string;
   status: string;
   price: number;
+  bookingStatus?: string;
+  orderStatusPayment?: string;
+  customerName?: string;
+  customerPhone?: string;
+  guestName?: string;
+  guestPhone?: string;
 }
 
 interface CreateSlotData {
@@ -188,6 +192,7 @@ interface BookingDetail {
   endTime?: string;
   status?: string;
   statusPayment?: string;
+  contentPayment?: string;
   createAt?: string;
   notes?: string;
   field?: any;
@@ -218,6 +223,7 @@ const mapServiceToIconAndUnit = (
   )
     return { icon: "🥤", unit: "chai" };
   if (lowerName.includes("bóng")) return { icon: "⚽", unit: "quả" };
+  if (lowerName.includes("cầu lông")) return { icon: "🏸", unit: "quả" };
   if (lowerName.includes("khăn")) return { icon: "🏃‍♂️", unit: "chiếc" };
   if (lowerName.includes("băng")) return { icon: "🩹", unit: "bộ" };
   if (lowerName.includes("tất")) return { icon: "🧦", unit: "đôi" };
@@ -230,9 +236,9 @@ const BookingCell: React.FC<{
   onClick: (booking: Booking) => void;
 }> = ({ booking, onClick }) => {
   const isGeneratedEmptySlot =
-    booking.customerName === "Không có tên" ||
-    booking.bookingId == null ||
-    booking.bookingId === 0;
+    !booking.bookingId ||
+    booking.bookingId === 0 ||
+    booking.customerName === "Không có tên";
   const isEmpty = isGeneratedEmptySlot;
 
   const startTime = booking.date;
@@ -242,8 +248,10 @@ const BookingCell: React.FC<{
   const isExpired = isEmpty && endTime < new Date();
 
   const statusColors = {
-    confirmed:
+    completed:
       "bg-gradient-to-br from-green-100 to-green-200 border-green-400 text-green-800 hover:from-green-200 hover:to-green-300 shadow-green-100",
+    deposited:
+      "bg-gradient-to-br from-blue-100 to-blue-200 border-blue-400 text-blue-800 hover:from-blue-200 hover:to-blue-300 shadow-blue-100",
     pending:
       "bg-gradient-to-br from-yellow-100 to-yellow-200 border-yellow-400 text-yellow-800 hover:from-yellow-200 hover:to-yellow-300 shadow-yellow-100",
     cancelled:
@@ -253,18 +261,6 @@ const BookingCell: React.FC<{
   const emptySlotColor =
     "bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300 text-gray-600 hover:from-gray-150 hover:to-gray-250 shadow-gray-100";
 
-  const statusIcons = {
-    confirmed: "✓",
-    pending: "⏳",
-    cancelled: "✕",
-  };
-
-  const statusText = {
-    confirmed: "Đã xác nhận",
-    pending: "Chờ xác nhận",
-    cancelled: "Đã hủy",
-  };
-
   if (!booking) return null;
 
   return (
@@ -273,50 +269,22 @@ const BookingCell: React.FC<{
       className={`relative p-3 rounded-lg border-2 ${isEmpty ? emptySlotColor : statusColors[booking.status]
         } ${isEmpty ? "cursor-default" : "cursor-pointer"
         } transition-all duration-200 ${isEmpty ? "" : "hover:shadow-lg transform hover:-translate-y-1"
-        } group ${isExpired ? "opacity-70" : ""}`}
+        } group`}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm truncate group-hover:text-clip">
-            {isEmpty ? "Slot trống" : booking.customerName}
+            {isEmpty && !isExpired ? "Slot trống" : booking.customerName}
           </p>
           <p className="text-xs opacity-75 truncate">
-            {format(booking.date, "HH:mm", { locale: vi })}
+            {isEmpty
+              ? format(booking.date, "HH:mm", { locale: vi })
+              : booking.contact}
           </p>
         </div>
-        <div className="flex-shrink-0 ml-2">
-          <span className="text-sm">
-            {isEmpty ? "📅" : statusIcons[booking.status]}
-          </span>
-        </div>
+        <div className="flex-shrink-0 ml-2"></div>
       </div>
-      <div className="space-y-1">
-        {isEmpty ? (
-          <>
-            <p className="text-xs font-medium text-gray-500">
-              🕐 {isExpired ? "Hết hạn" : "Slot trống"}
-            </p>
-            <p className="text-xs opacity-60 font-medium text-gray-500">
-              {isExpired ? "Khung giờ đã qua" : "Chưa có người đặt"}
-            </p>
-            <div className="text-xs opacity-50 text-gray-500">
-              {booking.duration}h - {booking.field}
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="text-xs font-medium text-gray-700">
-              💰 {booking.basePrice.toLocaleString("vi-VN")}đ
-            </p>
-            <p className="text-xs opacity-60 font-medium">
-              {statusText[booking.status]}
-            </p>
-            <div className="text-xs opacity-50">
-              {booking.duration}h - {booking.field}
-            </div>
-          </>
-        )}
-      </div>
+
       {!isEmpty && (
         <div className="absolute inset-0 bg-white bg-opacity-20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
       )}
@@ -346,6 +314,7 @@ const AddServiceModal: React.FC<{
             <h3 className="text-lg font-semibold text-gray-800">
               Thêm dịch vụ vào đơn đặt sân
             </h3>
+
             <button
               onClick={onClose}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -354,6 +323,7 @@ const AddServiceModal: React.FC<{
               <FiX className="w-5 h-5 text-gray-500" />
             </button>
           </div>
+
           <div className="space-y-3 max-h-60 overflow-y-auto">
             {availableServices
               .filter((service) => !selectedServiceIds.includes(service.id))
@@ -365,8 +335,10 @@ const AddServiceModal: React.FC<{
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-2xl">{service.icon}</span>
+
                     <div>
                       <p className="font-medium text-gray-700">{service.name}</p>
+
                       <p className="text-sm text-gray-500">
                         {service.price.toLocaleString("vi-VN")}đ/{service.unit}
                       </p>
@@ -396,9 +368,9 @@ const BookingDetailsModal: React.FC<{
   const [selectedServices, setSelectedServices] = useState<BookingService[]>(
     []
   );
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer">(
-    "cash"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "Thanh toán tiền mặt" | "Thanh toán qua ví điện tử"
+  >("Thanh toán tiền mặt");
   const [showAddService, setShowAddService] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(
@@ -409,12 +381,26 @@ const BookingDetailsModal: React.FC<{
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (bookingDetail && bookingDetail.contentPayment) {
+      const paymentStatus = bookingDetail.contentPayment;
+      if (paymentStatus === "Thanh toán qua ví điện tử") {
+        setPaymentMethod("Thanh toán qua ví điện tử");
+      } else if (paymentStatus === "Thanh toán tiền mặt") {
+        setPaymentMethod("Thanh toán tiền mặt");
+      } else {
+        setPaymentMethod("Thanh toán tiền mặt");
+      }
+    } else {
+      setPaymentMethod("Thanh toán tiền mặt");
+    }
+  }, [bookingDetail]);
+
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
-  // Fetch services by orderId to ensure numeric orderServiceId is available for update/remove
   const reloadOrderServices = useCallback(
     async (oid: number) => {
       try {
@@ -542,16 +528,6 @@ const BookingDetailsModal: React.FC<{
                 ? normalizedOrderId
                 : null
             );
-            console.log("[BookingDetailsModal] orderId resolved:", {
-              ordIdRaw,
-              normalized: normalizedOrderId,
-            });
-            console.log("[BookingDetailsModal] fetchBookingDetail ok", {
-              scheduleId,
-              hasOrder: !!result.data.order,
-              orderId: result.data.order?.orderId,
-              servicesCount: result.data.order?.services?.length ?? 0,
-            });
 
             const rawServices: any[] = Array.isArray(
               result.data?.order?.services
@@ -621,7 +597,7 @@ const BookingDetailsModal: React.FC<{
         setIsLoadingDetails(false);
       }
     },
-    [fetchUserInfo, getAuthHeaders]
+    [fetchUserInfo, getAuthHeaders, reloadOrderServices]
   );
 
   useEffect(() => {
@@ -645,9 +621,6 @@ const BookingDetailsModal: React.FC<{
 
   const handleAddService = async (service: Service) => {
     if (!orderId) {
-      console.warn("[BookingDetailsModal] Không có orderId để thêm dịch vụ", {
-        bookingDetail,
-      });
       showToast("Không có đơn hàng để thêm dịch vụ.", "error");
       return;
     }
@@ -667,9 +640,8 @@ const BookingDetailsModal: React.FC<{
         throw new Error("Failed to add service.");
       }
       showToast("Đã thêm dịch vụ thành công!", "success");
-      // Reload services to get real orderServiceId from backend
       await reloadOrderServices(orderId);
-      onBookingUpdate(); // Cập nhật lại lịch
+      onBookingUpdate();
     } catch (error) {
       showToast((error as Error).message, "error");
     } finally {
@@ -700,8 +672,8 @@ const BookingDetailsModal: React.FC<{
         throw new Error("Failed to update service quantity.");
       }
       showToast("Cập nhật số lượng thành công!", "success");
-      await fetchBookingDetail(booking?.id || 0); // Tải lại chi tiết đơn hàng
-      onBookingUpdate(); // Cập nhật lại lịch
+      await fetchBookingDetail(booking?.id || 0);
+      onBookingUpdate();
     } catch (error) {
       showToast((error as Error).message, "error");
     } finally {
@@ -723,34 +695,7 @@ const BookingDetailsModal: React.FC<{
         throw new Error("Failed to remove service.");
       }
       showToast("Đã xóa dịch vụ thành công!", "success");
-      await fetchBookingDetail(booking?.id || 0); // Tải lại chi tiết đơn hàng
-      onBookingUpdate(); // Cập nhật lại lịch
-    } catch (error) {
-      showToast((error as Error).message, "error");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleConfirm = async () => {
-    if (!bookingDetail || !bookingDetail.order) {
-      showToast("Không tìm thấy đơn hàng để xác nhận.", "error");
-      return;
-    }
-    setIsProcessing(true);
-    try {
-      const response = await fetch(
-        `${API_URL}/api/Order/${bookingDetail.order.orderId}/confirm`,
-        {
-          method: "PUT",
-          headers: getAuthHeaders(),
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Failed to confirm booking.");
-      }
-      showToast("Xác nhận đặt sân thành công!", "success");
-      onClose();
+      await fetchBookingDetail(booking?.id || 0);
       onBookingUpdate();
     } catch (error) {
       showToast((error as Error).message, "error");
@@ -759,54 +704,145 @@ const BookingDetailsModal: React.FC<{
     }
   };
 
+  const handleConfirmPayment = async () => {
+    const currentOrderId = bookingDetail?.order?.orderId ?? orderId;
+    if (!currentOrderId) {
+      showToast("Không tìm thấy mã đơn hàng để cập nhật.", "error");
+      return;
+    }
+
+    Swal.fire({
+      title: "Xác nhận thanh toán?",
+      html: `
+   <p>Bạn có chắc chắn muốn chuyển trạng thái thanh toán không?</p>
+   <br>
+   <p class="text-sm text-gray-600">
+    <b>Lưu ý:</b> Hành động này sẽ cập nhật cả phương thức và trạng thái thanh toán của đơn hàng.
+   </p>
+  `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#28a745",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setIsProcessing(true);
+        try {
+          const paymentOptionId =
+            paymentMethod === "Thanh toán tiền mặt" ? 1 : 2;
+
+          const contentResponse = await fetch(
+            `${API_URL}/api/Order/Order/${currentOrderId}/Update/ContentPayment?option=${paymentOptionId}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+              },
+            }
+          );
+
+          if (!contentResponse.ok) {
+            const errorText = await contentResponse.text();
+            throw new Error(
+              `Cập nhật phương thức thanh toán thất bại: ${errorText || contentResponse.status
+              }`
+            );
+          }
+
+          const statusResponse = await fetch(
+            `${API_URL}/api/Order/Order/${currentOrderId}/Update/StatusPayment?option=2`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+              },
+            }
+          );
+
+          if (!statusResponse.ok) {
+            const errorText = await statusResponse.text();
+            throw new Error(
+              `Cập nhật trạng thái thanh toán thất bại: ${errorText || statusResponse.status
+              }`
+            );
+          }
+
+          showToast("Xác nhận thanh toán thành công!", "success");
+          onClose();
+          onBookingUpdate(); // This will refetch and update the UI
+        } catch (error) {
+          // `error` ở đây đã là một đối tượng Error
+          showToast((error as Error).message, "error");
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    });
+  };
+
   const getDisplayName = (): string => {
+    let fallbackName = "Khách hàng";
+
     if (isLoadingDetails || isLoadingUserInfo) return "Đang tải...";
     if ((userInfo as any)?.error) return (userInfo as any).error;
-    if (userInfo) {
-      const name =
-        userInfo.admin?.name ||
-        userInfo.customers?.[0]?.name ||
-        userInfo.fieldOwner?.name ||
-        userInfo.staff?.name;
-      if (name) return name;
+    if (bookingDetail?.customerInfo?.name) {
+      fallbackName = bookingDetail.customerInfo.name;
+    } else {
+      if (userInfo) {
+        const name =
+          userInfo.admin?.name ||
+          userInfo.customers?.[0]?.name ||
+          userInfo.fieldOwner?.name ||
+          userInfo.staff?.name;
+        if (name) return name;
+      }
+      if (bookingDetail?.order) {
+        const order = bookingDetail.order as any;
+        if (order.guestName) return order.guestName;
+        if (order.customerName && order.customerName !== "Không có tên")
+          return order.customerName;
+      }
+      if (bookingDetail?.guestName) return bookingDetail.guestName;
+      fallbackName = booking?.customerName || "Khách hàng";
+      if (fallbackName.startsWith("Đặt sân "))
+        fallbackName = fallbackName.replace("Đặt sân ", "").trim();
+      if (fallbackName === booking?.field || fallbackName.includes("Sân "))
+        fallbackName = "Khách hàng";
     }
-    if (bookingDetail?.order) {
-      const order = bookingDetail.order as any;
-      if (order.guestName) return order.guestName;
-      if (order.customerName && order.customerName !== "Không có tên")
-        return order.customerName;
-    }
-    if (bookingDetail?.guestName) return bookingDetail.guestName;
-    let fallbackName = booking?.customerName || "Khách hàng";
-    if (fallbackName.startsWith("Đặt sân "))
-      fallbackName = fallbackName.replace("Đặt sân ", "").trim();
-    if (fallbackName === booking?.field || fallbackName.includes("Sân "))
-      fallbackName = "Khách hàng";
     return fallbackName;
   };
 
   const getDisplayPhone = (): string => {
+    let fallbackPhone = "Chưa có thông tin";
     if (isLoadingDetails || isLoadingUserInfo) return "Đang tải...";
     if ((userInfo as any)?.error) return "Không có quyền xem";
-    if (userInfo) {
-      const phone =
-        userInfo.admin?.phone ||
-        userInfo.customers?.[0]?.phone ||
-        userInfo.fieldOwner?.phone ||
-        userInfo.staff?.phone;
-      if (phone) return phone;
-    }
-    if (bookingDetail?.order) {
-      const order = bookingDetail.order as any;
-      if (order.guestPhone) return order.guestPhone;
-      if (order.customerPhone) return order.customerPhone;
-    }
-    if (bookingDetail?.guestPhone) {
-      return bookingDetail.guestPhone;
-    }
-    let fallbackPhone = booking?.contact;
-    if (!fallbackPhone || fallbackPhone === "Unknown") {
-      fallbackPhone = "Chưa có thông tin";
+    if (bookingDetail?.customerInfo?.phone) {
+      fallbackPhone = bookingDetail.customerInfo.phone;
+    } else {
+      if (userInfo) {
+        const phone =
+          userInfo.admin?.phone ||
+          userInfo.customers?.[0]?.phone ||
+          userInfo.fieldOwner?.phone ||
+          userInfo.staff?.phone;
+        if (phone) return phone;
+      }
+      if (bookingDetail?.order) {
+        const order = bookingDetail.order as any;
+        if (order.guestPhone) return order.guestPhone;
+        if (order.customerPhone) return order.customerPhone;
+      }
+      if (bookingDetail?.guestPhone) {
+        return bookingDetail.guestPhone;
+      }
+      fallbackPhone = booking?.contact ?? "Chưa có thông tin";
+      if (!fallbackPhone || fallbackPhone === "Unknown") {
+        fallbackPhone = "Chưa có thông tin";
+      }
     }
     return fallbackPhone;
   };
@@ -832,7 +868,28 @@ const BookingDetailsModal: React.FC<{
   );
   const totalPrice = (booking?.basePrice || 0) + totalServicePrice;
 
+  const statusDisplayInfo = {
+    completed: {
+      text: "Đã hoàn thành",
+      className: "bg-green-100 text-green-800",
+    },
+    deposited: {
+      text: "Đã cọc",
+      className: "bg-blue-100 text-blue-800",
+    },
+    pending: {
+      text: "Chờ đặt cọc",
+      className: "bg-yellow-100 text-yellow-800",
+    },
+    cancelled: {
+      text: "Đã hủy",
+      className: "bg-red-100 text-red-800",
+    },
+  };
+
   if (!booking) return null;
+  const currentStatusInfo =
+    statusDisplayInfo[booking.status] || statusDisplayInfo.pending;
 
   return (
     <div
@@ -845,6 +902,7 @@ const BookingDetailsModal: React.FC<{
             <h2 className="text-2xl font-bold text-gray-800">
               Chi tiết hóa đơn
             </h2>
+
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -854,10 +912,12 @@ const BookingDetailsModal: React.FC<{
             </button>
           </div>
         </div>
+
         <div className="p-6 mt-0">
           {isLoadingDetails ? (
             <div className="flex items-center justify-center py-12">
               <FiRefreshCw className="animate-spin h-8 w-8 text-blue-500" />
+
               <span className="ml-3 text-gray-600">
                 Đang tải chi tiết đơn hàng...
               </span>
@@ -872,117 +932,103 @@ const BookingDetailsModal: React.FC<{
                       <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                     )}
                   </h3>
+
                   <div className="space-y-2 text-sm">
                     <p>
                       <span className="font-medium">Tên khách hàng:</span>
+
                       <span
                         className={isLoadingUserInfo ? "text-gray-400" : ""}
                       >
                         {getDisplayName()}
                       </span>
                     </p>
+
                     <p>
                       <span className="font-medium">Số điện thoại:</span>
+
                       <span
                         className={isLoadingUserInfo ? "text-gray-400" : ""}
                       >
                         {getDisplayPhone()}
                       </span>
                     </p>
+
                     <p>
                       <span className="font-medium">Email:</span>
+
                       <span
                         className={isLoadingUserInfo ? "text-gray-400" : ""}
                       >
                         {getDisplayEmail()}
                       </span>
                     </p>
-                    <p>
-                      <span className="font-medium">Loại khách hàng:</span>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${userInfo &&
-                          typeof userInfo.uId === "number" &&
-                          userInfo.uId > 0
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                          }`}
-                      >
-                        {userInfo &&
-                          typeof userInfo.uId === "number" &&
-                          userInfo.uId > 0
-                          ? userInfo.admin
-                            ? "Quản trị viên"
-                            : userInfo.fieldOwner
-                              ? "Chủ sân"
-                              : userInfo.staff
-                                ? "Nhân viên"
-                                : userInfo.customers?.[0]
-                                  ? "Khách hàng thành viên"
-                                  : "Thành viên"
-                          : "Khách vãng lai"}
-                      </span>
-                    </p>
+
                     <p>
                       <span className="font-medium">Ngày đặt:</span>
+
                       {format(booking.date, "dd/MM/yyyy", { locale: vi })}
                     </p>
+
                     <p>
-                      <span className="font-medium">Giờ đặt:</span>{" "}
+                      <span className="font-medium">Giờ đặt:</span>
                       {format(booking.date, "HH:mm", { locale: vi })}
                     </p>
+
                     <p>
-                      <span className="font-medium">Sân:</span>
-                      {booking.field}
+                      <span className="font-medium">Sân:</span> {booking.field}
                     </p>
+
                     <p>
                       <span className="font-medium">Thời gian:</span>
                       {booking.duration} giờ
                     </p>
+
                     <p>
                       <span className="font-medium">Trạng thái:</span>
+
                       <span
-                        className={`ml-2 px-2 py-1 rounded-full text-xs ${booking.status === "confirmed"
-                          ? "bg-green-100 text-green-800"
-                          : booking.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                          }`}
+                        className={`ml-2 px-2 py-1 rounded-full text-xs ${currentStatusInfo.className}`}
                       >
-                        {booking.status === "confirmed"
-                          ? "Đã xác nhận"
-                          : booking.status === "pending"
-                            ? "Chờ xác nhận"
-                            : "Đã hủy"}
+                        {currentStatusInfo.text}
                       </span>
                     </p>
                   </div>
                 </div>
+
                 <div className="space-y-6">
                   <div className="bg-gray-50 rounded-xl p-4">
                     <h3 className="font-semibold text-gray-700 mb-3">
                       Tổng kết thanh toán
                     </h3>
+
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>Tiền thuê sân:</span>
+
                         <span>
                           {booking.basePrice.toLocaleString("vi-VN")}đ
                         </span>
                       </div>
+
                       <div className="flex justify-between">
                         <span>Dịch vụ & cho thuê:</span>
+
                         <span>
                           {totalServicePrice.toLocaleString("vi-VN")}đ
                         </span>
                       </div>
+
                       <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
                         <span>Tổng cộng:</span>
+
                         <span className="text-green-600">
                           {totalPrice.toLocaleString("vi-VN")}đ
                         </span>
                       </div>
                     </div>
                   </div>
+
                   <div className="bg-gray-50 rounded-xl p-4">
                     <h3 className="font-semibold text-gray-700 mb-3">
                       Phương thức thanh toán
@@ -992,10 +1038,12 @@ const BookingDetailsModal: React.FC<{
                         <input
                           type="radio"
                           name="payment"
-                          value="cash"
-                          checked={paymentMethod === "cash"}
+                          value="Thanh toán tiền mặt"
+                          checked={paymentMethod === "Thanh toán tiền mặt"}
                           onChange={(e) =>
-                            setPaymentMethod(e.target.value as "cash")
+                            setPaymentMethod(
+                              e.target.value as "Thanh toán tiền mặt"
+                            )
                           }
                           className="mr-2"
                         />
@@ -1005,10 +1053,14 @@ const BookingDetailsModal: React.FC<{
                         <input
                           type="radio"
                           name="payment"
-                          value="transfer"
-                          checked={paymentMethod === "transfer"}
+                          value="Thanh toán qua ví điện tử"
+                          checked={
+                            paymentMethod === "Thanh toán qua ví điện tử"
+                          }
                           onChange={(e) =>
-                            setPaymentMethod(e.target.value as "transfer")
+                            setPaymentMethod(
+                              e.target.value as "Thanh toán qua ví điện tử"
+                            )
                           }
                           className="mr-2"
                         />
@@ -1025,16 +1077,7 @@ const BookingDetailsModal: React.FC<{
                   </h3>
                   <button
                     onClick={() => {
-                      console.log("[BookingDetailsModal] Click Thêm dịch vụ", {
-                        isProcessing,
-                        orderId,
-                        servicesCount: availableServices.length,
-                      });
                       if (isProcessing) {
-                        console.warn(
-                          "[BookingDetailsModal] Không mở modal: đang xử lý",
-                          { isProcessing }
-                        );
                         return;
                       }
                       setShowAddService(true);
@@ -1072,9 +1115,6 @@ const BookingDetailsModal: React.FC<{
                             <button
                               onClick={() => {
                                 if (!service.orderServiceId) {
-                                  console.warn(
-                                    "Missing orderServiceId; cannot decrease quantity"
-                                  );
                                   return;
                                 }
                                 handleUpdateServiceQuantity(
@@ -1098,9 +1138,6 @@ const BookingDetailsModal: React.FC<{
                             <button
                               onClick={() => {
                                 if (!service.orderServiceId) {
-                                  console.warn(
-                                    "Missing orderServiceId; cannot increase quantity"
-                                  );
                                   return;
                                 }
                                 handleUpdateServiceQuantity(
@@ -1124,9 +1161,6 @@ const BookingDetailsModal: React.FC<{
                           <button
                             onClick={() => {
                               if (!service.orderServiceId) {
-                                console.warn(
-                                  "Missing orderServiceId; cannot remove service"
-                                );
                                 return;
                               }
                               handleRemoveService(service.orderServiceId);
@@ -1151,13 +1185,15 @@ const BookingDetailsModal: React.FC<{
                 >
                   Hủy bỏ
                 </button>
-                <button
-                  onClick={handleConfirm}
-                  disabled={isProcessing || booking?.status === "confirmed"}
-                  className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? "Đang xử lý..." : "Xác nhận thanh toán"}
-                </button>
+                {booking.status === "deposited" && (
+                  <button
+                    onClick={handleConfirmPayment}
+                    disabled={isProcessing}
+                    className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? "Đang xử lý..." : "Xác nhận thanh toán"}
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -1433,8 +1469,8 @@ const CreateSlotModal: React.FC<{
                 onClick={() => handleSubmit("delete")}
                 disabled={isSubmitting}
                 className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-red-500 hover:bg-red-600 hover:shadow-lg"
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-red-500 hover:bg-red-600 hover:shadow-lg"
                   }`}
               >
                 Xóa slot
@@ -1444,8 +1480,8 @@ const CreateSlotModal: React.FC<{
                 onClick={() => handleSubmit("update")}
                 disabled={isSubmitting}
                 className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-yellow-500 hover:bg-yellow-600 hover:shadow-lg"
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-yellow-500 hover:bg-yellow-600 hover:shadow-lg"
                   }`}
               >
                 Cập nhật slot
@@ -1455,8 +1491,8 @@ const CreateSlotModal: React.FC<{
                 onClick={() => handleSubmit("create")}
                 disabled={isSubmitting}
                 className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600 hover:shadow-lg"
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-500 hover:bg-green-600 hover:shadow-lg"
                   }`}
               >
                 {isSubmitting ? "Đang xử lý..." : "Tạo slot"}
@@ -1468,10 +1504,6 @@ const CreateSlotModal: React.FC<{
     );
   };
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// =================================================================
-// === PHẦN CODE ĐÃ ĐƯỢC SỬA LỖI VÀ HOÀN THIỆN: PricingManagementModal
-// =================================================================
 const PricingManagementModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -1699,7 +1731,7 @@ const PricingManagementModal: React.FC<{
         showToast("Đã xóa khung giá!", "success");
         setPricingSlots((prev) => prev.filter((p) => p.id !== slotToDelete.id));
         if (onPricingUpdate) await onPricingUpdate();
-        await fetchSchedule(); // Cập nhật lại lịch
+        await fetchSchedule();
       } catch (err) {
         showToast((err as Error).message, "error");
       } finally {
@@ -2045,6 +2077,10 @@ const WeeklySchedule: React.FC = () => {
       }
 
       let finalName = booking.customerName || "Khách hàng";
+      if (bookingDetail?.customerInfo?.name) {
+        finalName = bookingDetail.customerInfo.name;
+      }
+
       if (userInfo) {
         const name =
           userInfo.admin?.name ||
@@ -2072,6 +2108,9 @@ const WeeklySchedule: React.FC = () => {
         finalName = "Khách hàng";
 
       let finalPhone = booking.contact || "Chưa có thông tin";
+      if (bookingDetail?.customerInfo?.phone) {
+        finalPhone = bookingDetail.customerInfo.phone;
+      }
       if (userInfo) {
         const phone =
           userInfo.admin?.phone ||
@@ -2142,7 +2181,6 @@ const WeeklySchedule: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         const data = result.data || result;
-        console.log("Pricing configuration data:", data);
         const hasConfig = data && Array.isArray(data) && data.length > 0;
         setHasPricingConfiguration(hasConfig);
       } else {
@@ -2157,6 +2195,7 @@ const WeeklySchedule: React.FC = () => {
   const fetchSchedule = useCallback(async () => {
     setLoading(true);
     try {
+      // This function uses the /schedule endpoint to get all slots for the field
       const response = await fetch(`${API_URL}/api/Field/${fieldId}/schedule`, {
         method: "GET",
         headers: getAuthHeaders(),
@@ -2188,27 +2227,49 @@ const WeeklySchedule: React.FC = () => {
               (endDateTime.getTime() - startDateTime.getTime()) /
               (1000 * 60 * 60);
 
+            let mappedStatus:
+              | "completed"
+              | "deposited"
+              | "pending"
+              | "cancelled" = "pending";
+
+            const isActualBooking =
+              schedule.bookingId && schedule.bookingId > 0;
+
+            if (isActualBooking) {
+              if (schedule.orderStatusPayment === "Success") {
+                mappedStatus = "completed";
+              } else if (schedule.bookingStatus === "Success") {
+                mappedStatus = "deposited";
+              } else if (schedule.bookingStatus === "Pending") {
+                mappedStatus = "pending";
+              } else if (schedule.bookingStatus === "Cancelled") {
+                mappedStatus = "cancelled";
+              }
+            }
+
+            // FIX: Prioritize actual customer/guest name and phone from the schedule data
+            const customerName =
+              schedule.customerName ||
+              schedule.guestName ||
+              schedule.bookingTitle ||
+              "Không có tên";
+            const contact =
+              schedule.customerPhone || schedule.guestPhone || "Unknown";
+
             return {
               id: schedule.scheduleId || 0,
-              customerName: schedule.bookingTitle || "Không có tên",
+              customerName: customerName,
               date: startDateTime,
               duration: Math.max(0, duration),
               field: schedule.fieldName || fieldName || "Không xác định",
-              status:
-                schedule.status === "Booked"
-                  ? "confirmed"
-                  : schedule.status === "Scheduled"
-                    ? "pending"
-                    : "cancelled",
-              contact: "Unknown",
+              status: mappedStatus,
+              contact: contact,
               basePrice: schedule.price || 0,
-              bookingId:
-                schedule.bookingId && schedule.bookingId > 0
-                  ? schedule.bookingId
-                  : null,
+              bookingId: isActualBooking ? schedule.bookingId : null,
               userId: null,
-              guestName: null,
-              guestPhone: null,
+              guestName: schedule.guestName || null,
+              guestPhone: schedule.guestPhone || null,
             };
           }
         );
@@ -2372,8 +2433,7 @@ const WeeklySchedule: React.FC = () => {
   };
 
   const handleBookingConfirm = () => {
-    // Logic này không còn được sử dụng trực tiếp, đã được chuyển vào BookingDetailsModal
-    // giữ lại để không làm lỗi các hàm khác.
+    // This logic is now handled inside BookingDetailsModal
   };
 
   const handleCreateSlot = async (slotData: CreateSlotData) => {
@@ -2549,10 +2609,9 @@ const WeeklySchedule: React.FC = () => {
                   {facility && (
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
-                        🏢 {facility.name}
+                        {facility.name}
                       </span>
                       <span className="flex items-center gap-1">
-                        🕐
                         {facility.openTime.substring(0, 5)} -
                         {facility.closeTime.substring(0, 5)}
                       </span>
@@ -2589,13 +2648,9 @@ const WeeklySchedule: React.FC = () => {
                 </button>
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-gray-800">
-                    {format(weekStart, "dd/MM", { locale: vi })} - {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
+                    {format(weekStart, "dd/MM", { locale: vi })} -
+                    {format(weekEnd, "dd/MM/yyyy", { locale: vi })}
                   </h2>
-                  {/* <p className="text-sm text-gray-600 mt-1">
-                    Tuần
-                    {format(weekStart, "w", { locale: vi })} năm
-                    {format(weekStart, "yyyy")}
-                  </p> */}
                 </div>
                 <button
                   onClick={() => navigateWeek(1)}
@@ -2650,12 +2705,8 @@ const WeeklySchedule: React.FC = () => {
                       <div className="w-3 h-3 bg-yellow-200 border border-yellow-400 rounded"></div>
                       <span className="text-gray-600">Chờ đặt cọc</span>
                     </div>
-                    {/* <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-red-200 border border-red-400 rounded"></div>
-                      <span className="text-gray-600">Đã hủy</span>
-                    </div> */}
                     <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded"></div>
+                      <div className="w-3 h-3 bg-gray-200 border border-gray-400 rounded"></div>
                       <span className="text-gray-600">Chưa đặt</span>
                     </div>
                   </div>
@@ -2705,28 +2756,38 @@ const WeeklySchedule: React.FC = () => {
                               isSameDay(booking.date, day) &&
                               booking.date.getHours() === hour
                           );
-                          const isEmpty = dayBookings.length === 0;
-                          const cellStart = new Date(day);
-                          cellStart.setHours(hour, 0, 0, 0);
+                          const hasBookings = dayBookings.length > 0;
                           const cellEnd = new Date(day);
                           cellEnd.setHours(hour + 1, 0, 0, 0);
                           const now = new Date();
                           const isExpired = cellEnd < now;
+                          const hasQualifiedBooking = dayBookings.some(
+                            (b) =>
+                              b.status === "completed" ||
+                              b.status === "deposited"
+                          );
+                          const shouldShowExpiredOverlay =
+                            isExpired && !hasQualifiedBooking;
+                          const borderClass =
+                            shouldShowExpiredOverlay || !hasBookings
+                              ? "border-dashed"
+                              : "border-solid";
+                          const bgClass = shouldShowExpiredOverlay
+                            ? "bg-gray-50"
+                            : "bg-white";
+
                           return (
                             <div
                               key={`${day}-${hour}`}
-                              className={`rounded-lg min-h-[100px] p-2 border ${isEmpty ? "border-dashed" : "border-solid"
-                                } ${isEmpty && isExpired ? "bg-gray-50" : "bg-white"
-                                }`}
+                              className={`rounded-lg min-h-[100px] p-2 border ${borderClass} ${bgClass}`}
                             >
-                              {isEmpty ? (
-                                <div
-                                  className={`w-full h-full flex items-center justify-center text-sm ${isExpired
-                                    ? "text-gray-400"
-                                    : "text-gray-300"
-                                    }`}
-                                >
-                                  {isExpired ? "Hết hạn" : "Chưa đặt"}
+                              {shouldShowExpiredOverlay ? (
+                                <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
+                                  Hết hạn
+                                </div>
+                              ) : !hasBookings ? (
+                                <div className="w-full h-full flex items-center justify-center text-sm text-gray-300">
+                                  Chưa tạo slot
                                 </div>
                               ) : (
                                 <div className="space-y-1">
@@ -2776,11 +2837,14 @@ const WeeklySchedule: React.FC = () => {
                 </p>
                 <p>
                   <span className="font-medium">Trạng thái:</span>
-                  {selectedBooking.status === "confirmed"
-                    ? "Đã xác nhận"
-                    : selectedBooking.status === "pending"
-                      ? "Chờ xác nhận"
-                      : "Đã hủy"}
+                  {
+                    {
+                      completed: "Đã hoàn thành",
+                      deposited: "Đã cọc",
+                      pending: "Chờ đặt cọc",
+                      cancelled: "Đã hủy",
+                    }[selectedBooking.status]
+                  }
                 </p>
               </div>
               <div className="flex justify-end gap-2 mt-4">

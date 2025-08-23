@@ -10,7 +10,7 @@ interface Order {
   fieldName: string;
   customerName: string;
   customerPhone: string;
-  customerEmail?: string; // Thêm email khách hàng
+  customerEmail?: string;
   totalPrice: number;
   totalServicePrice: number;
   contentPayment: string;
@@ -62,7 +62,7 @@ const mapPaymentStatus = (status?: string): string => {
   const s = String(status).toLowerCase();
   if (s === "pending") return "Chờ thanh toán";
   if (s === "success") return "Đã thanh toán";
-  if (s === "cancel") return "Đã hủy";
+  if (s === "cancelled" || s === "cancel") return "Đã hủy";
   return status;
 };
 
@@ -97,6 +97,27 @@ const OrdersTable: React.FC = () => {
   const [showDropdowns, setShowDropdowns] = useState<{
     [key: string]: boolean;
   }>({});
+
+  const [confirmPopup, setConfirmPopup] = useState<{
+    show: boolean;
+    orderId: number | null;
+    newStatus: string;
+  }>(() => ({ show: false, orderId: null, newStatus: "" }));
+
+  const handleChangePaymentStatus = (orderId: number, newStatus: string) => {
+    setConfirmPopup({ show: true, orderId, newStatus });
+  };
+
+  const handleConfirmChangeStatus = () => {
+    if (confirmPopup.orderId && confirmPopup.newStatus) {
+      updatePaymentStatus(confirmPopup.orderId, confirmPopup.newStatus);
+    }
+    setConfirmPopup({ show: false, orderId: null, newStatus: "" });
+  };
+
+  const handleCancelChangeStatus = () => {
+    setConfirmPopup({ show: false, orderId: null, newStatus: "" });
+  };
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -644,7 +665,7 @@ const OrdersTable: React.FC = () => {
         totalServicePrice,
         fieldRentalPrice: Math.max(totalAmount - totalServicePrice, 0),
         discountAmount: 0,
-        deposit: Math.round(totalAmount * 0.3),
+        deposit: Math.round((Math.max(totalAmount - totalServicePrice, 0)) * 0.5),
         contentPayment: getString(
           orderObj?.["contentPayment"] ?? order.contentPayment,
           ""
@@ -687,7 +708,7 @@ const OrdersTable: React.FC = () => {
         totalServicePrice: order.totalServicePrice,
         fieldRentalPrice: order.totalPrice - order.totalServicePrice,
         discountAmount: 0,
-        deposit: Math.round(order.totalPrice * 0.3),
+        deposit: Math.round((order.totalPrice - order.totalServicePrice) * 0.5),
         contentPayment: order.contentPayment,
         statusPayment: order.statusPayment,
         paymentMethod: "N/A",
@@ -774,36 +795,42 @@ const OrdersTable: React.FC = () => {
     }));
   };
 
-  const updatePaymentStatus = (orderId: number, newStatus: string) => {
-    const API_URL = "https://localhost:7057";
-    const token = localStorage.getItem("token");
-    let apiStatus = "Pending";
-    switch (newStatus) {
-      case "Đã thanh toán":
-        apiStatus = "success";
-        break;
+  const mapStatusToOption = (status: string): number => {
+    switch (status) {
       case "Chờ thanh toán":
-        apiStatus = "pending";
-        break;
+        return 1;
+      case "Đã thanh toán":
+        return 2;
       case "Đã hủy":
-        apiStatus = "cancel";
-        break;
-      case "Chưa xác định":
-        apiStatus = "NULL";
-        break;
+        return 3;
       default:
-        apiStatus = "pending";
+        return 0; // Hoặc một giá trị mặc định khác
     }
-    fetch(`${API_URL}/api/Order/Order/${orderId}/Update/StatusPayment`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ statusPayment: apiStatus }),
-    })
+  };
+
+  const updatePaymentStatus = (orderId: number, newStatus: string) => {
+    const token = localStorage.getItem("token");
+    const option = mapStatusToOption(newStatus);
+
+    if (option === 0) {
+      alert("Trạng thái không hợp lệ.");
+      return;
+    }
+
+    fetch(
+      `${API_URL}/api/Order/Order/${orderId}/Update/StatusPayment?option=${option}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }
+    )
       .then((res) => {
-        if (!res.ok) throw new Error("Cập nhật trạng thái thất bại");
+        if (!res.ok) {
+          throw new Error("Cập nhật trạng thái thất bại");
+        }
         setOrders((prev) =>
           prev.map((order) =>
             order.orderId === orderId
@@ -1387,34 +1414,52 @@ const OrdersTable: React.FC = () => {
                                 }
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
                                   order.statusPayment
-                                )}`}
+                                )} ${order.statusPayment !== "Chờ thanh toán"
+                                  ? "cursor-not-allowed opacity-60"
+                                  : ""
+                                  }`}
+                                disabled={
+                                  order.statusPayment !== "Chờ thanh toán"
+                                }
+                                title={
+                                  order.statusPayment !== "Chờ thanh toán"
+                                    ? "Chỉ có thể thay đổi trạng thái khi đơn hàng đang 'Chờ thanh toán'"
+                                    : "Đổi trạng thái thanh toán"
+                                }
                               >
                                 {order.statusPayment}
-                                <svg
-                                  className="w-3 h-3 ml-1"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 9l-7 7-7-7"
-                                  />
-                                </svg>
+                                {order.statusPayment === "Chờ thanh toán" && (
+                                  <svg
+                                    className="w-3 h-3 ml-1"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 9l-7 7-7-7"
+                                    />
+                                  </svg>
+                                )}
                               </button>
                               {showDropdowns[
                                 `paymentStatus_${order.orderId}`
-                              ] && (
+                              ] &&
+                                order.statusPayment === "Chờ thanh toán" && (
                                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
                                     <div className="py-1">
-                                      {paymentStatuses.map(
-                                        (status, statusIndex) => (
+                                      {paymentStatuses
+                                        .filter(
+                                          (status) =>
+                                            status !== "Chờ thanh toán"
+                                        ) // Lọc bỏ trạng thái hiện tại
+                                        .map((status, statusIndex) => (
                                           <div
                                             key={statusIndex}
                                             onClick={() => {
-                                              updatePaymentStatus(
+                                              handleChangePaymentStatus(
                                                 order.orderId,
                                                 status
                                               );
@@ -1422,10 +1467,7 @@ const OrdersTable: React.FC = () => {
                                                 `paymentStatus_${order.orderId}`
                                               );
                                             }}
-                                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 ${status === order.statusPayment
-                                              ? "bg-blue-50 text-blue-700"
-                                              : "text-gray-700 hover:text-blue-600"
-                                              }`}
+                                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 text-gray-700 hover:text-blue-600`}
                                           >
                                             <span
                                               className={`inline-block w-2 h-2 rounded-full mr-3 ${getPaymentStatusColor(
@@ -1435,8 +1477,7 @@ const OrdersTable: React.FC = () => {
                                             ></span>
                                             {status}
                                           </div>
-                                        )
-                                      )}
+                                        ))}
                                     </div>
                                   </div>
                                 )}
@@ -1713,6 +1754,44 @@ const OrdersTable: React.FC = () => {
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                         <svg
+                          className="w-5 h-5 mr-2 text-purple-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                          />
+                        </svg>
+                        Thông tin sân
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Cơ sở:</span>
+                          <span className="font-medium">
+                            {orderDetail.facilityName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tên sân:</span>
+                          <span className="font-medium">
+                            {orderDetail.fieldName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Loại sân:</span>
+                          <span className="font-medium">
+                            {orderDetail.categoryFieldName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg
                           className="w-5 h-5 mr-2 text-blue-600"
                           fill="none"
                           stroke="currentColor"
@@ -1740,12 +1819,6 @@ const OrdersTable: React.FC = () => {
                           <span className="text-gray-600">Thời gian sân:</span>
                           <span className="font-medium">
                             {orderDetail.startTime} - {orderDetail.endTime}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Trạng thái:</span>
-                          <span className="font-medium text-green-600">
-                            {mapBookingStatus(orderDetail.bookingStatus)}
                           </span>
                         </div>
                       </div>
@@ -1792,44 +1865,7 @@ const OrdersTable: React.FC = () => {
                   </div>
 
                   <div className="space-y-6">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2 text-purple-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                          />
-                        </svg>
-                        Thông tin sân
-                      </h3>
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Cơ sở:</span>
-                          <span className="font-medium">
-                            {orderDetail.facilityName}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Tên sân:</span>
-                          <span className="font-medium">
-                            {orderDetail.fieldName}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Loại sân:</span>
-                          <span className="font-medium">
-                            {orderDetail.categoryFieldName}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+
 
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -1951,11 +1987,8 @@ const OrdersTable: React.FC = () => {
                         <div className="flex justify-between">
                           <span className="text-gray-600">Trạng thái:</span>
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                              orderDetail.statusPayment
-                            )}`}
-                          >
-                            {orderDetail.statusPayment}
+                            className={`px-3 py-1 rounded-full text-100 font-medium ${getPaymentStatusColor(orderDetail.statusPayment)}`}>
+                            {mapBookingStatus(orderDetail.statusPayment)}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -1981,6 +2014,39 @@ const OrdersTable: React.FC = () => {
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200"
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmPopup.show && (
+        <div className="fixed inset-0 flex items-center justify-center z-[100]">
+          <div
+            className="absolute inset-0 bg-gray-500 bg-opacity-30"
+            onClick={handleCancelChangeStatus}
+          ></div>
+          <div className="relative bg-white rounded-lg shadow-xl p-6 min-w-[320px]">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900">
+              Xác nhận chuyển trạng thái
+            </h3>
+            <p className="mb-4 text-gray-700">
+              Bạn có chắc muốn chuyển trạng thái đơn hàng{" "}
+              <span className="font-bold">#{confirmPopup.orderId}</span> thành{" "}
+              <span className="font-bold">{confirmPopup.newStatus}</span>?
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleCancelChangeStatus}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmChangeStatus}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+              >
+                Xác nhận
               </button>
             </div>
           </div>

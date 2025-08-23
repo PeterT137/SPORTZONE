@@ -195,23 +195,33 @@ namespace SportZone_API.Services
             {
                 return Fail<string>("Không tìm thấy nhân viên để xóa.");
             }
-
             var facId = staffToDelete.FacId;
             var staffName = staffToDelete.Name;
+            var userToDelete = staffToDelete.UIdNavigation;
+            if (userToDelete == null)
+            {
+                return Fail<string>("Không tìm thấy thông tin người dùng liên quan.");
+            }
             if (!string.IsNullOrEmpty(staffToDelete.Image))
             {
                 ImageUpload.DeleteImage(staffToDelete.Image, _env.WebRootPath);
             }
-
-            await _staffRepository.DeleteStaffAsync(staffToDelete);
-            if (facId.HasValue)
+            try
             {
-                var message = $"Nhân viên '{staffName}' (ID: {uId}) đã bị xóa khỏi cơ sở của bạn.";
-                await _hubContext.Clients.Group($"facility-{facId.Value}").SendAsync("ReceiveNotification", message);
-                await _hubContext.Clients.Group($"facility-{facId.Value}").SendAsync("StaffDeleted", uId);
+                await _staffRepository.DeleteStaffAsync(staffToDelete);
+                await _staffRepository.DeleteUserAsync(userToDelete);
+                if (facId.HasValue)
+                {
+                    var message = $"Nhân viên '{staffName}' (ID: {uId}) đã bị xóa khỏi cơ sở của bạn.";
+                    await _hubContext.Clients.Group($"facility-{facId.Value}").SendAsync("ReceiveNotification", message);
+                    await _hubContext.Clients.Group($"facility-{facId.Value}").SendAsync("StaffDeleted", uId);
+                }
+                return Success("Xóa nhân viên thành công.");
             }
-
-            return Success("Xóa nhân viên thành công.");
+            catch (Exception ex)
+            {
+                return Fail<string>($"Đã xảy ra lỗi khi xóa nhân viên: {ex.Message}");
+            }
         }
 
         private ServiceResponse<T> Fail<T>(string msg) => new() { Success = false, Message = msg };

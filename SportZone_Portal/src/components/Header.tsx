@@ -132,7 +132,7 @@ const Header: React.FC = () => {
                 }
                 className="text-white hover:text-[#1ebd6f]"
               >
-                {user.RoleId === 3 ? "Quản lý admin" : "Quản lý cơ sở"}
+                {user.RoleId === 3 ? "Quản lý Admin" : "Quản lý cơ sở"}
               </a>
             )}
         </div>
@@ -199,11 +199,6 @@ const Header: React.FC = () => {
                   className="flex items-center gap-2 cursor-pointer"
                   onClick={() => setShowProfileMenu((prev) => !prev)}
                 >
-                  <img
-                    src={user.avatarUrl}
-                    alt="avatar"
-                    className="w-9 h-9 rounded-full border"
-                  />
                   <span className="text-sm font-medium">{user.UEmail}</span>
                 </div>
                 {showProfileMenu && (

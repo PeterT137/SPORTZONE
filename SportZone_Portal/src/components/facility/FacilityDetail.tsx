@@ -1393,97 +1393,109 @@ const FacilityDetail: React.FC = () => {
 
       {/* --- Add Service Modal --- */}
       {isAddServiceModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
-          onClick={closeModal}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">Thêm dịch vụ mới</h3>
-              <button
-                onClick={closeModal}
-                className="text-white p-2 rounded-full hover:bg-white/20"
-              >
-                <FiX />
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              <input
-                type="text"
-                name="serviceName"
-                value={newServiceFormData.serviceName}
-                onChange={handleNewServiceChange}
-                placeholder="Tên dịch vụ"
-                className="w-full p-3 border rounded-xl"
-              />
-              <input
-                type="number"
-                name="price"
-                value={newServiceFormData.price}
-                onChange={handleNewServiceChange}
-                placeholder="Giá dịch vụ (VND)"
-                className="w-full p-3 border rounded-xl"
-              />
-              <select
-                name="status"
-                value={newServiceFormData.status}
-                onChange={handleNewServiceChange}
-                className="w-full p-3 border rounded-xl"
-              >
-                <option value="Active">Hoạt động</option>
-                <option value="Inactive">Tạm dừng</option>
-              </select>
-              <textarea
-                name="description"
-                value={newServiceFormData.description}
-                onChange={handleNewServiceChange}
-                placeholder="Mô tả dịch vụ"
-                rows={3}
-                className="w-full p-3 border rounded-xl resize-none"
-              />
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Hình ảnh dịch vụ
-                </label>
-                <input
-                  type="file"
-                  name="imageFile"
-                  accept="image/*"
-                  onChange={handleNewServiceChange}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                />
-              </div>
-              {newServiceFormData.imageFile && (
-                <img
-                  src={URL.createObjectURL(newServiceFormData.imageFile)}
-                  alt="Preview"
-                  className="w-32 h-32 object-cover rounded-xl mt-2"
-                />
-              )}
-              <div className="flex justify-end space-x-4 pt-4 border-t">
-                <button
-                  onClick={closeModal}
-                  className="px-6 py-2 border rounded-xl"
-                  disabled={isSubmitting}
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleAddService}
-                  className="px-6 py-2 bg-green-600 text-white rounded-xl"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Đang thêm..." : "Thêm dịch vụ"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
+            onClick={closeModal}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white">Thêm dịch vụ mới</h3>
+                <button
+                  onClick={closeModal}
+                  className="text-white p-2 rounded-full hover:bg-white/20"
+                >
+                  <FiX />
+                </button>
+              </div>
+              <div className="p-6 space-y-6">
+                <div>
+                  <label htmlFor="serviceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ</label>
+                  <input
+                    id="serviceName"
+                    type="text"
+                    name="serviceName"
+                    value={newServiceFormData.serviceName}
+                    onChange={handleNewServiceChange}
+                    className="w-full p-3 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="price" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ</label>
+                  <input
+                    id="price"
+                    type="number"
+                    name="price"
+                    value={newServiceFormData.price}
+                    onChange={handleNewServiceChange}
+                    className="w-full p-3 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="status" className="block text-sm font-bold text-gray-700 mb-1">Trạng thái</label>
+                  <select
+                    id="status"
+                    name="status"
+                    value={newServiceFormData.status}
+                    onChange={handleNewServiceChange}
+                    className="w-full p-3 border rounded-xl"
+                  >
+                    <option value="Active">Hoạt động</option>
+                    <option value="Inactive">Tạm dừng</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Mô tả dịch vụ</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={newServiceFormData.description}
+                    onChange={handleNewServiceChange}
+                    rows={3}
+                    className="w-full p-3 border rounded-xl resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Hình ảnh
+                  </label>
+                  <input
+                    type="file"
+                    name="imageFile"
+                    accept="image/*"
+                    onChange={handleNewServiceChange}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                </div>
+                {newServiceFormData.imageFile && (
+                  <img
+                    src={URL.createObjectURL(newServiceFormData.imageFile)}
+                    alt="Preview"
+                    className="w-32 h-32 object-cover rounded-xl mt-2"
+                  />
+                )}
+                <div className="flex justify-end space-x-4 pt-4 border-t">
+                  <button
+                    onClick={closeModal}
+                    className="px-6 py-2 border rounded-xl"
+                    disabled={isSubmitting}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleAddService}
+                    className="px-6 py-2 bg-green-600 text-white rounded-xl"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Đang thêm..." : "Thêm dịch vụ"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
       )}
-
       {/* --- Edit Service Modal --- */}
       {editService && serviceFormData && (
         <div
@@ -1603,7 +1615,7 @@ const FacilityDetail: React.FC = () => {
       )}
 
       {/* --- Add Discount Modal --- */}
-      {isAddDiscountModalOpen && (
+      {/* {isAddDiscountModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
           onClick={closeModal}
@@ -1699,7 +1711,115 @@ const FacilityDetail: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
+      {isAddDiscountModalOpen && (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
+      onClick={closeModal}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+          <h3 className="text-xl font-bold text-white">
+            Thêm mã giảm giá mới
+          </h3>
+          <button
+            onClick={closeModal}
+            className="text-white p-2 rounded-full hover:bg-white/20"
+          >
+            <FiX />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div>
+            <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%)</label>
+            <input
+              id="discountPercentage"
+              type="number"
+              name="discountPercentage"
+              value={newDiscountFormData.discountPercentage}
+              onChange={handleNewDiscountChange}
+              className="w-full p-3 border rounded-xl"
+            />
+          </div>
+          <div>
+            <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá</label>
+            <input
+              id="description"
+              type="text"
+              name="description"
+              value={newDiscountFormData.description}
+              onChange={handleNewDiscountChange}
+              className="w-full p-3 border rounded-xl"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày bắt đầu</label>
+              <input
+                id="startDate"
+                type="date"
+                name="startDate"
+                value={newDiscountFormData.startDate}
+                onChange={handleNewDiscountChange}
+                className="w-full p-3 border rounded-xl"
+              />
+            </div>
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày kết thúc</label>
+              <input
+                id="endDate"
+                type="date"
+                name="endDate"
+                value={newDiscountFormData.endDate}
+                onChange={handleNewDiscountChange}
+                className="w-full p-3 border rounded-xl"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng</label>
+            <input
+              id="quantity"
+              type="number"
+              name="quantity"
+              value={newDiscountFormData.quantity}
+              onChange={handleNewDiscountChange}
+              className="w-full p-3 border rounded-xl"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              name="isActive"
+              checked={newDiscountFormData.isActive}
+              onChange={handleNewDiscountChange}
+              className="h-5 w-5 text-green-600 rounded"
+            />
+            <label htmlFor="isActive" className="text-sm font-bold">Kích hoạt ngay</label>
+          </div>
+          <div className="flex justify-end space-x-4 pt-4 border-t">
+            <button
+              onClick={closeModal}
+              className="px-6 py-2 border rounded-xl"
+              disabled={isSubmitting}
+            >
+              Hủy
+            </button>
+            <button
+              onClick={handleAddDiscount}
+              className="px-6 py-2 bg-green-600 text-white rounded-xl"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Đang thêm..." : "Thêm mã"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+)}
 
       {/* --- Edit Discount Modal --- */}
       {editDiscount && discountFormData && (

@@ -27,7 +27,7 @@ const RevenueSummary: React.FC<RevenueSummaryProps> = ({
           Tổng doanh thu
         </div>
         <div className="text-3xl font-bold text-green-600 text-center">
-          {data.totalRevenue?.toLocaleString()}
+          {data.totalRevenue?.toLocaleString()} (VND)
         </div>
       </div>
       <div className="bg-white rounded shadow p-6 border-t-8 border-green-600 flex flex-col items-center">
@@ -35,7 +35,7 @@ const RevenueSummary: React.FC<RevenueSummaryProps> = ({
           Doanh thu từ thuê sân
         </div>
         <div className="text-3xl font-bold text-green-600 text-center">
-          {data.totalFieldRevenue?.toLocaleString()}
+          {data.totalFieldRevenue?.toLocaleString()} (VND)
         </div>
       </div>
       <div className="bg-white rounded shadow p-6 border-t-8 border-green-600 flex flex-col items-center">
@@ -43,7 +43,7 @@ const RevenueSummary: React.FC<RevenueSummaryProps> = ({
           Doanh thu từ dịch vụ
         </div>
         <div className="text-3xl font-bold text-green-600 text-center">
-          {data.totalServiceRevenue?.toLocaleString()}
+          {data.totalServiceRevenue?.toLocaleString()} (VND)
         </div>
       </div>
     </div>

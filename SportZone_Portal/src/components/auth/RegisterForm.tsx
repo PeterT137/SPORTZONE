@@ -43,6 +43,9 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
     const newErrors: Partial<FormData> = {};
     if (!formData.name) newErrors.name = "Tên không được để trống";
     if (!formData.phone) newErrors.phone = "Số điện thoại không được để trống";
+    else if (!/^(0|84|\+84)(9|3|7|8|5)[0-9]{8}$/.test(formData.phone)) {
+      newErrors.phone = "Định dạng số điện thoại không hợp lệ";
+    }
     if (!formData.email) newErrors.email = "Email không được để trống";
     else if (!/\S+@\S+\.\S+/.test(formData.email))
       newErrors.email = "Email không hợp lệ";
@@ -105,7 +108,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         startTime: null,
         endTime: null,
       });
-
       setFormData({
         name: "",
         phone: "",
@@ -113,7 +115,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ role }) => {
         password: "",
         confirmPassword: "",
       });
-      setErrors({}); // ✅ Xóa tất cả lỗi xác thực
+      setErrors({});
       setSuccessMessage("Đăng ký thành công! Bạn có thể đăng nhập.");
       showToast("Đăng ký thành công!", "success");
     } catch (err) {

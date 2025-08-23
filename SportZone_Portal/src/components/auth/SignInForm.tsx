@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -35,7 +34,9 @@ const SignInForm: React.FC = () => {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
   const togglePassword = () => setShowPassword((prev) => !prev);
   const navigate = useNavigate();
@@ -48,42 +49,49 @@ const SignInForm: React.FC = () => {
     }));
   };
 
-  const validateForm = () => {
+  const validateSignIn = () => {
     const newErrors: typeof errors = {};
-
     if (!formData.email) {
       newErrors.email = "Email không được để trống";
-    } else if (!/\S+@\S+\.\S/.test(formData.email)) {
-      newErrors.email = "Định dạng email không hợp lệ";
     }
-
     if (!formData.password) {
       newErrors.password = "Mật khẩu không được để trống";
-    } else if (
-      formData.password.length < 10 ||
-      !/[A-Z]/.test(formData.password) ||
-      !/[a-z]/.test(formData.password) ||
-      !/[0-9]/.test(formData.password) ||
-      !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
-    ) {
-      newErrors.password =
-        "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
     }
+    return newErrors;
+  };
 
+  const validateForgotPassword = (step: ForgotStep) => {
+    const newErrors: { email?: string; password?: string; confirmPassword?: string } = {};
+
+    if (step === "email") {
+      if (!forgotEmail) {
+        newErrors.email = "Email không được để trống";
+      } else if (!/\S+@\S+\.\S/.test(forgotEmail)) {
+        newErrors.email = "Định dạng email không hợp lệ";
+      }
+    } else if (step === "new-password") {
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{10,}$/;
+      if (!newPassword || !passwordRegex.test(newPassword)) {
+        newErrors.password =
+          "Mật khẩu phải dài ít nhất 10 ký tự và bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.";
+      }
+      if (newPassword !== confirmPassword) {
+        newErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
+      }
+    }
     return newErrors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validationErrors = validateForm();
+    const validationErrors = validateSignIn();
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors);
       return;
     }
     setErrors({});
     try {
-      setLoading(true);
-
+      setSignInLoading(true);
       const response = await axios.post(
         "https://localhost:7057/api/Authentication/Login",
         {
@@ -155,18 +163,13 @@ const SignInForm: React.FC = () => {
 
       const userStorage = JSON.parse(localStorage.getItem("user") || "{}");
 
-      // Điều hướng theo RoleId
       if (userStorage.RoleId === 3) {
-        // Admin navigate to users_manager
         navigate("/users_manager");
       } else if (userStorage.RoleId === 2) {
-        // Field Owner navigate to facility_manager
         navigate("/facility_manager");
       } else if (userStorage.RoleId === 1) {
-        // Customer navigate to homepage
         navigate("/homepage");
       } else if (userStorage.RoleId === 4) {
-        // Staff navigate to weekly_schedule
         navigate("/weekly_schedule");
       } else {
         navigate("/homepage");
@@ -175,30 +178,31 @@ const SignInForm: React.FC = () => {
       console.log("Signed in user:", userToStore);
       console.log("Facility Info:", facilityInfo);
     } catch (err: any) {
-      let errorMessage = "Đăng nhập thất bại!";
-      if (err && typeof err === "object" && err !== null) {
-        const e = err as { response?: { data?: { message?: string } } };
-        errorMessage = e?.response?.data?.message || errorMessage;
-      }
-      showToast(errorMessage, "error");
+      showToast("Email hoặc password không đúng", "error");
     } finally {
-      setLoading(false);
+      setSignInLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
+    setSignInLoading(true);
     window.location.href =
       "https://localhost:7057/api/Authentication/googlelogin";
   };
 
   const handleForgotPasswordSubmit = async () => {
-    setLoading(true);
+    const validationErrors = validateForgotPassword("email");
+    if (Object.keys(validationErrors).length) {
+      showToast(validationErrors.email ?? "Có lỗi xảy ra", "error");
+      return;
+    }
+
+    setForgotPasswordLoading(true);
     try {
       await axios.post("https://localhost:7057/api/ForgotPassword/send-code", {
         email: forgotEmail,
       });
       showToast("Mã OTP đã được gửi về email!");
-      // setForgotStep("otp");
       setForgotStep("verify-otp");
     } catch (err: any) {
       let errorMessage = "Gửi mã thất bại";
@@ -208,28 +212,23 @@ const SignInForm: React.FC = () => {
       }
       showToast(errorMessage, "error");
     } finally {
-      setLoading(false);
+      setForgotPasswordLoading(false);
     }
   };
 
-  // Hàm mới để xác nhận OTP
-
   const handleVerifyOtpSubmit = async () => {
-    setLoading(true);
+    setForgotPasswordLoading(true);
 
     try {
       await axios.post(
         "https://localhost:7057/api/ForgotPassword/verify-code",
         {
           email: forgotEmail,
-
           code: otp,
         }
       );
 
       showToast("Mã OTP chính xác!");
-
-      // Chuyển sang bước nhập mật khẩu mới
 
       setForgotStep("new-password");
     } catch (err: any) {
@@ -240,31 +239,24 @@ const SignInForm: React.FC = () => {
       }
       showToast(errorMessage, "error");
     } finally {
-      setLoading(false);
+      setForgotPasswordLoading(false);
     }
   };
 
-  // Hàm mới để đặt lại mật khẩu
-
   const handleResetPasswordSubmit = async () => {
-    setLoading(true);
-
-    if (newPassword !== confirmPassword) {
-      showToast("Mật khẩu không khớp!", "error");
-
-      setLoading(false);
-
+    const validationErrors = validateForgotPassword("new-password");
+    if (Object.keys(validationErrors).length) {
+      showToast(Object.values(validationErrors)[0] ?? "Có lỗi xảy ra", "error");
       return;
     }
+    setForgotPasswordLoading(true);
 
     try {
       await axios.post(
         "https://localhost:7057/api/ForgotPassword/reset-password",
         {
           email: forgotEmail,
-
           newPassword,
-
           confirmPassword,
         }
       );
@@ -283,7 +275,7 @@ const SignInForm: React.FC = () => {
       }
       showToast(errorMessage, "error");
     } finally {
-      setLoading(false);
+      setForgotPasswordLoading(false);
     }
   };
 
@@ -350,17 +342,7 @@ const SignInForm: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-gray-400">
-          <label className="flex items-center space-x-2">
-            <input
-              name="rememberMe"
-              type="checkbox"
-              checked={formData.rememberMe}
-              onChange={handleChange}
-              className="w-3.5 h-3.5"
-            />
-            <span>Nhớ mật khẩu</span>
-          </label>
+        <div className="flex items-center justify-end text-xs text-gray-400">
           <button
             type="button"
             onClick={() => setShowForgotModal(true)}
@@ -372,20 +354,20 @@ const SignInForm: React.FC = () => {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={signInLoading}
           className="w-full bg-[#2f4f3f] text-white py-3 rounded-full text-sm font-semibold hover:bg-[#24412f]"
         >
-          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+          {signInLoading ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
 
         <button
           type="button"
           onClick={handleGoogleLogin}
-          disabled={loading}
+          disabled={signInLoading}
           className="w-full mt-2 bg-white border border-gray-300 text-gray-800 py-2 rounded-full text-sm font-medium hover:bg-gray-100 flex items-center justify-center space-x-2"
         >
           <i className="fab fa-google"></i>
-          <span>{loading ? "Đợi một chút..." : "Đăng nhập với Google"}</span>
+          <span>{signInLoading ? "Đợi một chút..." : "Đăng nhập với Google"}</span>
         </button>
       </form>
 
@@ -413,10 +395,10 @@ const SignInForm: React.FC = () => {
                   </button>
                   <button
                     onClick={handleForgotPasswordSubmit}
-                    disabled={loading}
+                    disabled={forgotPasswordLoading}
                     className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
                   >
-                    {loading ? "Đang gửi..." : "Gửi mã"}
+                    {forgotPasswordLoading ? "Đang gửi..." : "Gửi mã"}
                   </button>
                 </div>
               </>
@@ -442,10 +424,10 @@ const SignInForm: React.FC = () => {
                   </button>
                   <button
                     onClick={handleVerifyOtpSubmit}
-                    disabled={loading}
+                    disabled={forgotPasswordLoading}
                     className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
                   >
-                    {loading ? "Đang xác nhận..." : "Xác nhận"}
+                    {forgotPasswordLoading ? "Đang xác nhận..." : "Xác nhận"}
                   </button>
                 </div>
               </>
@@ -479,10 +461,10 @@ const SignInForm: React.FC = () => {
                   </button>
                   <button
                     onClick={handleResetPasswordSubmit}
-                    disabled={loading}
+                    disabled={forgotPasswordLoading}
                     className="text-sm px-4 py-2 bg-[#2f4f3f] text-white rounded"
                   >
-                    {loading ? "Đang lưu..." : "Lưu"}
+                    {forgotPasswordLoading ? "Đang lưu..." : "Lưu"}
                   </button>
                 </div>
               </>

@@ -20,7 +20,7 @@ interface Booking {
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {
-  Confirmed: { label: "Đã xác nhận", color: "bg-green-100 text-green-700" },
+  Success: { label: "Đã xác nhận", color: "bg-green-100 text-green-700" },
   Cancelled: { label: "Đã hủy", color: "bg-red-100 text-red-700" },
   Pending: { label: "Chờ xác nhận", color: "bg-yellow-100 text-yellow-700" },
 };
@@ -170,7 +170,7 @@ const BookingHistoryList: React.FC = () => {
                       <td className="px-4 py-3 font-semibold text-[#1a3c34]">
                         {booking.fieldName}
                       </td>
-                      <td className="px-4 py-3">{booking.facilityAddress}</td>
+                      <td className="px-4 py-3">{booking.facilityName}</td>
                       <td className="px-4 py-3">{booking.date}</td>
                       <td className="px-4 py-3">
                         {booking.startTime.slice(0, 5)} -{" "}

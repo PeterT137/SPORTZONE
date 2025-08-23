@@ -97,9 +97,9 @@ namespace SportZone_API.Services
             vnpay.AddRequestData("vnp_ExpireDate", DateTime.Now.AddMinutes(15).ToString("yyyyMMddHHmmss"));
 
             string paymentUrl = vnpay.CreateRequestUrl(_paymentUrl, _hashSecret);
-            
+
             Console.WriteLine($"VNPay URL: {paymentUrl}");
-            
+
             return paymentUrl;
         }
 
@@ -130,4 +130,4 @@ namespace SportZone_API.Services
 
 
     }
-} 
+}

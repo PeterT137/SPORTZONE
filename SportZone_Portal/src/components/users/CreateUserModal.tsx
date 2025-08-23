@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
-import type { CreateUserRequest } from "./types";
+import { X, Eye, EyeOff } from "lucide-react"; 
+
+interface CreateUserRequest {
+  Email: string;
+  Password: string;
+  RoleId: number;
+  Name: string;
+  Phone?: string;
+  Status: string;
+  FacilityId?: number;
+  StartTime?: string;
+  EndTime?: string;
+  Image?: string;
+}
 
 interface Facility {
   facId: number;
@@ -20,7 +32,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const [formData, setFormData] = useState<CreateUserRequest>({
     Email: "",
     Password: "",
-    RoleId: 1, // Đảm bảo là number
+    RoleId: 1, 
     Name: "",
     Phone: "",
     Status: "Active",
@@ -33,6 +45,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [facilitiesLoading, setFacilitiesLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     fetchFacilities();
@@ -67,7 +80,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
           setFacilities(result.data);
         } else {
           console.log("Direct response (no wrapper):", result);
-          // Nếu API trả về trực tiếp array mà không có wrapper
           if (Array.isArray(result)) {
             setFacilities(result);
           }
@@ -136,11 +148,9 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         }),
       });
       const result = await response.json();
-      // Nếu status 200 và có message thành công thì vẫn coi là thành công
       if (response.ok && (result.success === true || (result.message && result.message.toLowerCase().includes("thành công")))) {
         setError(null);
-        // Hiển thị alert thành công rõ ràng
-        window.alert(result.message || "Tạo tài khoản thành công!");
+        alert(result.message || "Tạo tài khoản thành công!");
         onUserCreated();
       } else if (!response.ok) {
         setError(result.message || `HTTP error! status: ${response.status}`);
@@ -155,6 +165,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev) => !prev);
   };
 
   return (
@@ -204,7 +218,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Nhập họ và tên"
               />
             </div>
 
@@ -224,7 +237,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="user@example.com"
               />
             </div>
 
@@ -236,17 +248,26 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
               >
                 Mật khẩu <span className="text-red-500">*</span>
               </label>
-              <input
-                type="password"
-                id="Password"
-                name="Password"
-                value={formData.Password}
-                onChange={handleChange}
-                required
-                minLength={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Tối thiểu 6 ký tự"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="Password"
+                  name="Password"
+                  value={formData.Password}
+                  onChange={handleChange}
+                  required
+                  minLength={6}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
 
             {/* Phone Field */}
@@ -264,7 +285,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 value={formData.Phone || ""}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="0123456789"
               />
             </div>
 
@@ -287,7 +307,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 <option value={1}>Khách hàng</option>
                 <option value={2}>Chủ sân</option>
                 <option value={3}>Admin</option>
-                {/* <option value={4}>Nhân viên</option> */}
               </select>
             </div>
 
@@ -323,109 +342,108 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
               );
               return formData.RoleId === 4;
             })() && (
-                <div className="border-t border-gray-200 pt-6 mt-6">
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-200">
-                    <h4 className="text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                      Thông tin nhân viên
-                    </h4>
-                    <p className="text-sm text-blue-700">
-                      Vui lòng điền đầy đủ thông tin cơ sở làm việc và thời gian
-                      làm việc
-                    </p>
-                  </div>
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-200">
+                  <h4 className="text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                    Thông tin nhân viên
+                  </h4>
+                  <p className="text-sm text-blue-700">
+                    Vui lòng điền đầy đủ thông tin cơ sở làm việc và thời gian làm việc
+                  </p>
+                </div>
 
-                  <div className="space-y-4">
-                    {/* Facility Field - Made more prominent */}
-                    <label
-                      htmlFor="FacilityId"
-                      className="block text-sm font-semibold text-gray-800"
-                    >
-                      Cơ sở làm việc <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      id="FacilityId"
-                      name="FacilityId"
-                      value={formData.FacilityId || 0}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 bg-white font-medium"
-                      disabled={facilitiesLoading}
-                    >
-                      <option value={0}>Chưa phân cơ sở</option>
-                      {facilitiesLoading ? (
-                        <option disabled>Đang tải danh sách cơ sở...</option>
-                      ) : (
-                        facilities.map((facility) => (
-                          <option key={facility.facId} value={facility.facId}>
-                            {facility.name}{" "}
-                            {facility.address ? `- ${facility.address}` : ""}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {facilitiesLoading
-                        ? "Đang tải danh sách cơ sở từ hệ thống..."
-                        : 'Chọn "Chưa phân cơ sở" nếu nhân viên chưa được phân công cơ sở cụ thể'}
-                    </p>
+                <div className="space-y-4">
+                  {/* Facility Field - Made more prominent */}
+                  <label
+                    htmlFor="FacilityId"
+                    className="block text-sm font-semibold text-gray-800"
+                  >
+                    Cơ sở làm việc <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="FacilityId"
+                    name="FacilityId"
+                    value={formData.FacilityId || 0}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 bg-white font-medium"
+                    disabled={facilitiesLoading}
+                  >
+                    <option value={0}>Chưa phân cơ sở</option>
+                    {facilitiesLoading ? (
+                      <option disabled>Đang tải danh sách cơ sở...</option>
+                    ) : (
+                      facilities.map((facility) => (
+                        <option key={facility.facId} value={facility.facId}>
+                          {facility.name}{" "}
+                          {facility.address ? `- ${facility.address}` : ""}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {facilitiesLoading
+                      ? "Đang tải danh sách cơ sở từ hệ thống..."
+                      : 'Chọn "Chưa phân cơ sở" nếu nhân viên chưa được phân công cơ sở cụ thể'}
+                  </p>
 
-                    {/* Work Period */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label
-                          htmlFor="StartTime"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Ngày bắt đầu làm việc
-                        </label>
-                        <input
-                          type="date"
-                          id="StartTime"
-                          name="StartTime"
-                          value={
-                            formData.StartTime
-                              ? formData.StartTime.split("T")[0]
-                              : ""
-                          }
-                          onChange={(e) => {
-                            const { name, value } = e.target;
-                            setFormData((prev) => ({
-                              ...prev,
-                              [name]: value ? `${value}T08:00:00` : "",
-                            }));
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
+                  {/* Work Period */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="StartTime"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Ngày bắt đầu làm việc
+                      </label>
+                      <input
+                        type="date"
+                        id="StartTime"
+                        name="StartTime"
+                        value={
+                          formData.StartTime
+                            ? formData.StartTime.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const { name, value } = e.target;
+                          setFormData((prev) => ({
+                            ...prev,
+                            [name]: value ? `${value}T08:00:00` : "",
+                          }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
 
-                      <div>
-                        <label
-                          htmlFor="EndTime"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Ngày kết thúc làm việc
-                        </label>
-                        <input
-                          type="date"
-                          id="EndTime"
-                          name="EndTime"
-                          value={
-                            formData.EndTime ? formData.EndTime.split("T")[0] : ""
-                          }
-                          onChange={(e) => {
-                            const { name, value } = e.target;
-                            setFormData((prev) => ({
-                              ...prev,
-                              [name]: value ? `${value}T18:00:00` : "",
-                            }));
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
+                    <div>
+                      <label
+                        htmlFor="EndTime"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Ngày kết thúc làm việc
+                      </label>
+                      <input
+                        type="date"
+                        id="EndTime"
+                        name="EndTime"
+                        value={
+                          formData.EndTime ? formData.EndTime.split("T")[0] : ""
+                        }
+                        onChange={(e) => {
+                          const { name, value } = e.target;
+                          setFormData((prev) => ({
+                            ...prev,
+                            [name]: value ? `${value}T18:00:00` : "",
+                          }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
           </div>
 
           {/* Buttons */}
@@ -449,7 +467,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                   Đang tạo...
                 </>
               ) : (
-                <>+ Thêm tài khoản</>
+                <>Thêm tài khoản</>
               )}
             </button>
           </div>

@@ -84,9 +84,9 @@ namespace SportZone_API.Services
             var date = booking.Date?.ToString("dd/MM/yyyy") ?? "Không xác định";
             var timeRange = $"{booking.StartTime:HH:mm} - {booking.EndTime:HH:mm}";
 
-            return $"Đặt sân thành công!\n"
-                +$" {fieldName} - {facilityName}.\n"
-                +$"\nThời gian {date} từ {timeRange}";
+            return $"Đặt sân thành công!\n" +
+                   $"{fieldName} - {facilityName}.\n" +
+                   $"Thời gian: {date} từ {timeRange}.";
 
         }
 
@@ -98,7 +98,9 @@ namespace SportZone_API.Services
             var timeRange = $"{booking.StartTime:HH:mm} - {booking.EndTime:HH:mm}";
             var customerName = booking.UIdNavigation?.Customer?.Name ?? "Khách";
 
-            return $"Có đặt sân mới! {customerName} đã đặt sân {fieldName} tại {facilityName} vào ngày {date} từ {timeRange}. ";
+            return $"Có đặt sân mới!\n" +
+                   $"{customerName} đã đặt {fieldName} tại {facilityName}.\n" +
+                   $"Thời gian: {date} từ {timeRange}.";
         }
 
         public async Task<IEnumerable<Notification>> GetNotificationsByUserIdAsync(int userId)
