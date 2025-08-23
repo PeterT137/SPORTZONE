@@ -23,7 +23,8 @@ namespace SportZone_API.Mappings
 
             CreateMap<Field, FieldResponseDTO>()
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.CategoryFieldName : null))
-                .ForMember(dest => dest.FacilityAddress, opt => opt.MapFrom(src => src.Fac != null ? src.Fac.Address : null));
+                .ForMember(dest => dest.FacilityAddress, opt => opt.MapFrom(src => src.Fac != null ? src.Fac.Address : null))
+                .ForMember(dest => dest.OwnerPhone, opt => opt.MapFrom(src => src.Fac != null && src.Fac.UIdNavigation != null ? src.Fac.UIdNavigation.Phone : null)); 
 
             // Category Mappings
             CreateMap<CategoryField, CategoryFieldResponseDTO>()

@@ -89,10 +89,11 @@ namespace SportZone_API.Repositories
             try
             {
                 var fields = await _context.Fields
-                    .Include(f => f.Fac)
-                    .Include(f => f.Category)
-                    .Where(f => f.FacId == facId)
-                    .ToListAsync();
+                .Include(f => f.Category)
+                .Include(f => f.Fac) 
+                    .ThenInclude(f => f.UIdNavigation) 
+                .Where(f => f.FacId == facId)
+                .ToListAsync();
                 return _mapper.Map<IEnumerable<FieldResponseDTO>>(fields);
             }
             catch (Exception ex)

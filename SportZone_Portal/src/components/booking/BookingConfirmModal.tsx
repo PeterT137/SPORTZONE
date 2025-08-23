@@ -12,6 +12,7 @@ interface DemoField {
   openTime: string;
   closeTime: string;
   pricing: unknown[];
+  ownerPhone?: string;
 }
 
 interface FieldScheduleSlot {
@@ -425,8 +426,18 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
               </div>
 
               <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                <p>• Vui lòng thanh toán tiền cọc để hoàn tất đặt sân.</p>
-                <p>• Chi phí dịch vụ phát sinh sẽ được thanh toán tại cơ sở.</p>
+                <p>
+                  • Vui lòng thanh toán tiền cọc trong vòng <strong style={{ color: 'red' }}>5 phút</strong> để hoàn tất đặt sân.
+                </p>
+                <p>
+                  • Bạn có thể hủy đặt sân nếu hủy trước giờ chơi <strong style={{ color: 'red' }}>ít nhất 2 tiếng</strong>.
+                </p>
+                <p>
+                  • Liên hệ với chủ sân để nhận lại tiền cọc. (SĐT: <strong style={{ color: 'red' }}>{booking.field?.ownerPhone}</strong>).
+                </p>
+                <p>
+                  • Chi phí dịch vụ phát sinh sẽ được thanh toán tại cơ sở.
+                </p>
               </div>
             </div>
           </div>
