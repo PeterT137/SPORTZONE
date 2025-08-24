@@ -149,6 +149,19 @@ namespace SportZone_API.Repositories
             }
         }
 
+        public async Task<int> GetArrivedOrderCountByFaciIdAsync(int facilityId)
+        {
+            try
+            {
+                return await _context.Orders
+                    .CountAsync(o => o.FacId == facilityId && o.StatusPayment == "Arrived");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy số lượng Order đã đến sân: {ex.Message}", ex);
+            }
+        }
+
         public async Task<OwnerRevenueDTO> GetOwnerTotalRevenueAsync(int ownerId,
                                                                      DateTime? startDate = null,
                                                                      DateTime? endDate = null,
