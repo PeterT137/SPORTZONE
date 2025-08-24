@@ -135,6 +135,10 @@ namespace SportZone_API.Repositories
                 {
                     order.StatusPayment = "Cancelled"; // Đã hủy
                 }
+                else if (option == 4)
+                {
+                    order.StatusPayment = "Arrived"; // Đã đến sân
+                }
                 _context.Orders.Update(order);
                 await _context.SaveChangesAsync();
                 return _mapper.Map<OrderDTO>(order);
@@ -142,6 +146,19 @@ namespace SportZone_API.Repositories
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi cập nhật trạng thái thanh toán của Order: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<int> GetArrivedOrderCountByFaciIdAsync(int facilityId)
+        {
+            try
+            {
+                return await _context.Orders
+                    .CountAsync(o => o.FacId == facilityId && o.StatusPayment == "Arrived");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy số lượng Order đã đến sân: {ex.Message}", ex);
             }
         }
 

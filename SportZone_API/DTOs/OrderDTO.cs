@@ -44,6 +44,9 @@
         public string? CustomerPhone { get; set; }
         public string? CustomerEmail { get; set; }
 
+        // Số lượng Order đã đến sân (chỉ có giá trị khi option = 4)
+        public int? ArrivedOrderCount { get; set; }
+
         public List<OrderDetailServiceDTO> Services { get; set; } = new List<OrderDetailServiceDTO>();
     }
 

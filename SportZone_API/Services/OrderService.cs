@@ -129,11 +129,18 @@ namespace SportZone_API.Services
                 {
                     throw new ArgumentException("OrderId không hợp lệ", nameof(orderId));
                 }
-                if (option != 1 && option != 2 && option != 3)
+                if (option != 1 && option != 2 && option != 3 && option != 4)
                 {
                     throw new ArgumentException("Option không hợp lệ", nameof(option));
                 }
-                return await _orderRepository.UpdateOrderStatusPaymentAsync(orderId, option);
+
+                var order = await _orderRepository.UpdateOrderStatusPaymentAsync(orderId, option);
+                if (order != null)
+                {
+                    var arrivedCount = await _orderRepository.GetArrivedOrderCountByFaciIdAsync(order.FacId);
+                    order.ArrivedOrderCount = arrivedCount;
+                }
+                return order;
             }
             catch (Exception ex)
             {
