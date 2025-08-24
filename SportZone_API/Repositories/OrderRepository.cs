@@ -135,6 +135,10 @@ namespace SportZone_API.Repositories
                 {
                     order.StatusPayment = "Cancelled"; // Đã hủy
                 }
+                else if (option == 4)
+                {
+                    order.StatusPayment = "Arrived"; // Đã đến sân
+                }
                 _context.Orders.Update(order);
                 await _context.SaveChangesAsync();
                 return _mapper.Map<OrderDTO>(order);

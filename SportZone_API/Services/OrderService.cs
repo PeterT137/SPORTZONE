@@ -129,7 +129,7 @@ namespace SportZone_API.Services
                 {
                     throw new ArgumentException("OrderId không hợp lệ", nameof(orderId));
                 }
-                if (option != 1 && option != 2 && option != 3)
+                if (option != 1 && option != 2 && option != 3 && option != 4)
                 {
                     throw new ArgumentException("Option không hợp lệ", nameof(option));
                 }
