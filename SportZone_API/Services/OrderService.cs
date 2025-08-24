@@ -135,7 +135,7 @@ namespace SportZone_API.Services
                 }
 
                 var order = await _orderRepository.UpdateOrderStatusPaymentAsync(orderId, option);
-                if (order != null && option == 4)
+                if (order != null)
                 {
                     var arrivedCount = await _orderRepository.GetArrivedOrderCountByFaciIdAsync(order.FacId);
                     order.ArrivedOrderCount = arrivedCount;
