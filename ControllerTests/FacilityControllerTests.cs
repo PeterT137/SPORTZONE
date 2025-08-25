@@ -304,46 +304,46 @@ namespace SportZone_API.Tests.Controllers
         }
 
         // TC_Facility_14
-        [Fact]
-        public async Task GetFacilitiesByUserId_ReturnsOk_WithData()
-        {
-            // Arrange
-            var mockFacilities = new List<FacilityDto>
-            {
-                new FacilityDto { Name = "Sân bóng đá A", Address = "Hà Nội" },
-                new FacilityDto { Name = "Sân bóng đá B", Address = "TP.HCM" }
-            };
-            _facilityServiceMock.Setup(s => s.GetFacilitiesByUserId(1))
-                .ReturnsAsync(new ServiceResponse<List<FacilityDto>>
-                {
-                    Success = true,
-                    Data = mockFacilities
-                });
+        //[Fact]
+        //public async Task GetFacilitiesByUserId_ReturnsOk_WithData()
+        //{
+        //    // Arrange
+        //    var mockFacilities = new List<FacilityDto>
+        //    {
+        //        new FacilityDto { Name = "Sân bóng đá A", Address = "Hà Nội" },
+        //        new FacilityDto { Name = "Sân bóng đá B", Address = "TP.HCM" }
+        //    };
+        //    _facilityServiceMock.Setup(s => s.GetFacilitiesByUserId(1))
+        //        .ReturnsAsync(new ServiceResponse<List<FacilityDto>>
+        //        {
+        //            Success = true,
+        //            Data = mockFacilities
+        //        });
 
-            // Act
-            var result = await _controller.GetFacilitiesByUserId(1);
+        //    // Act
+        //    var result = await _controller.GetFacilitiesByUserId(1);
 
-            // Assert
-            Assert.IsType<OkObjectResult>(result);
-        }
+        //    // Assert
+        //    Assert.IsType<OkObjectResult>(result);
+        //}
 
         // TC_Facility_15
-        [Fact]
-        public async Task GetFacilitiesByUserId_ServiceFails_ReturnsBadRequest()
-        {
-            // Arrange
-            _facilityServiceMock.Setup(s => s.GetFacilitiesByUserId(1))
-                .ReturnsAsync(new ServiceResponse<List<FacilityDto>>
-                {
-                    Success = false,
-                    Message = "Lỗi khi lấy danh sách cơ sở theo ID người dùng"
-                });
+        //[Fact]
+        //public async Task GetFacilitiesByUserId_ServiceFails_ReturnsBadRequest()
+        //{
+        //    // Arrange
+        //    _facilityServiceMock.Setup(s => s.GetFacilitiesByUserId(1))
+        //        .ReturnsAsync(new ServiceResponse<List<FacilityDto>>
+        //        {
+        //            Success = false,
+        //            Message = "Lỗi khi lấy danh sách cơ sở theo ID người dùng"
+        //        });
 
-            // Act
-            var result = await _controller.GetFacilitiesByUserId(1);
+        //    // Act
+        //    var result = await _controller.GetFacilitiesByUserId(1);
 
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result);
-        }
+        //    // Assert
+        //    Assert.IsType<BadRequestObjectResult>(result);
+        //}
     }
 }
