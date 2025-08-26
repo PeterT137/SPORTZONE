@@ -3,2411 +3,2420 @@ import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "../../Sidebar";
 
 interface Order {
-  orderId: number;
-  bookingId: number;
-  facilityName: string;
-  fieldName: string;
-  customerName: string;
-  customerPhone: string;
-  customerEmail?: string;
-  totalPrice: number;
-  totalServicePrice: number;
-  contentPayment: string;
-  statusPayment: string;
-  bookingDate: string;
-  startTime: string;
-  endTime: string;
-  createAt: string;
-  action: string;
+    orderId: number;
+    bookingId: number;
+    facilityName: string;
+    fieldName: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    totalPrice: number;
+    totalServicePrice: number;
+    contentPayment: string;
+    statusPayment: string;
+    bookingDate: string;
+    startTime: string;
+    endTime: string;
+    createAt: string;
+    action: string;
 }
 
 interface OrderDetail {
-  orderId: number;
-  bookingId: number;
-  facilityName: string;
-  fieldName: string;
-  categoryFieldName: string;
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  totalPrice: number;
-  totalServicePrice: number;
-  fieldRentalPrice: number;
-  discountAmount: number;
-  deposit: number;
-  contentPayment: string;
-  statusPayment: string;
-  paymentMethod: string;
-  bookingDate: string;
-  startTime: string;
-  endTime: string;
-  bookingTitle: string;
-  bookingStatus: string;
-  services: OrderServiceDetail[];
-  createAt: string;
-  bookingCreateAt: string;
+    orderId: number;
+    bookingId: number;
+    facilityName: string;
+    fieldName: string;
+    categoryFieldName: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail: string;
+    totalPrice: number;
+    totalServicePrice: number;
+    fieldRentalPrice: number;
+    discountAmount: number;
+    deposit: number;
+    contentPayment: string;
+    statusPayment: string;
+    paymentMethod: string;
+    bookingDate: string;
+    startTime: string;
+    endTime: string;
+    bookingTitle: string;
+    bookingStatus: string;
+    services: OrderServiceDetail[];
+    createAt: string;
+    bookingCreateAt: string;
 }
 
 interface OrderServiceDetail {
-  serviceId: number;
-  serviceName: string;
-  price: number;
-  quantity: number;
-  imageUrl?: string;
+    serviceId: number;
+    serviceName: string;
+    price: number;
+    quantity: number;
+    imageUrl?: string;
 }
 
 const mapPaymentStatus = (status?: string): string => {
-  if (!status || status === "NULL" || status == null) return "Chưa xác định";
-  const s = String(status).toLowerCase();
-  if (s === "pending") return "Chờ thanh toán";
-  if (s === "success") return "Đã thanh toán";
-  if (s === "cancelled" || s === "cancel") return "Đã hủy";
-  return status;
+    if (!status || status === "NULL" || status == null) return "Chưa xác định";
+    const s = String(status).toLowerCase();
+    if (s === "pending") return "Chờ thanh toán";
+    if (s === "success") return "Đã thanh toán";
+    if (s == "arrived") return "Đã đến";
+    if (s === "cancelled" || s === "cancel") return "Đã hủy";
+    return status;
 };
 
 const mapBookingStatus = (status: string) => {
-  if (!status) return "Chưa xác định";
-  const lower = status.trim().toLowerCase();
-  if (lower === "pending") return "Đang chờ";
-  if (lower === "success") return "Đã hoàn thành";
-  return status;
+    if (!status) return "Chưa xác định";
+    const lower = status.trim().toLowerCase();
+    if (lower === "pending") return "Đang chờ";
+    if (lower === "success") return "Đã hoàn thành";
+    return status;
 };
 
 // Component chính
 const OrdersTable: React.FC = () => {
-  const [ordersPerPage, setOrdersPerPage] = useState<number>(10);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [error, setError] = useState<string | null>(null);
+    const [ordersPerPage, setOrdersPerPage] = useState<number>(10);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [error, setError] = useState<string | null>(null);
 
-  // Filter states
-  const [filters, setFilters] = useState({
-    facility: "",
-    customer: "",
-    priceFrom: "",
-    priceTo: "",
-    paymentStatus: "",
-    dateFrom: "",
-    dateTo: "",
-  });
+    // Filter states
+    const [filters, setFilters] = useState({
+        facility: "",
+        customer: "",
+        priceFrom: "",
+        priceTo: "",
+        paymentStatus: "",
+        dateFrom: "",
+        dateTo: "",
+    });
 
-  // Dropdown states
-  const [showDropdowns, setShowDropdowns] = useState<{
-    [key: string]: boolean;
-  }>({});
+    // Dropdown states
+    const [showDropdowns, setShowDropdowns] = useState<{
+        [key: string]: boolean;
+    }>({});
 
-  const [confirmPopup, setConfirmPopup] = useState<{
-    show: boolean;
-    orderId: number | null;
-    newStatus: string;
-  }>(() => ({ show: false, orderId: null, newStatus: "" }));
+    const [confirmPopup, setConfirmPopup] = useState<{
+        show: boolean;
+        orderId: number | null;
+        newStatus: string;
+    }>(() => ({ show: false, orderId: null, newStatus: "" }));
 
-  const handleChangePaymentStatus = (orderId: number, newStatus: string) => {
-    setConfirmPopup({ show: true, orderId, newStatus });
-  };
+    const handleChangePaymentStatus = (orderId: number, newStatus: string) => {
+        setConfirmPopup({ show: true, orderId, newStatus });
+    };
 
-  const handleConfirmChangeStatus = () => {
-    if (confirmPopup.orderId && confirmPopup.newStatus) {
-      updatePaymentStatus(confirmPopup.orderId, confirmPopup.newStatus);
-    }
-    setConfirmPopup({ show: false, orderId: null, newStatus: "" });
-  };
-
-  const handleCancelChangeStatus = () => {
-    setConfirmPopup({ show: false, orderId: null, newStatus: "" });
-  };
-
-  // Modal states
-  const [showModal, setShowModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
-  const [modalLoading, setModalLoading] = useState<boolean>(false);
-
-  const API_URL = "https://localhost:7057";
-  const getAuthHeaders = useCallback((): Record<string, string> => {
-    const token = localStorage.getItem("token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
-
-  // Helper: fetch booking detail (without affecting modal loading state)
-  const fetchBookingDetailForTable = useCallback(
-    async (bookingId: number): Promise<Record<string, unknown> | null> => {
-      try {
-        const response = await fetch(
-          `${API_URL}/api/Booking/GetBookingById/${bookingId}`,
-          {
-            method: "GET",
-            headers: getAuthHeaders(),
-          }
-        );
-        if (!response.ok) return null;
-        const data = (await response.json()) as Record<string, unknown>;
-        const container = data || {};
-        const payload =
-          (container["data"] as Record<string, unknown>) || container;
-        return payload;
-      } catch {
-        return null;
-      }
-    },
-    [API_URL, getAuthHeaders]
-  );
-
-  const enrichOrdersWithBookingDetails = useCallback(
-    async (ordersList: Order[]): Promise<Order[]> => {
-      if (!Array.isArray(ordersList) || ordersList.length === 0)
-        return ordersList;
-      const uniqueBookingIds = Array.from(
-        new Set(
-          ordersList
-            .map((o) => o.bookingId)
-            .filter((id) => Number.isFinite(id))
-        )
-      ) as number[];
-
-      const getString = (v: unknown, fb = ""): string =>
-        typeof v === "string" ? v : v == null ? fb : String(v);
-
-      const detailsArray = await Promise.all(
-        uniqueBookingIds.map(async (bid) => ({
-          bid,
-          detail: await fetchBookingDetailForTable(bid),
-        }))
-      );
-      const idToDetail = new Map<number, Record<string, unknown>>();
-      detailsArray.forEach(({ bid, detail }) => {
-        if (detail) idToDetail.set(bid, detail);
-      });
-
-      return ordersList.map((o) => {
-        const d = idToDetail.get(o.bookingId);
-        if (!d) return o;
-
-        const bookedSlots = ((d["bookedSlots"] as unknown) ||
-          []) as Array<Record<string, unknown>>;
-        const firstSlot = bookedSlots[0] || {};
-
-        const bookingDate = getString(
-          d["date"] ??
-          d["Date"] ??
-          firstSlot["date"] ??
-          firstSlot["Date"],
-          o.bookingDate
-        );
-        const startTime = getString(
-          d["startTime"] ??
-          d["StartTime"] ??
-          firstSlot["startTime"] ??
-          firstSlot["StartTime"],
-          o.startTime
-        ).slice(0, 5);
-        const endTime = getString(
-          d["endTime"] ??
-          d["EndTime"] ??
-          firstSlot["endTime"] ??
-          firstSlot["EndTime"],
-          o.endTime
-        ).slice(0, 5);
-
-        const fieldObj =
-          (d["field"] as Record<string, unknown> | undefined) ||
-          undefined;
-        const fieldName = getString(
-          fieldObj?.["fieldName"] ??
-          fieldObj?.["FieldName"] ??
-          firstSlot["fieldName"] ??
-          firstSlot["FieldName"],
-          o.fieldName
-        );
-
-        return {
-          ...o,
-          bookingDate,
-          startTime,
-          endTime,
-          fieldName,
-        };
-      });
-    },
-    [fetchBookingDetailForTable]
-  );
-
-  useEffect(() => {
-    const loadOrdersFromApi = async () => {
-      setLoading(true);
-      setError(null);
-      const userRaw = localStorage.getItem("user");
-      if (!userRaw) {
-        setOrders([]);
-        setLoading(false);
-        setError(
-          "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập."
-        );
-        return;
-      }
-      const user = JSON.parse(userRaw);
-      const userId = user?.UId;
-
-      if (!userId) {
-        setOrders([]);
-        setLoading(false);
-        setError("ID người dùng không hợp lệ.");
-        return;
-      }
-
-      try {
-        const allFacilitiesRes = await fetch(
-          `${API_URL}/api/Facility/with-details`,
-          {
-            method: "GET",
-            headers: getAuthHeaders(),
-          }
-        );
-
-        if (!allFacilitiesRes.ok) {
-          throw new Error("Failed to fetch necessary data.");
+    const handleConfirmChangeStatus = () => {
+        if (confirmPopup.orderId && confirmPopup.newStatus) {
+            updatePaymentStatus(confirmPopup.orderId, confirmPopup.newStatus);
         }
+        setConfirmPopup({ show: false, orderId: null, newStatus: "" });
+    };
 
-        const allFacilitiesJson = await allFacilitiesRes.json();
+    const handleCancelChangeStatus = () => {
+        setConfirmPopup({ show: false, orderId: null, newStatus: "" });
+    };
 
-        // Helpers for safe extraction
-        const getStr = (v: unknown, fb = ""): string =>
-          typeof v === "string" ? v : v == null ? fb : String(v);
-        const getNum = (v: unknown, fb = 0): number => {
-          if (typeof v === "number") return v;
-          const n = Number(v as unknown as string);
-          return Number.isFinite(n) ? n : fb;
-        };
+    // Modal states
+    const [showModal, setShowModal] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
+    const [modalLoading, setModalLoading] = useState<boolean>(false);
 
-        const facilitiesMap = new Map<
-          number,
-          Record<string, unknown>
-        >();
-        if (Array.isArray(allFacilitiesJson)) {
-          (
-            allFacilitiesJson as Array<Record<string, unknown>>
-          ).forEach((f) => {
-            const facId = getNum(f["facId"] ?? f["FacId"], NaN);
-            if (Number.isFinite(facId)) {
-              facilitiesMap.set(facId, f);
-            }
-          });
-        }
+    const API_URL = "https://localhost:7057";
+    const getAuthHeaders = useCallback((): Record<string, string> => {
+        const token = localStorage.getItem("token");
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    }, []);
 
-        const userFacilities: Array<Record<string, unknown>> = [
-          ...facilitiesMap.values(),
-        ].filter(
-          (f) =>
-            getNum(f["userId"] ?? f["UserId"] ?? f["UId"], NaN) ===
-            Number(userId)
-        );
-
-        // if (userFacilities.length === 0) {
-        //     setOrders([]);
-        //     setLoading(false);
-        //     return;
-        // }
-
-        const userStr = localStorage.getItem("user");
-        const user = userStr ? JSON.parse(userStr) : null;
-
-        let facilityIds: number[] = [];
-
-        if (user && user.RoleId === 4) {
-          const facInfoStr = localStorage.getItem("facilityInfo");
-          if (facInfoStr) {
+    // Helper: fetch booking detail (without affecting modal loading state)
+    const fetchBookingDetailForTable = useCallback(
+        async (bookingId: number): Promise<Record<string, unknown> | null> => {
             try {
-              const facInfo = JSON.parse(facInfoStr);
-              const facId = getNum(
-                facInfo["facId"] ?? facInfo["FacId"],
-                NaN
-              );
-              if (Number.isFinite(facId)) {
-                facilityIds = [facId];
-              }
-            } catch (err) {
-              console.error("Failed to parse facilityInfo:", err);
+                const response = await fetch(
+                    `${API_URL}/api/Booking/GetBookingById/${bookingId}`,
+                    {
+                        method: "GET",
+                        headers: getAuthHeaders(),
+                    }
+                );
+                if (!response.ok) return null;
+                const data = (await response.json()) as Record<string, unknown>;
+                const container = data || {};
+                const payload =
+                    (container["data"] as Record<string, unknown>) || container;
+                return payload;
+            } catch {
+                return null;
             }
-          }
-        } else {
-          facilityIds = userFacilities.map((f) =>
-            getNum(f["facId"] ?? f["FacId"], NaN)
-          );
+        },
+        [API_URL, getAuthHeaders]
+    );
+
+    const enrichOrdersWithBookingDetails = useCallback(
+        async (ordersList: Order[]): Promise<Order[]> => {
+            if (!Array.isArray(ordersList) || ordersList.length === 0)
+                return ordersList;
+            const uniqueBookingIds = Array.from(
+                new Set(
+                    ordersList
+                        .map((o) => o.bookingId)
+                        .filter((id) => Number.isFinite(id))
+                )
+            ) as number[];
+
+            const getString = (v: unknown, fb = ""): string =>
+                typeof v === "string" ? v : v == null ? fb : String(v);
+
+            const detailsArray = await Promise.all(
+                uniqueBookingIds.map(async (bid) => ({
+                    bid,
+                    detail: await fetchBookingDetailForTable(bid),
+                }))
+            );
+            const idToDetail = new Map<number, Record<string, unknown>>();
+            detailsArray.forEach(({ bid, detail }) => {
+                if (detail) idToDetail.set(bid, detail);
+            });
+
+            return ordersList.map((o) => {
+                const d = idToDetail.get(o.bookingId);
+                if (!d) return o;
+
+                const bookedSlots = ((d["bookedSlots"] as unknown) ||
+                    []) as Array<Record<string, unknown>>;
+                const firstSlot = bookedSlots[0] || {};
+
+                const bookingDate = getString(
+                    d["date"] ??
+                        d["Date"] ??
+                        firstSlot["date"] ??
+                        firstSlot["Date"],
+                    o.bookingDate
+                );
+                const startTime = getString(
+                    d["startTime"] ??
+                        d["StartTime"] ??
+                        firstSlot["startTime"] ??
+                        firstSlot["StartTime"],
+                    o.startTime
+                ).slice(0, 5);
+                const endTime = getString(
+                    d["endTime"] ??
+                        d["EndTime"] ??
+                        firstSlot["endTime"] ??
+                        firstSlot["EndTime"],
+                    o.endTime
+                ).slice(0, 5);
+
+                const fieldObj =
+                    (d["field"] as Record<string, unknown> | undefined) ||
+                    undefined;
+                const fieldName = getString(
+                    fieldObj?.["fieldName"] ??
+                        fieldObj?.["FieldName"] ??
+                        firstSlot["fieldName"] ??
+                        firstSlot["FieldName"],
+                    o.fieldName
+                );
+
+                return {
+                    ...o,
+                    bookingDate,
+                    startTime,
+                    endTime,
+                    fieldName,
+                };
+            });
+        },
+        [fetchBookingDetailForTable]
+    );
+
+    useEffect(() => {
+        const loadOrdersFromApi = async () => {
+            setLoading(true);
+            setError(null);
+            const userRaw = localStorage.getItem("user");
+            if (!userRaw) {
+                setOrders([]);
+                setLoading(false);
+                setError(
+                    "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập."
+                );
+                return;
+            }
+            const user = JSON.parse(userRaw);
+            const userId = user?.UId;
+
+            if (!userId) {
+                setOrders([]);
+                setLoading(false);
+                setError("ID người dùng không hợp lệ.");
+                return;
+            }
+
+            try {
+                const allFacilitiesRes = await fetch(
+                    `${API_URL}/api/Facility/with-details`,
+                    {
+                        method: "GET",
+                        headers: getAuthHeaders(),
+                    }
+                );
+
+                if (!allFacilitiesRes.ok) {
+                    throw new Error("Failed to fetch necessary data.");
+                }
+
+                const allFacilitiesJson = await allFacilitiesRes.json();
+
+                // Helpers for safe extraction
+                const getStr = (v: unknown, fb = ""): string =>
+                    typeof v === "string" ? v : v == null ? fb : String(v);
+                const getNum = (v: unknown, fb = 0): number => {
+                    if (typeof v === "number") return v;
+                    const n = Number(v as unknown as string);
+                    return Number.isFinite(n) ? n : fb;
+                };
+
+                const facilitiesMap = new Map<
+                    number,
+                    Record<string, unknown>
+                >();
+                if (Array.isArray(allFacilitiesJson)) {
+                    (
+                        allFacilitiesJson as Array<Record<string, unknown>>
+                    ).forEach((f) => {
+                        const facId = getNum(f["facId"] ?? f["FacId"], NaN);
+                        if (Number.isFinite(facId)) {
+                            facilitiesMap.set(facId, f);
+                        }
+                    });
+                }
+
+                const userFacilities: Array<Record<string, unknown>> = [
+                    ...facilitiesMap.values(),
+                ].filter(
+                    (f) =>
+                        getNum(f["userId"] ?? f["UserId"] ?? f["UId"], NaN) ===
+                        Number(userId)
+                );
+
+                // if (userFacilities.length === 0) {
+                //     setOrders([]);
+                //     setLoading(false);
+                //     return;
+                // }
+
+                const userStr = localStorage.getItem("user");
+                const user = userStr ? JSON.parse(userStr) : null;
+
+                let facilityIds: number[] = [];
+
+                if (user && user.RoleId === 4) {
+                    const facInfoStr = localStorage.getItem("facilityInfo");
+                    if (facInfoStr) {
+                        try {
+                            const facInfo = JSON.parse(facInfoStr);
+                            const facId = getNum(
+                                facInfo["facId"] ?? facInfo["FacId"],
+                                NaN
+                            );
+                            if (Number.isFinite(facId)) {
+                                facilityIds = [facId];
+                            }
+                        } catch (err) {
+                            console.error("Failed to parse facilityInfo:", err);
+                        }
+                    }
+                } else {
+                    facilityIds = userFacilities.map((f) =>
+                        getNum(f["facId"] ?? f["FacId"], NaN)
+                    );
+                }
+
+                // const facilityIds: number[] = userFacilities.map((f) =>
+                //     getNum(f["facId"] ?? f["FacId"], NaN)
+                // );
+
+                console.log(facilityIds);
+
+                const allOrders: Order[] = [];
+
+                const orderPromises: Array<Promise<Order[]>> = facilityIds.map(
+                    async (facId) => {
+                        const ordersRes = await fetch(
+                            `${API_URL}/api/Order/facility/${facId}`,
+                            {
+                                method: "GET",
+                                headers: getAuthHeaders(),
+                            }
+                        );
+                        if (!ordersRes.ok) {
+                            console.error(
+                                `Failed to fetch orders for facilityId ${facId}`
+                            );
+                            return [];
+                        }
+
+                        const ordersJson = await ordersRes.json();
+                        const ordersContainer =
+                            (ordersJson as Record<string, unknown>) || {};
+                        let ordersDataRaw: unknown = ordersJson;
+                        if (
+                            ordersContainer &&
+                            ordersContainer["data"] !== undefined
+                        ) {
+                            ordersDataRaw = ordersContainer["data"] as unknown;
+                        }
+                        if (
+                            ordersDataRaw &&
+                            typeof ordersDataRaw === "object" &&
+                            !Array.isArray(ordersDataRaw) &&
+                            (ordersDataRaw as Record<string, unknown>)["orders"]
+                        ) {
+                            ordersDataRaw = (
+                                ordersDataRaw as Record<string, unknown>
+                            )["orders"];
+                        }
+                        if (!Array.isArray(ordersDataRaw)) {
+                            return [];
+                        }
+
+                        const currentFacility = facilitiesMap.get(facId) as
+                            | Record<string, unknown>
+                            | undefined;
+                        const facilityName = getStr(
+                            currentFacility?.["name"] ??
+                                currentFacility?.["Name"],
+                            "N/A"
+                        );
+
+                        const ordersData = ordersDataRaw as Array<
+                            Record<string, unknown>
+                        >;
+                        return ordersData.map((o: Record<string, unknown>) => {
+                            const bookedSlots = (o["bookedSlots"] ??
+                                o["BookedSlots"] ??
+                                []) as Array<Record<string, unknown>>;
+                            const firstSlot =
+                                bookedSlots.length > 0 ? bookedSlots[0] : {};
+
+                            const bookingDate = getStr(
+                                firstSlot["date"] ?? firstSlot["Date"],
+                                ""
+                            );
+                            const startTime = getStr(
+                                firstSlot["startTime"] ??
+                                    firstSlot["StartTime"],
+                                ""
+                            ).slice(0, 5);
+                            const endTime = getStr(
+                                firstSlot["endTime"] ?? firstSlot["EndTime"],
+                                ""
+                            ).slice(0, 5);
+                            const fieldName = getStr(
+                                firstSlot["fieldName"] ??
+                                    firstSlot["FieldName"],
+                                "N/A"
+                            );
+
+                            const guestName = getStr(
+                                o["guestName"] ?? o["GuestName"]
+                            );
+                            const guestPhone = getStr(
+                                o["guestPhone"] ?? o["GuestPhone"]
+                            );
+                            const userName = getStr(
+                                o["userName"] ?? o["UserName"]
+                            );
+                            const userPhone = getStr(
+                                o["userPhone"] ?? o["UserPhone"]
+                            );
+                            const userEmail = getStr(
+                                o["userEmail"] ?? o["UserEmail"]
+                            );
+
+                            const customerName = guestName || userName;
+                            const customerPhone = guestPhone || userPhone;
+
+                            const statusPaymentRaw = getStr(
+                                o["statusPayment"] ?? o["StatusPayment"],
+                                ""
+                            );
+
+                            return {
+                                orderId: getNum(
+                                    o["orderId"] ?? o["OrderId"],
+                                    0
+                                ),
+                                bookingId: getNum(
+                                    o["bookingId"] ?? o["BookingId"],
+                                    0
+                                ),
+                                facilityName: facilityName,
+                                fieldName: fieldName,
+                                customerName: customerName || "Khách hàng",
+                                customerPhone: customerPhone || "N/A",
+                                customerEmail: userEmail || "N/A",
+                                totalPrice: getNum(
+                                    o["totalPrice"] ?? o["TotalPrice"],
+                                    0
+                                ),
+                                totalServicePrice: getNum(
+                                    o["totalServicePrice"] ??
+                                        o["TotalServicePrice"],
+                                    0
+                                ),
+                                contentPayment: getStr(
+                                    o["contentPayment"] ?? o["ContentPayment"],
+                                    ""
+                                ),
+                                statusPayment:
+                                    mapPaymentStatus(statusPaymentRaw),
+                                bookingDate,
+                                startTime,
+                                endTime,
+                                createAt: getStr(
+                                    o["createAt"] ?? o["CreateAt"],
+                                    ""
+                                ),
+                                action: "Chi tiết",
+                            } as Order;
+                        });
+                    }
+                );
+
+                const results: Order[][] = await Promise.all(orderPromises);
+                results.forEach((list: Order[]) => allOrders.push(...list));
+
+                allOrders.sort(
+                    (a, b) =>
+                        new Date(b.createAt).getTime() -
+                        new Date(a.createAt).getTime()
+                );
+
+                const enriched = await enrichOrdersWithBookingDetails(
+                    allOrders
+                );
+                setOrders(enriched);
+            } catch (error) {
+                console.error("Error loading orders:", error);
+                setError(
+                    "Không thể tải danh sách đơn hàng. Vui lòng thử lại sau."
+                );
+                setOrders([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadOrdersFromApi();
+    }, [API_URL, getAuthHeaders, enrichOrdersWithBookingDetails]);
+
+    const fetchBookingDetail = async (bookingId: number) => {
+        setModalLoading(true);
+        try {
+            const response = await fetch(
+                `${API_URL}/api/Booking/GetBookingById/${bookingId}`,
+                {
+                    method: "GET",
+                    headers: getAuthHeaders(),
+                }
+            );
+            if (!response.ok) {
+                throw new Error("Failed to fetch booking details");
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error fetching booking details:", error);
+            return null;
+        } finally {
+            setModalLoading(false);
         }
+    };
 
-        // const facilityIds: number[] = userFacilities.map((f) =>
-        //     getNum(f["facId"] ?? f["FacId"], NaN)
-        // );
+    const openOrderDetail = async (order: Order) => {
+        setSelectedOrder(order);
+        setOrderDetail(null);
+        setShowModal(true);
 
-        console.log(facilityIds);
+        const fetchedBookingDetail = await fetchBookingDetail(order.bookingId);
 
-        const allOrders: Order[] = [];
+        if (fetchedBookingDetail) {
+            const container =
+                (fetchedBookingDetail as Record<string, unknown>) || {};
+            const bookingData =
+                (container["data"] as Record<string, unknown>) || container;
 
-        const orderPromises: Array<Promise<Order[]>> = facilityIds.map(
-          async (facId) => {
-            const ordersRes = await fetch(
-              `${API_URL}/api/Order/facility/${facId}`,
-              {
-                method: "GET",
-                headers: getAuthHeaders(),
-              }
-            );
-            if (!ordersRes.ok) {
-              console.error(
-                `Failed to fetch orders for facilityId ${facId}`
-              );
-              return [];
-            }
-
-            const ordersJson = await ordersRes.json();
-            const ordersContainer =
-              (ordersJson as Record<string, unknown>) || {};
-            let ordersDataRaw: unknown = ordersJson;
-            if (
-              ordersContainer &&
-              ordersContainer["data"] !== undefined
-            ) {
-              ordersDataRaw = ordersContainer["data"] as unknown;
-            }
-            if (
-              ordersDataRaw &&
-              typeof ordersDataRaw === "object" &&
-              !Array.isArray(ordersDataRaw) &&
-              (ordersDataRaw as Record<string, unknown>)["orders"]
-            ) {
-              ordersDataRaw = (
-                ordersDataRaw as Record<string, unknown>
-              )["orders"];
-            }
-            if (!Array.isArray(ordersDataRaw)) {
-              return [];
-            }
-
-            const currentFacility = facilitiesMap.get(facId) as
-              | Record<string, unknown>
-              | undefined;
-            const facilityName = getStr(
-              currentFacility?.["name"] ??
-              currentFacility?.["Name"],
-              "N/A"
-            );
-
-            const ordersData = ordersDataRaw as Array<
-              Record<string, unknown>
-            >;
-            return ordersData.map((o: Record<string, unknown>) => {
-              const bookedSlots = (o["bookedSlots"] ??
-                o["BookedSlots"] ??
+            const bookedSlots = ((bookingData["bookedSlots"] as unknown) ||
                 []) as Array<Record<string, unknown>>;
-              const firstSlot =
-                bookedSlots.length > 0 ? bookedSlots[0] : {};
+            const firstSlot: Record<string, unknown> = bookedSlots[0] || {};
 
-              const bookingDate = getStr(
-                firstSlot["date"] ?? firstSlot["Date"],
-                ""
-              );
-              const startTime = getStr(
-                firstSlot["startTime"] ??
-                firstSlot["StartTime"],
-                ""
-              ).slice(0, 5);
-              const endTime = getStr(
-                firstSlot["endTime"] ?? firstSlot["EndTime"],
-                ""
-              ).slice(0, 5);
-              const fieldName = getStr(
-                firstSlot["fieldName"] ??
-                firstSlot["FieldName"],
-                "N/A"
-              );
+            const getString = (v: unknown, fb = ""): string =>
+                typeof v === "string" ? v : v == null ? fb : String(v);
+            const getNumber = (v: unknown, fb = 0): number => {
+                if (typeof v === "number") return v;
+                const n = Number(v as unknown as string);
+                return Number.isFinite(n) ? n : fb;
+            };
 
-              const guestName = getStr(
-                o["guestName"] ?? o["GuestName"]
-              );
-              const guestPhone = getStr(
-                o["guestPhone"] ?? o["GuestPhone"]
-              );
-              const userName = getStr(
-                o["userName"] ?? o["UserName"]
-              );
-              const userPhone = getStr(
-                o["userPhone"] ?? o["UserPhone"]
-              );
-              const userEmail = getStr(
-                o["userEmail"] ?? o["UserEmail"]
-              );
+            const bookingId = getNumber(
+                bookingData["bookingId"] ?? bookingData["BookingId"],
+                order.bookingId
+            );
+            const orderObj = (bookingData["order"] || bookingData["Order"]) as
+                | Record<string, unknown>
+                | undefined;
 
-              const customerName = guestName || userName;
-              const customerPhone = guestPhone || userPhone;
+            const totalAmount = getNumber(
+                orderObj?.["totalAmount"] ?? orderObj?.["TotalAmount"],
+                order.totalPrice
+            );
+            const statusPaymentRaw = getString(
+                orderObj?.["statusPayment"] ??
+                    orderObj?.["StatusPayment"] ??
+                    order.statusPayment
+            );
 
-              const statusPaymentRaw = getStr(
-                o["statusPayment"] ?? o["StatusPayment"],
-                ""
-              );
+            const servicesRaw = (orderObj?.["services"] ??
+                orderObj?.["Services"] ??
+                []) as Array<Record<string, unknown>>;
+            const mappedServices = servicesRaw.map((s) => ({
+                serviceId: getNumber(s["serviceId"] ?? s["ServiceId"], 0),
+                serviceName: getString(
+                    s["serviceName"] ?? s["ServiceName"],
+                    "Dịch vụ"
+                ),
+                price: getNumber(s["price"] ?? s["Price"], 0),
+                quantity: getNumber(s["quantity"] ?? s["Quantity"], 1),
+                imageUrl: undefined,
+            }));
 
-              return {
-                orderId: getNum(
-                  o["orderId"] ?? o["OrderId"],
-                  0
+            const totalServicePrice = mappedServices.reduce(
+                (sum, s) => sum + s.price * (s.quantity || 1),
+                0
+            );
+
+            const facilityName = getString(
+                (
+                    bookingData["facility"] as
+                        | Record<string, unknown>
+                        | undefined
+                )?.["facilityName"] ??
+                    (
+                        bookingData["facility"] as
+                            | Record<string, unknown>
+                            | undefined
+                    )?.["FacilityName"] ??
+                    bookingData["facilityName"] ??
+                    bookingData["FacilityName"] ??
+                    order.facilityName,
+                order.facilityName
+            );
+
+            const fieldName = getString(
+                (bookingData["field"] as Record<string, unknown> | undefined)?.[
+                    "fieldName"
+                ] ??
+                    (
+                        bookingData["field"] as
+                            | Record<string, unknown>
+                            | undefined
+                    )?.["FieldName"] ??
+                    firstSlot["fieldName"] ??
+                    firstSlot["FieldName"] ??
+                    order.fieldName,
+                order.fieldName
+            );
+
+            const bookingDate = getString(
+                bookingData["date"] ??
+                    bookingData["Date"] ??
+                    firstSlot["date"] ??
+                    firstSlot["Date"] ??
+                    order.bookingDate,
+                order.bookingDate
+            );
+            const startTime = getString(
+                bookingData["startTime"] ??
+                    bookingData["StartTime"] ??
+                    firstSlot["startTime"] ??
+                    firstSlot["StartTime"] ??
+                    order.startTime,
+                order.startTime
+            ).slice(0, 5);
+            const endTime = getString(
+                bookingData["endTime"] ??
+                    bookingData["EndTime"] ??
+                    firstSlot["endTime"] ??
+                    firstSlot["EndTime"] ??
+                    order.endTime,
+                order.endTime
+            ).slice(0, 5);
+
+            const bookingCreateAt = getString(
+                bookingData["createAt"] ??
+                    bookingData["CreateAt"] ??
+                    order.createAt,
+                order.createAt
+            );
+
+            const detail: OrderDetail = {
+                orderId: getNumber(
+                    orderObj?.["orderId"] ?? orderObj?.["OrderId"],
+                    order.orderId
                 ),
-                bookingId: getNum(
-                  o["bookingId"] ?? o["BookingId"],
-                  0
+                bookingId: bookingId,
+                facilityName,
+                fieldName,
+                categoryFieldName: getString(
+                    typeof bookingData["field"] === "object" &&
+                        bookingData["field"] !== null
+                        ? (bookingData["field"] as Record<string, unknown>)[
+                              "categoryName"
+                          ]
+                        : undefined,
+                    "N/A"
                 ),
-                facilityName: facilityName,
-                fieldName: fieldName,
-                customerName: customerName || "Khách hàng",
-                customerPhone: customerPhone || "N/A",
-                customerEmail: userEmail || "N/A",
-                totalPrice: getNum(
-                  o["totalPrice"] ?? o["TotalPrice"],
-                  0
+                customerName: order.customerName,
+                customerPhone: order.customerPhone,
+                customerEmail: order.customerEmail || "N/A", // Sử dụng email thật
+                totalPrice: totalAmount,
+                totalServicePrice,
+                fieldRentalPrice: Math.max(totalAmount - totalServicePrice, 0),
+                discountAmount: 0,
+                deposit: Math.round(
+                    Math.max(totalAmount - totalServicePrice, 0) * 0.5
                 ),
-                totalServicePrice: getNum(
-                  o["totalServicePrice"] ??
-                  o["TotalServicePrice"],
-                  0
+                contentPayment: getString(
+                    orderObj?.["contentPayment"] ?? order.contentPayment,
+                    ""
                 ),
-                contentPayment: getStr(
-                  o["contentPayment"] ?? o["ContentPayment"],
-                  ""
-                ),
-                statusPayment:
-                  mapPaymentStatus(statusPaymentRaw),
+                statusPayment: mapPaymentStatus(statusPaymentRaw),
+                paymentMethod: "Chuyển khoản ngân hàng",
                 bookingDate,
                 startTime,
                 endTime,
-                createAt: getStr(
-                  o["createAt"] ?? o["CreateAt"],
-                  ""
+                bookingTitle: getString(
+                    bookingData["title"] ?? bookingData["Title"],
+                    ""
                 ),
-                action: "Chi tiết",
-              } as Order;
+                bookingStatus: getString(
+                    bookingData["status"] ?? bookingData["Status"],
+                    ""
+                ),
+                services: mappedServices.map((s) => ({
+                    serviceId: s.serviceId,
+                    serviceName: s.serviceName,
+                    price: s.price,
+                    quantity: s.quantity,
+                    imageUrl: s.imageUrl,
+                })),
+                createAt: new Date(order.createAt).toLocaleString("vi-VN"),
+                bookingCreateAt: new Date(bookingCreateAt).toLocaleString(
+                    "vi-VN"
+                ),
+            };
+            setOrderDetail(detail);
+        } else {
+            setOrderDetail({
+                orderId: order.orderId,
+                bookingId: order.bookingId,
+                facilityName: order.facilityName,
+                fieldName: order.fieldName,
+                categoryFieldName: "N/A",
+                customerName: order.customerName,
+                customerPhone: order.customerPhone,
+                customerEmail: order.customerEmail || "N/A", // Sử dụng email thật
+                totalPrice: order.totalPrice,
+                totalServicePrice: order.totalServicePrice,
+                fieldRentalPrice: order.totalPrice - order.totalServicePrice,
+                discountAmount: 0,
+                deposit: Math.round(
+                    (order.totalPrice - order.totalServicePrice) * 0.5
+                ),
+                contentPayment: order.contentPayment,
+                statusPayment: order.statusPayment,
+                paymentMethod: "N/A",
+                bookingDate: order.bookingDate,
+                startTime: order.startTime,
+                endTime: order.endTime,
+                bookingTitle: "N/A",
+                bookingStatus: "N/A",
+                services: [],
+                createAt: new Date(order.createAt).toLocaleString("vi-VN"),
+                bookingCreateAt: "N/A",
             });
-          }
-        );
-
-        const results: Order[][] = await Promise.all(orderPromises);
-        results.forEach((list: Order[]) => allOrders.push(...list));
-
-        allOrders.sort(
-          (a, b) =>
-            new Date(b.createAt).getTime() -
-            new Date(a.createAt).getTime()
-        );
-
-        const enriched = await enrichOrdersWithBookingDetails(
-          allOrders
-        );
-        setOrders(enriched);
-      } catch (error) {
-        console.error("Error loading orders:", error);
-        setError(
-          "Không thể tải danh sách đơn hàng. Vui lòng thử lại sau."
-        );
-        setOrders([]);
-      } finally {
-        setLoading(false);
-      }
+        }
     };
 
-    loadOrdersFromApi();
-  }, [API_URL, getAuthHeaders, enrichOrdersWithBookingDetails]);
+    const uniqueFacilities = [
+        ...new Set(orders.map((order) => order.facilityName)),
+    ];
+    const uniqueCustomers = [
+        ...new Set(orders.map((order) => order.customerName)),
+    ];
+    const paymentStatuses = [
+        "Chờ thanh toán",
+        "Đã thanh toán",
+        "Đã hủy",
+        "Đã đến",
+    ];
 
-  const fetchBookingDetail = async (bookingId: number) => {
-    setModalLoading(true);
-    try {
-      const response = await fetch(
-        `${API_URL}/api/Booking/GetBookingById/${bookingId}`,
-        {
-          method: "GET",
-          headers: getAuthHeaders(),
+    const filteredOrders = orders.filter((order) => {
+        const matchesFacility =
+            !filters.facility || order.facilityName.includes(filters.facility);
+        const matchesCustomer =
+            !filters.customer || order.customerName.includes(filters.customer);
+        const matchesPaymentStatus =
+            !filters.paymentStatus ||
+            order.statusPayment === filters.paymentStatus;
+
+        let matchesPrice = true;
+        if (filters.priceFrom && order.totalPrice < parseInt(filters.priceFrom))
+            matchesPrice = false;
+        if (filters.priceTo && order.totalPrice > parseInt(filters.priceTo))
+            matchesPrice = false;
+
+        let matchesDate = true;
+        if (
+            filters.dateFrom &&
+            new Date(order.bookingDate) < new Date(filters.dateFrom)
+        )
+            matchesDate = false;
+        if (
+            filters.dateTo &&
+            new Date(order.bookingDate) > new Date(filters.dateTo)
+        )
+            matchesDate = false;
+
+        return (
+            matchesFacility &&
+            matchesCustomer &&
+            matchesPaymentStatus &&
+            matchesPrice &&
+            matchesDate
+        );
+    });
+
+    const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+    const paginatedOrders = filteredOrders.slice(
+        (currentPage - 1) * ordersPerPage,
+        currentPage * ordersPerPage
+    );
+
+    const getPaymentStatusColor = (status: string) => {
+        switch (status) {
+            case "Đã thanh toán":
+                return "bg-green-100 text-green-800 border border-green-300";
+            case "Chờ thanh toán":
+                return "bg-orange-100 text-orange-800 border border-orange-300";
+            case "Đã hủy":
+                return "bg-red-200 text-red-800 border border-red-400";
+            case "Chưa xác định":
+                return "bg-gray-100 text-gray-800 border border-gray-300";
+            case "Đã đến":
+                return "bg-blue-200 text-blue-800 border border-blue-300";
+            default:
+                return "bg-gray-100 text-gray-800 border border-gray-300";
         }
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch booking details");
-      }
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error fetching booking details:", error);
-      return null;
-    } finally {
-      setModalLoading(false);
-    }
-  };
+    };
 
-  const openOrderDetail = async (order: Order) => {
-    setSelectedOrder(order);
-    setOrderDetail(null);
-    setShowModal(true);
+    const toggleDropdown = (dropdownName: string) => {
+        setShowDropdowns((prev) => ({
+            ...prev,
+            [dropdownName]: !prev[dropdownName],
+        }));
+    };
 
-    const fetchedBookingDetail = await fetchBookingDetail(order.bookingId);
+    const mapStatusToOption = (status: string): number => {
+        switch (status) {
+            case "Chờ thanh toán":
+                return 1;
+            case "Đã thanh toán":
+                return 2;
+            case "Đã đến":
+                return 4;
+            case "Đã hủy":
+                return 3;
+            default:
+                return 0; // Hoặc một giá trị mặc định khác
+        }
+    };
 
-    if (fetchedBookingDetail) {
-      const container =
-        (fetchedBookingDetail as Record<string, unknown>) || {};
-      const bookingData =
-        (container["data"] as Record<string, unknown>) || container;
+    const updatePaymentStatus = (orderId: number, newStatus: string) => {
+        const token = localStorage.getItem("token");
+        const option = mapStatusToOption(newStatus);
 
-      const bookedSlots = ((bookingData["bookedSlots"] as unknown) ||
-        []) as Array<Record<string, unknown>>;
-      const firstSlot: Record<string, unknown> = bookedSlots[0] || {};
+        if (option === 0) {
+            alert("Trạng thái không hợp lệ.");
+            return;
+        }
 
-      const getString = (v: unknown, fb = ""): string =>
-        typeof v === "string" ? v : v == null ? fb : String(v);
-      const getNumber = (v: unknown, fb = 0): number => {
-        if (typeof v === "number") return v;
-        const n = Number(v as unknown as string);
-        return Number.isFinite(n) ? n : fb;
-      };
+        fetch(
+            `${API_URL}/api/Order/Order/${orderId}/Update/StatusPayment?option=${option}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+            }
+        )
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error("Cập nhật trạng thái thất bại");
+                }
+                setOrders((prev) =>
+                    prev.map((order) =>
+                        order.orderId === orderId
+                            ? { ...order, statusPayment: newStatus }
+                            : order
+                    )
+                );
+            })
+            .catch((err) => {
+                alert(
+                    "Không thể cập nhật trạng thái thanh toán: " + err.message
+                );
+            });
+    };
 
-      const bookingId = getNumber(
-        bookingData["bookingId"] ?? bookingData["BookingId"],
-        order.bookingId
-      );
-      const orderObj = (bookingData["order"] || bookingData["Order"]) as
-        | Record<string, unknown>
-        | undefined;
+    const closeModal = () => {
+        setShowModal(false);
+        setSelectedOrder(null);
+        setOrderDetail(null);
+    };
 
-      const totalAmount = getNumber(
-        orderObj?.["totalAmount"] ?? orderObj?.["TotalAmount"],
-        order.totalPrice
-      );
-      const statusPaymentRaw = getString(
-        orderObj?.["statusPayment"] ??
-        orderObj?.["StatusPayment"] ??
-        order.statusPayment
-      );
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (!target.closest(".dropdown-container")) {
+                setShowDropdowns({});
+            }
+        };
 
-      const servicesRaw = (orderObj?.["services"] ??
-        orderObj?.["Services"] ??
-        []) as Array<Record<string, unknown>>;
-      const mappedServices = servicesRaw.map((s) => ({
-        serviceId: getNumber(s["serviceId"] ?? s["ServiceId"], 0),
-        serviceName: getString(
-          s["serviceName"] ?? s["ServiceName"],
-          "Dịch vụ"
-        ),
-        price: getNumber(s["price"] ?? s["Price"], 0),
-        quantity: getNumber(s["quantity"] ?? s["Quantity"], 1),
-        imageUrl: undefined,
-      }));
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
-      const totalServicePrice = mappedServices.reduce(
-        (sum, s) => sum + s.price * (s.quantity || 1),
-        0
-      );
-
-      const facilityName = getString(
-        (
-          bookingData["facility"] as
-          | Record<string, unknown>
-          | undefined
-        )?.["facilityName"] ??
-        (
-          bookingData["facility"] as
-          | Record<string, unknown>
-          | undefined
-        )?.["FacilityName"] ??
-        bookingData["facilityName"] ??
-        bookingData["FacilityName"] ??
-        order.facilityName,
-        order.facilityName
-      );
-
-      const fieldName = getString(
-        (bookingData["field"] as Record<string, unknown> | undefined)?.[
-        "fieldName"
-        ] ??
-        (
-          bookingData["field"] as
-          | Record<string, unknown>
-          | undefined
-        )?.["FieldName"] ??
-        firstSlot["fieldName"] ??
-        firstSlot["FieldName"] ??
-        order.fieldName,
-        order.fieldName
-      );
-
-      const bookingDate = getString(
-        bookingData["date"] ??
-        bookingData["Date"] ??
-        firstSlot["date"] ??
-        firstSlot["Date"] ??
-        order.bookingDate,
-        order.bookingDate
-      );
-      const startTime = getString(
-        bookingData["startTime"] ??
-        bookingData["StartTime"] ??
-        firstSlot["startTime"] ??
-        firstSlot["StartTime"] ??
-        order.startTime,
-        order.startTime
-      ).slice(0, 5);
-      const endTime = getString(
-        bookingData["endTime"] ??
-        bookingData["EndTime"] ??
-        firstSlot["endTime"] ??
-        firstSlot["EndTime"] ??
-        order.endTime,
-        order.endTime
-      ).slice(0, 5);
-
-      const bookingCreateAt = getString(
-        bookingData["createAt"] ??
-        bookingData["CreateAt"] ??
-        order.createAt,
-        order.createAt
-      );
-
-      const detail: OrderDetail = {
-        orderId: getNumber(
-          orderObj?.["orderId"] ?? orderObj?.["OrderId"],
-          order.orderId
-        ),
-        bookingId: bookingId,
-        facilityName,
-        fieldName,
-        categoryFieldName: getString(
-          typeof bookingData["field"] === "object" &&
-            bookingData["field"] !== null
-            ? (bookingData["field"] as Record<string, unknown>)[
-            "categoryName"
-            ]
-            : undefined,
-          "N/A"
-        ),
-        customerName: order.customerName,
-        customerPhone: order.customerPhone,
-        customerEmail: order.customerEmail || "N/A", // Sử dụng email thật
-        totalPrice: totalAmount,
-        totalServicePrice,
-        fieldRentalPrice: Math.max(totalAmount - totalServicePrice, 0),
-        discountAmount: 0,
-        deposit: Math.round(
-          Math.max(totalAmount - totalServicePrice, 0) * 0.5
-        ),
-        contentPayment: getString(
-          orderObj?.["contentPayment"] ?? order.contentPayment,
-          ""
-        ),
-        statusPayment: mapPaymentStatus(statusPaymentRaw),
-        paymentMethod: "Chuyển khoản ngân hàng",
-        bookingDate,
-        startTime,
-        endTime,
-        bookingTitle: getString(
-          bookingData["title"] ?? bookingData["Title"],
-          ""
-        ),
-        bookingStatus: getString(
-          bookingData["status"] ?? bookingData["Status"],
-          ""
-        ),
-        services: mappedServices.map((s) => ({
-          serviceId: s.serviceId,
-          serviceName: s.serviceName,
-          price: s.price,
-          quantity: s.quantity,
-          imageUrl: s.imageUrl,
-        })),
-        createAt: new Date(order.createAt).toLocaleString("vi-VN"),
-        bookingCreateAt: new Date(bookingCreateAt).toLocaleString(
-          "vi-VN"
-        ),
-      };
-      setOrderDetail(detail);
-    } else {
-      setOrderDetail({
-        orderId: order.orderId,
-        bookingId: order.bookingId,
-        facilityName: order.facilityName,
-        fieldName: order.fieldName,
-        categoryFieldName: "N/A",
-        customerName: order.customerName,
-        customerPhone: order.customerPhone,
-        customerEmail: order.customerEmail || "N/A", // Sử dụng email thật
-        totalPrice: order.totalPrice,
-        totalServicePrice: order.totalServicePrice,
-        fieldRentalPrice: order.totalPrice - order.totalServicePrice,
-        discountAmount: 0,
-        deposit: Math.round(
-          (order.totalPrice - order.totalServicePrice) * 0.5
-        ),
-        contentPayment: order.contentPayment,
-        statusPayment: order.statusPayment,
-        paymentMethod: "N/A",
-        bookingDate: order.bookingDate,
-        startTime: order.startTime,
-        endTime: order.endTime,
-        bookingTitle: "N/A",
-        bookingStatus: "N/A",
-        services: [],
-        createAt: new Date(order.createAt).toLocaleString("vi-VN"),
-        bookingCreateAt: "N/A",
-      });
-    }
-  };
-
-  const uniqueFacilities = [
-    ...new Set(orders.map((order) => order.facilityName)),
-  ];
-  const uniqueCustomers = [
-    ...new Set(orders.map((order) => order.customerName)),
-  ];
-  const paymentStatuses = ["Chờ thanh toán", "Đã thanh toán", "Đã hủy"];
-
-  const filteredOrders = orders.filter((order) => {
-    const matchesFacility =
-      !filters.facility || order.facilityName.includes(filters.facility);
-    const matchesCustomer =
-      !filters.customer || order.customerName.includes(filters.customer);
-    const matchesPaymentStatus =
-      !filters.paymentStatus ||
-      order.statusPayment === filters.paymentStatus;
-
-    let matchesPrice = true;
-    if (filters.priceFrom && order.totalPrice < parseInt(filters.priceFrom))
-      matchesPrice = false;
-    if (filters.priceTo && order.totalPrice > parseInt(filters.priceTo))
-      matchesPrice = false;
-
-    let matchesDate = true;
-    if (
-      filters.dateFrom &&
-      new Date(order.bookingDate) < new Date(filters.dateFrom)
-    )
-      matchesDate = false;
-    if (
-      filters.dateTo &&
-      new Date(order.bookingDate) > new Date(filters.dateTo)
-    )
-      matchesDate = false;
+    const clearFilters = () => {
+        setFilters({
+            facility: "",
+            customer: "",
+            priceFrom: "",
+            priceTo: "",
+            paymentStatus: "",
+            dateFrom: "",
+            dateTo: "",
+        });
+    };
 
     return (
-      matchesFacility &&
-      matchesCustomer &&
-      matchesPaymentStatus &&
-      matchesPrice &&
-      matchesDate
-    );
-  });
+        <>
+            <Sidebar />
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pl-64 pt-8 pr-6">
+                <div className="max-w-7xl mx-auto px-6 py-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                                    Quản lý đơn đặt sân
+                                </h1>
 
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * ordersPerPage,
-    currentPage * ordersPerPage
-  );
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case "Đã thanh toán":
-        return "bg-green-100 text-green-800 border border-green-300";
-      case "Chờ thanh toán":
-        return "bg-orange-100 text-orange-800 border border-orange-300";
-      case "Đã hủy":
-        return "bg-red-200 text-red-800 border border-red-400";
-      case "Chưa xác định":
-        return "bg-gray-100 text-gray-800 border border-gray-300";
-      default:
-        return "bg-gray-100 text-gray-800 border border-gray-300";
-    }
-  };
-
-  const toggleDropdown = (dropdownName: string) => {
-    setShowDropdowns((prev) => ({
-      ...prev,
-      [dropdownName]: !prev[dropdownName],
-    }));
-  };
-
-  const mapStatusToOption = (status: string): number => {
-    switch (status) {
-      case "Chờ thanh toán":
-        return 1;
-      case "Đã thanh toán":
-        return 2;
-      case "Đã hủy":
-        return 3;
-      default:
-        return 0; // Hoặc một giá trị mặc định khác
-    }
-  };
-
-  const updatePaymentStatus = (orderId: number, newStatus: string) => {
-    const token = localStorage.getItem("token");
-    const option = mapStatusToOption(newStatus);
-
-    if (option === 0) {
-      alert("Trạng thái không hợp lệ.");
-      return;
-    }
-
-    fetch(
-      `${API_URL}/api/Order/Order/${orderId}/Update/StatusPayment?option=${option}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      }
-    )
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Cập nhật trạng thái thất bại");
-        }
-        setOrders((prev) =>
-          prev.map((order) =>
-            order.orderId === orderId
-              ? { ...order, statusPayment: newStatus }
-              : order
-          )
-        );
-      })
-      .catch((err) => {
-        alert(
-          "Không thể cập nhật trạng thái thanh toán: " + err.message
-        );
-      });
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedOrder(null);
-    setOrderDetail(null);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest(".dropdown-container")) {
-        setShowDropdowns({});
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const clearFilters = () => {
-    setFilters({
-      facility: "",
-      customer: "",
-      priceFrom: "",
-      priceTo: "",
-      paymentStatus: "",
-      dateFrom: "",
-      dateTo: "",
-    });
-  };
-
-  return (
-    <>
-      <Sidebar />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pl-64 pt-8 pr-6">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  Quản lý đơn đặt sân
-                </h1>
-
-                <p className="text-gray-600 text-sm">
-                  Quản lý và theo dõi tất cả đơn đặt sân của
-                  hệ thống
-                </p>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-                  <span className="text-blue-700 font-medium text-sm">
-                    {loading
-                      ? "Đang tải..."
-                      : `Tổng: ${filteredOrders.length} đơn`}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {error && (
-              <div
-                className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-                role="alert"
-              >
-                <span className="block sm:inline">{error}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Bộ lọc tìm kiếm
-              </h3>
-
-              {(filters.facility ||
-                filters.customer ||
-                filters.priceFrom ||
-                filters.priceTo ||
-                filters.paymentStatus ||
-                filters.dateFrom ||
-                filters.dateTo) && (
-                  <button
-                    onClick={clearFilters}
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 hover:bg-red-100 transition-colors duration-200 text-sm font-medium"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                    <span>Xóa bộ lọc</span>
-                  </button>
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              <div className="relative dropdown-container">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cơ sở
-                </label>
-
-                <button
-                  onClick={() => toggleDropdown("facility")}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
-                >
-                  <span className="text-gray-900">
-                    {filters.facility || "Chọn cơ sở"}
-                  </span>
-
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {showDropdowns.facility && (
-                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
-                    <div className="p-3">
-                      <input
-                        type="text"
-                        placeholder="Tìm kiếm cơ sở..."
-                        value={filters.facility}
-                        onChange={(e) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            facility:
-                              e.target.value,
-                          }))
-                        }
-                        className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                      />
-
-                      <div className="mt-2 max-h-48 overflow-y-auto">
-                        <div
-                          onClick={() => {
-                            setFilters((prev) => ({
-                              ...prev,
-                              facility: "",
-                            }));
-                            toggleDropdown(
-                              "facility"
-                            );
-                          }}
-                          className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
-                        >
-                          Tất cả cơ sở
-                        </div>
-
-                        {uniqueFacilities.map(
-                          (facility, index) => (
-                            <div
-                              key={index}
-                              onClick={() => {
-                                setFilters(
-                                  (prev) => ({
-                                    ...prev,
-                                    facility,
-                                  })
-                                );
-                                toggleDropdown(
-                                  "facility"
-                                );
-                              }}
-                              className="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 hover:text-blue-600"
-                            >
-                              {facility}
+                                <p className="text-gray-600 text-sm">
+                                    Quản lý và theo dõi tất cả đơn đặt sân của
+                                    hệ thống
+                                </p>
                             </div>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              <div className="relative dropdown-container">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Khách hàng
-                </label>
-
-                <button
-                  onClick={() => toggleDropdown("customer")}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
-                >
-                  <span className="text-gray-900">
-                    {filters.customer || "Chọn khách hàng"}
-                  </span>
-
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {showDropdowns.customer && (
-                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
-                    <div className="p-3">
-                      <input
-                        type="text"
-                        placeholder="Tìm kiếm khách hàng..."
-                        value={filters.customer}
-                        onChange={(e) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            customer:
-                              e.target.value,
-                          }))
-                        }
-                        className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                      />
-
-                      <div className="mt-2 max-h-48 overflow-y-auto">
-                        <div
-                          onClick={() => {
-                            setFilters((prev) => ({
-                              ...prev,
-                              customer: "",
-                            }));
-                            toggleDropdown(
-                              "customer"
-                            );
-                          }}
-                          className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
-                        >
-                          Tất cả khách hàng
-                        </div>
-
-                        {uniqueCustomers.map(
-                          (customer, index) => (
-                            <div
-                              key={index}
-                              onClick={() => {
-                                setFilters(
-                                  (prev) => ({
-                                    ...prev,
-                                    customer,
-                                  })
-                                );
-                                toggleDropdown(
-                                  "customer"
-                                );
-                              }}
-                              className="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 hover:text-blue-600"
-                            >
-                              {customer}
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+                                    <span className="text-blue-700 font-medium text-sm">
+                                        {loading
+                                            ? "Đang tải..."
+                                            : `Tổng: ${filteredOrders.length} đơn`}
+                                    </span>
+                                </div>
                             </div>
-                          )
+                        </div>
+
+                        {error && (
+                            <div
+                                className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                                role="alert"
+                            >
+                                <span className="block sm:inline">{error}</span>
+                            </div>
                         )}
-                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
 
-              <div className="relative dropdown-container">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Khoảng giá
-                </label>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                                Bộ lọc tìm kiếm
+                            </h3>
 
-                <button
-                  onClick={() => toggleDropdown("price")}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
-                >
-                  <span className="text-gray-900">
-                    {filters.priceFrom || filters.priceTo
-                      ? `${filters.priceFrom || "0"} - ${filters.priceTo || "∞"
-                      }`
-                      : "Chọn khoảng giá"}
-                  </span>
-
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {showDropdowns.price && (
-                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
-                    <div className="p-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Từ (VND)
-                          </label>
-
-                          <input
-                            type="number"
-                            placeholder="0"
-                            value={
-                              filters.priceFrom
-                            }
-                            onChange={(e) =>
-                              setFilters(
-                                (prev) => ({
-                                  ...prev,
-                                  priceFrom:
-                                    e.target
-                                      .value,
-                                })
-                              )
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                            title="Giá từ"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Đến (VND)
-                          </label>
-
-                          <input
-                            type="number"
-                            placeholder="1000000"
-                            value={filters.priceTo}
-                            onChange={(e) =>
-                              setFilters(
-                                (prev) => ({
-                                  ...prev,
-                                  priceTo:
-                                    e.target
-                                      .value,
-                                })
-                              )
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                            title="Giá đến"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          toggleDropdown("price")
-                        }
-                        className="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
-                      >
-                        Áp dụng
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="relative dropdown-container">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Trạng thái thanh toán
-                </label>
-
-                <button
-                  onClick={() =>
-                    toggleDropdown("paymentStatus")
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
-                >
-                  <span className="text-gray-900">
-                    {filters.paymentStatus ||
-                      "Chọn trạng thái"}
-                  </span>
-
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {showDropdowns.paymentStatus && (
-                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
-                    <div className="p-2">
-                      <div
-                        onClick={() => {
-                          setFilters((prev) => ({
-                            ...prev,
-                            paymentStatus: "",
-                          }));
-                          toggleDropdown(
-                            "paymentStatus"
-                          );
-                        }}
-                        className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
-                      >
-                        Tất cả trạng thái
-                      </div>
-
-                      {paymentStatuses.map(
-                        (status, index) => (
-                          <div
-                            key={index}
-                            onClick={() => {
-                              setFilters(
-                                (prev) => ({
-                                  ...prev,
-                                  paymentStatus:
-                                    status,
-                                })
-                              );
-                              toggleDropdown(
-                                "paymentStatus"
-                              );
-                            }}
-                            className="p-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center text-gray-700 hover:text-blue-600"
-                          >
-                            <span
-                              className={`inline-block w-3 h-3 rounded-full mr-3 ${getPaymentStatusColor(
-                                status
-                              ).split(" ")[0]
-                                }`}
-                            ></span>
-                            {status}
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="relative dropdown-container">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Khoảng thời gian
-                </label>
-
-                <button
-                  onClick={() => toggleDropdown("date")}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
-                >
-                  <span className="text-gray-900">
-                    {filters.dateFrom || filters.dateTo
-                      ? `${filters.dateFrom || "..."} - ${filters.dateTo || "..."
-                      }`
-                      : "Chọn thời gian"}
-                  </span>
-
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {showDropdowns.date && (
-                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
-                    <div className="p-4">
-                      <div className="grid grid-cols-1 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Từ ngày
-                          </label>
-
-                          <input
-                            type="date"
-                            value={filters.dateFrom}
-                            onChange={(e) =>
-                              setFilters(
-                                (prev) => ({
-                                  ...prev,
-                                  dateFrom:
-                                    e.target
-                                      .value,
-                                })
-                              )
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                            title="Ngày từ"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Đến ngày
-                          </label>
-
-                          <input
-                            type="date"
-                            value={filters.dateTo}
-                            onChange={(e) =>
-                              setFilters(
-                                (prev) => ({
-                                  ...prev,
-                                  dateTo: e
-                                    .target
-                                    .value,
-                                })
-                              )
-                            }
-                            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                            title="Ngày đến"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          toggleDropdown("date")
-                        }
-                        className="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
-                      >
-                        Áp dụng
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Danh sách đơn đặt sân
-              </h3>
-            </div>
-
-            <div className="overflow-x-auto">
-              {loading ? (
-                <div className="p-6 text-center text-gray-500">
-                  Đang tải đơn hàng...
-                </div>
-              ) : (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-green-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                        STT
-                      </th>
-
-                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                        Mã đơn
-                      </th>
-
-                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                        Cơ sở / Sân
-                      </th>
-
-                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                        Khách hàng
-                      </th>
-
-                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                        Thời gian đặt
-                      </th>
-
-                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                        Tổng tiền
-                      </th>
-
-                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                        Trạng thái thanh toán
-                      </th>
-
-                      <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
-                        Thao tác
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedOrders.length > 0 ? (
-                      paginatedOrders.map(
-                        (order, index) => (
-                          <tr
-                            key={order.orderId}
-                            className={
-                              index % 2 === 0
-                                ? "bg-white"
-                                : "bg-gray-50"
-                            }
-                          >
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-black-600 font-bold">
-                              {(currentPage - 1) *
-                                ordersPerPage +
-                                index +
-                                1}
-                            </td>
-
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
-                              #{order.orderId}
-                            </td>
-
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              <div>
-                                <div className="font-medium">
-                                  {
-                                    order.facilityName
-                                  }
-                                </div>
-
-                                <div className="text-gray-500 text-xs">
-                                  {
-                                    order.fieldName
-                                  }
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <div>
-                                <div className="font-medium">
-                                  {
-                                    order.customerName
-                                  }
-                                </div>
-
-                                <div className="text-gray-500 text-xs">
-                                  {
-                                    order.customerPhone
-                                  }
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <div>
-                                <div className="font-medium">
-                                  {new Date(
-                                    order.bookingDate
-                                  ).toLocaleDateString(
-                                    "vi-VN"
-                                  )}
-                                </div>
-
-                                <div className="text-gray-500 text-xs">
-                                  {
-                                    order.startTime
-                                  }{" "}
-                                  -{" "}
-                                  {
-                                    order.endTime
-                                  }
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              <div>
-                                <div className="text-blue-600">
-                                  {order.totalPrice.toLocaleString()}
-                                  đ
-                                </div>
-
-                                <div className="text-gray-500 text-xs">
-                                  DV:
-                                  {order.totalServicePrice.toLocaleString()}
-                                  đ
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="relative dropdown-container">
+                            {(filters.facility ||
+                                filters.customer ||
+                                filters.priceFrom ||
+                                filters.priceTo ||
+                                filters.paymentStatus ||
+                                filters.dateFrom ||
+                                filters.dateTo) && (
                                 <button
-                                  onClick={() =>
-                                    toggleDropdown(
-                                      `paymentStatus_${order.orderId}`
-                                    )
-                                  }
-                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
-                                    order.statusPayment
-                                  )} ${order.statusPayment !==
-                                      "Chờ thanh toán"
-                                      ? "cursor-not-allowed opacity-60"
-                                      : ""
-                                    }`}
-                                  disabled={
-                                    order.statusPayment !==
-                                    "Chờ thanh toán"
-                                  }
-                                  title={
-                                    order.statusPayment !==
-                                      "Chờ thanh toán"
-                                      ? "Chỉ có thể thay đổi trạng thái khi đơn hàng đang 'Chờ thanh toán'"
-                                      : "Đổi trạng thái thanh toán"
-                                  }
+                                    onClick={clearFilters}
+                                    className="flex items-center space-x-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 hover:bg-red-100 transition-colors duration-200 text-sm font-medium"
                                 >
-                                  {
-                                    order.statusPayment
-                                  }
-
-                                  {order.statusPayment ===
-                                    "Chờ thanh toán" && (
-                                      <svg
-                                        className="w-3 h-3 ml-1"
+                                    <svg
+                                        className="w-4 h-4"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
-                                      >
+                                    >
                                         <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={
-                                            2
-                                          }
-                                          d="M19 9l-7 7-7-7"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
                                         />
-                                      </svg>
-                                    )}
+                                    </svg>
+                                    <span>Xóa bộ lọc</span>
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                            <div className="relative dropdown-container">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Cơ sở
+                                </label>
+
+                                <button
+                                    onClick={() => toggleDropdown("facility")}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
+                                >
+                                    <span className="text-gray-900">
+                                        {filters.facility || "Chọn cơ sở"}
+                                    </span>
+
+                                    <svg
+                                        className="w-5 h-5 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
                                 </button>
 
-                                {showDropdowns[
-                                  `paymentStatus_${order.orderId}`
-                                ] &&
-                                  order.statusPayment ===
-                                  "Chờ thanh toán" && (
-                                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
-                                      <div className="py-1">
-                                        {paymentStatuses
-                                          .filter(
-                                            (
-                                              status
-                                            ) =>
-                                              status !==
-                                              "Chờ thanh toán"
-                                          ) // Lọc bỏ trạng thái hiện tại
-                                          .map(
-                                            (
-                                              status,
-                                              statusIndex
-                                            ) => (
-                                              <div
-                                                key={
-                                                  statusIndex
+                                {showDropdowns.facility && (
+                                    <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
+                                        <div className="p-3">
+                                            <input
+                                                type="text"
+                                                placeholder="Tìm kiếm cơ sở..."
+                                                value={filters.facility}
+                                                onChange={(e) =>
+                                                    setFilters((prev) => ({
+                                                        ...prev,
+                                                        facility:
+                                                            e.target.value,
+                                                    }))
                                                 }
-                                                onClick={() => {
-                                                  handleChangePaymentStatus(
-                                                    order.orderId,
-                                                    status
-                                                  );
-                                                  toggleDropdown(
-                                                    `paymentStatus_${order.orderId}`
-                                                  );
-                                                }}
-                                                className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 text-gray-700 hover:text-blue-600`}
-                                              >
-                                                <span
-                                                  className={`inline-block w-2 h-2 rounded-full mr-3 ${getPaymentStatusColor(
-                                                    status
-                                                  ).split(
-                                                    " "
-                                                  )[0]
-                                                    }`}
-                                                ></span>
+                                                className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                            />
 
-                                                {
-                                                  status
-                                                }
-                                              </div>
-                                            )
-                                          )}
-                                      </div>
+                                            <div className="mt-2 max-h-48 overflow-y-auto">
+                                                <div
+                                                    onClick={() => {
+                                                        setFilters((prev) => ({
+                                                            ...prev,
+                                                            facility: "",
+                                                        }));
+                                                        toggleDropdown(
+                                                            "facility"
+                                                        );
+                                                    }}
+                                                    className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
+                                                >
+                                                    Tất cả cơ sở
+                                                </div>
+
+                                                {uniqueFacilities.map(
+                                                    (facility, index) => (
+                                                        <div
+                                                            key={index}
+                                                            onClick={() => {
+                                                                setFilters(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        facility,
+                                                                    })
+                                                                );
+                                                                toggleDropdown(
+                                                                    "facility"
+                                                                );
+                                                            }}
+                                                            className="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 hover:text-blue-600"
+                                                        >
+                                                            {facility}
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                  )}
-                              </div>
-                            </td>
+                                )}
+                            </div>
 
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <button
-                                onClick={() =>
-                                  openOrderDetail(
-                                    order
-                                  )
-                                }
-                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                              >
-                                <svg
-                                  className="w-3 h-3 mr-1"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
+                            <div className="relative dropdown-container">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Khách hàng
+                                </label>
+
+                                <button
+                                    onClick={() => toggleDropdown("customer")}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={
-                                      2
+                                    <span className="text-gray-900">
+                                        {filters.customer || "Chọn khách hàng"}
+                                    </span>
+
+                                    <svg
+                                        className="w-5 h-5 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </button>
+
+                                {showDropdowns.customer && (
+                                    <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
+                                        <div className="p-3">
+                                            <input
+                                                type="text"
+                                                placeholder="Tìm kiếm khách hàng..."
+                                                value={filters.customer}
+                                                onChange={(e) =>
+                                                    setFilters((prev) => ({
+                                                        ...prev,
+                                                        customer:
+                                                            e.target.value,
+                                                    }))
+                                                }
+                                                className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                            />
+
+                                            <div className="mt-2 max-h-48 overflow-y-auto">
+                                                <div
+                                                    onClick={() => {
+                                                        setFilters((prev) => ({
+                                                            ...prev,
+                                                            customer: "",
+                                                        }));
+                                                        toggleDropdown(
+                                                            "customer"
+                                                        );
+                                                    }}
+                                                    className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
+                                                >
+                                                    Tất cả khách hàng
+                                                </div>
+
+                                                {uniqueCustomers.map(
+                                                    (customer, index) => (
+                                                        <div
+                                                            key={index}
+                                                            onClick={() => {
+                                                                setFilters(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        customer,
+                                                                    })
+                                                                );
+                                                                toggleDropdown(
+                                                                    "customer"
+                                                                );
+                                                            }}
+                                                            className="p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 hover:text-blue-600"
+                                                        >
+                                                            {customer}
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="relative dropdown-container">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Khoảng giá
+                                </label>
+
+                                <button
+                                    onClick={() => toggleDropdown("price")}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
+                                >
+                                    <span className="text-gray-900">
+                                        {filters.priceFrom || filters.priceTo
+                                            ? `${filters.priceFrom || "0"} - ${
+                                                  filters.priceTo || "∞"
+                                              }`
+                                            : "Chọn khoảng giá"}
+                                    </span>
+
+                                    <svg
+                                        className="w-5 h-5 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </button>
+
+                                {showDropdowns.price && (
+                                    <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
+                                        <div className="p-4">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                        Từ (VND)
+                                                    </label>
+
+                                                    <input
+                                                        type="number"
+                                                        placeholder="0"
+                                                        value={
+                                                            filters.priceFrom
+                                                        }
+                                                        onChange={(e) =>
+                                                            setFilters(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    priceFrom:
+                                                                        e.target
+                                                                            .value,
+                                                                })
+                                                            )
+                                                        }
+                                                        className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                                        title="Giá từ"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                        Đến (VND)
+                                                    </label>
+
+                                                    <input
+                                                        type="number"
+                                                        placeholder="1000000"
+                                                        value={filters.priceTo}
+                                                        onChange={(e) =>
+                                                            setFilters(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    priceTo:
+                                                                        e.target
+                                                                            .value,
+                                                                })
+                                                            )
+                                                        }
+                                                        className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                                        title="Giá đến"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={() =>
+                                                    toggleDropdown("price")
+                                                }
+                                                className="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
+                                            >
+                                                Áp dụng
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="relative dropdown-container">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Trạng thái thanh toán
+                                </label>
+
+                                <button
+                                    onClick={() =>
+                                        toggleDropdown("paymentStatus")
                                     }
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                  />
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
+                                >
+                                    <span className="text-gray-900">
+                                        {filters.paymentStatus ||
+                                            "Chọn trạng thái"}
+                                    </span>
 
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={
-                                      2
-                                    }
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                  />
-                                </svg>
-                                {order.action}
-                              </button>
-                            </td>
-                          </tr>
-                        )
-                      )
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={8}
-                          className="px-6 py-4 text-center text-gray-500"
-                        >
-                          Không tìm thấy đơn hàng nào.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+                                    <svg
+                                        className="w-5 h-5 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </button>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4 mt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-700">
-                  Hiển thị
-                  <span className="font-medium">
-                    {filteredOrders.length > 0
-                      ? (currentPage - 1) *
-                      ordersPerPage +
-                      1
-                      : 0}
-                  </span>
-                  đến
-                  <span className="font-medium">
-                    {Math.min(
-                      currentPage * ordersPerPage,
-                      filteredOrders.length
-                    )}
-                  </span>
-                  của
-                  <span className="font-medium">
-                    {filteredOrders.length}
-                  </span>
-                  kết quả
-                </span>
-              </div>
+                                {showDropdowns.paymentStatus && (
+                                    <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
+                                        <div className="p-2">
+                                            <div
+                                                onClick={() => {
+                                                    setFilters((prev) => ({
+                                                        ...prev,
+                                                        paymentStatus: "",
+                                                    }));
+                                                    toggleDropdown(
+                                                        "paymentStatus"
+                                                    );
+                                                }}
+                                                className="p-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-500 border-b border-gray-100"
+                                            >
+                                                Tất cả trạng thái
+                                            </div>
 
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <label
-                    htmlFor="ordersPerPage"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Hiển thị:
-                  </label>
+                                            {paymentStatuses.map(
+                                                (status, index) => (
+                                                    <div
+                                                        key={index}
+                                                        onClick={() => {
+                                                            setFilters(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    paymentStatus:
+                                                                        status,
+                                                                })
+                                                            );
+                                                            toggleDropdown(
+                                                                "paymentStatus"
+                                                            );
+                                                        }}
+                                                        className="p-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center text-gray-700 hover:text-blue-600"
+                                                    >
+                                                        <span
+                                                            className={`inline-block w-3 h-3 rounded-full mr-3 ${
+                                                                getPaymentStatusColor(
+                                                                    status
+                                                                ).split(" ")[0]
+                                                            }`}
+                                                        ></span>
+                                                        {status}
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
-                  <select
-                    id="ordersPerPage"
-                    value={ordersPerPage}
-                    onChange={(e) => {
-                      setOrdersPerPage(
-                        Number(e.target.value)
-                      );
-                      setCurrentPage(1);
-                    }}
-                    className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </select>
-                </div>
+                            <div className="relative dropdown-container">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Khoảng thời gian
+                                </label>
 
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-lg border ${currentPage === 1
-                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                      } transition-colors duration-200`}
-                    aria-label="Trang đầu"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                      />
-                    </svg>
-                  </button>
+                                <button
+                                    onClick={() => toggleDropdown("date")}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 cursor-pointer flex items-center justify-between bg-white transition-all duration-200"
+                                >
+                                    <span className="text-gray-900">
+                                        {filters.dateFrom || filters.dateTo
+                                            ? `${filters.dateFrom || "..."} - ${
+                                                  filters.dateTo || "..."
+                                              }`
+                                            : "Chọn thời gian"}
+                                    </span>
 
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) =>
-                        Math.max(prev - 1, 1)
-                      )
-                    }
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-lg border ${currentPage === 1
-                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                      } transition-colors duration-200`}
-                    aria-label="Trang trước"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                  </button>
+                                    <svg
+                                        className="w-5 h-5 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </button>
 
-                  <div className="flex items-center space-x-1">
-                    {Array.from(
-                      { length: Math.min(5, totalPages) },
-                      (_, i) => {
-                        let pageNumber;
-                        if (totalPages <= 5) {
-                          pageNumber = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNumber = i + 1;
-                        } else if (
-                          currentPage >=
-                          totalPages - 2
-                        ) {
-                          pageNumber =
-                            totalPages - 4 + i;
-                        } else {
-                          pageNumber =
-                            currentPage - 2 + i;
-                        }
+                                {showDropdowns.date && (
+                                    <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-30 min-w-full max-w-sm">
+                                        <div className="p-4">
+                                            <div className="grid grid-cols-1 gap-3">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                        Từ ngày
+                                                    </label>
 
-                        return (
-                          <button
-                            key={pageNumber}
-                            onClick={() =>
-                              setCurrentPage(
-                                pageNumber
-                              )
-                            }
-                            className={`w-8 h-8 rounded-lg border text-sm font-medium transition-colors duration-200 ${pageNumber ===
-                                currentPage
-                                ? "bg-blue-600 text-white border-blue-600"
-                                : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                              }`}
-                          >
-                            {pageNumber}
-                          </button>
-                        );
-                      }
-                    )}
-                  </div>
+                                                    <input
+                                                        type="date"
+                                                        value={filters.dateFrom}
+                                                        onChange={(e) =>
+                                                            setFilters(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    dateFrom:
+                                                                        e.target
+                                                                            .value,
+                                                                })
+                                                            )
+                                                        }
+                                                        className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                                        title="Ngày từ"
+                                                    />
+                                                </div>
 
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) =>
-                        Math.min(prev + 1, totalPages)
-                      )
-                    }
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-lg border ${currentPage === totalPages
-                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                      } transition-colors duration-200`}
-                    aria-label="Trang tiếp"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                        Đến ngày
+                                                    </label>
 
-                  <button
-                    onClick={() =>
-                      setCurrentPage(totalPages)
-                    }
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-lg border ${currentPage === totalPages
-                        ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                      } transition-colors duration-200`}
-                    aria-label="Trang cuối"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                                                    <input
+                                                        type="date"
+                                                        value={filters.dateTo}
+                                                        onChange={(e) =>
+                                                            setFilters(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    dateTo: e
+                                                                        .target
+                                                                        .value,
+                                                                })
+                                                            )
+                                                        }
+                                                        className="w-full p-2 border border-gray-300 rounded-md text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                                        title="Ngày đến"
+                                                    />
+                                                </div>
+                                            </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold">
-                    Chi tiết đơn đặt sân
-                  </h2>
-
-                  <p className="text-blue-100 text-sm">
-                    Đơn hàng #{selectedOrder?.orderId}
-                  </p>
-                </div>
-
-                <button
-                  onClick={closeModal}
-                  title="Đóng modal"
-                  className="text-white hover:text-gray-200 transition-colors duration-200"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6">
-              {modalLoading ? (
-                <div className="text-center p-10 text-gray-500">
-                  Đang tải chi tiết đơn hàng...
-                </div>
-              ) : orderDetail ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2 text-purple-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                          />
-                        </svg>
-                        Thông tin sân
-                      </h3>
-
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Cơ sở:
-                          </span>
-
-                          <span className="font-medium">
-                            {
-                              orderDetail.facilityName
-                            }
-                          </span>
+                                            <button
+                                                onClick={() =>
+                                                    toggleDropdown("date")
+                                                }
+                                                className="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
+                                            >
+                                                Áp dụng
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Tên sân:
-                          </span>
-
-                          <span className="font-medium">
-                            {orderDetail.fieldName}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Loại sân:
-                          </span>
-
-                          <span className="font-medium">
-                            {
-                              orderDetail.categoryFieldName
-                            }
-                          </span>
-                        </div>
-                      </div>
                     </div>
 
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2 text-blue-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        Thông tin đơn hàng
-                      </h3>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                                Danh sách đơn đặt sân
+                            </h3>
+                        </div>
 
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Ngày đặt sân:
-                          </span>
+                        <div className="overflow-x-auto">
+                            {loading ? (
+                                <div className="p-6 text-center text-gray-500">
+                                    Đang tải đơn hàng...
+                                </div>
+                            ) : (
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-green-200">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                                                STT
+                                            </th>
 
-                          <span className="font-medium">
-                            {new Date(
-                              orderDetail.bookingDate
-                            ).toLocaleDateString(
-                              "vi-VN"
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                                                Mã đơn
+                                            </th>
+
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                                                Cơ sở / Sân
+                                            </th>
+
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                                                Khách hàng
+                                            </th>
+
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                                                Thời gian đặt
+                                            </th>
+
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                                                Tổng tiền
+                                            </th>
+
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                                                Trạng thái thanh toán
+                                            </th>
+
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider whitespace-nowrap">
+                                                Thao tác
+                                            </th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {paginatedOrders.length > 0 ? (
+                                            paginatedOrders.map(
+                                                (order, index) => (
+                                                    <tr
+                                                        key={order.orderId}
+                                                        className={
+                                                            index % 2 === 0
+                                                                ? "bg-white"
+                                                                : "bg-gray-50"
+                                                        }
+                                                    >
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-black-600 font-bold">
+                                                            {(currentPage - 1) *
+                                                                ordersPerPage +
+                                                                index +
+                                                                1}
+                                                        </td>
+
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">
+                                                            #{order.orderId}
+                                                        </td>
+
+                                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                                            <div>
+                                                                <div className="font-medium">
+                                                                    {
+                                                                        order.facilityName
+                                                                    }
+                                                                </div>
+
+                                                                <div className="text-gray-500 text-xs">
+                                                                    {
+                                                                        order.fieldName
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            <div>
+                                                                <div className="font-medium">
+                                                                    {
+                                                                        order.customerName
+                                                                    }
+                                                                </div>
+
+                                                                <div className="text-gray-500 text-xs">
+                                                                    {
+                                                                        order.customerPhone
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            <div>
+                                                                <div className="font-medium">
+                                                                    {new Date(
+                                                                        order.bookingDate
+                                                                    ).toLocaleDateString(
+                                                                        "vi-VN"
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="text-gray-500 text-xs">
+                                                                    {
+                                                                        order.startTime
+                                                                    }{" "}
+                                                                    -{" "}
+                                                                    {
+                                                                        order.endTime
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            <div>
+                                                                <div className="text-blue-600">
+                                                                    {order.totalPrice.toLocaleString()}
+                                                                    đ
+                                                                </div>
+
+                                                                <div className="text-gray-500 text-xs">
+                                                                    DV:
+                                                                    {order.totalServicePrice.toLocaleString()}
+                                                                    đ
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="relative dropdown-container">
+                                                                <button
+                                                                    onClick={() =>
+                                                                        toggleDropdown(
+                                                                            `paymentStatus_${order.orderId}`
+                                                                        )
+                                                                    }
+                                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
+                                                                        order.statusPayment
+                                                                    )} `}
+                                                                    title={
+                                                                        order.statusPayment !==
+                                                                        "Chờ thanh toán"
+                                                                            ? "Chỉ có thể thay đổi trạng thái khi đơn hàng đang 'Chờ thanh toán'"
+                                                                            : "Đổi trạng thái thanh toán"
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        order.statusPayment
+                                                                    }
+
+                                                                    {order.statusPayment ===
+                                                                        "Chờ thanh toán" && (
+                                                                        <svg
+                                                                            className="w-3 h-3 ml-1"
+                                                                            fill="none"
+                                                                            stroke="currentColor"
+                                                                            viewBox="0 0 24 24"
+                                                                        >
+                                                                            <path
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                                strokeWidth={
+                                                                                    2
+                                                                                }
+                                                                                d="M19 9l-7 7-7-7"
+                                                                            />
+                                                                        </svg>
+                                                                    )}
+                                                                </button>
+
+                                                                {showDropdowns[
+                                                                    `paymentStatus_${order.orderId}`
+                                                                ] && (
+                                                                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 min-w-40">
+                                                                        <div className="py-1">
+                                                                            {paymentStatuses
+                                                                                .filter(
+                                                                                    (
+                                                                                        status
+                                                                                    ) =>
+                                                                                        status !==
+                                                                                        "Chờ thanh toán"
+                                                                                ) // Lọc bỏ trạng thái hiện tại
+                                                                                .map(
+                                                                                    (
+                                                                                        status,
+                                                                                        statusIndex
+                                                                                    ) => (
+                                                                                        <div
+                                                                                            key={
+                                                                                                statusIndex
+                                                                                            }
+                                                                                            onClick={() => {
+                                                                                                handleChangePaymentStatus(
+                                                                                                    order.orderId,
+                                                                                                    status
+                                                                                                );
+                                                                                                toggleDropdown(
+                                                                                                    `paymentStatus_${order.orderId}`
+                                                                                                );
+                                                                                            }}
+                                                                                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center transition-colors duration-200 text-gray-700 hover:text-blue-600`}
+                                                                                        >
+                                                                                            <span
+                                                                                                className={`inline-block w-2 h-2 rounded-full mr-3 ${
+                                                                                                    getPaymentStatusColor(
+                                                                                                        status
+                                                                                                    ).split(
+                                                                                                        " "
+                                                                                                    )[0]
+                                                                                                }`}
+                                                                                            ></span>
+
+                                                                                            {
+                                                                                                status
+                                                                                            }
+                                                                                        </div>
+                                                                                    )
+                                                                                )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                            <button
+                                                                onClick={() =>
+                                                                    openOrderDetail(
+                                                                        order
+                                                                    )
+                                                                }
+                                                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                                                            >
+                                                                <svg
+                                                                    className="w-3 h-3 mr-1"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth={
+                                                                            2
+                                                                        }
+                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                                    />
+
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth={
+                                                                            2
+                                                                        }
+                                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                                    />
+                                                                </svg>
+                                                                {order.action}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            )
+                                        ) : (
+                                            <tr>
+                                                <td
+                                                    colSpan={8}
+                                                    className="px-6 py-4 text-center text-gray-500"
+                                                >
+                                                    Không tìm thấy đơn hàng nào.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             )}
-                          </span>
                         </div>
-
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Thời gian sân:
-                          </span>
-
-                          <span className="font-medium">
-                            {orderDetail.startTime}-{" "}
-                            {orderDetail.endTime}
-                          </span>
-                        </div>
-                      </div>
                     </div>
 
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2 text-green-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
-                        Thông tin khách hàng
-                      </h3>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-4 mt-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <span className="text-sm text-gray-700">
+                                    Hiển thị
+                                    <span className="font-medium">
+                                        {filteredOrders.length > 0
+                                            ? (currentPage - 1) *
+                                                  ordersPerPage +
+                                              1
+                                            : 0}
+                                    </span>
+                                    đến
+                                    <span className="font-medium">
+                                        {Math.min(
+                                            currentPage * ordersPerPage,
+                                            filteredOrders.length
+                                        )}
+                                    </span>
+                                    của
+                                    <span className="font-medium">
+                                        {filteredOrders.length}
+                                    </span>
+                                    kết quả
+                                </span>
+                            </div>
 
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Họ tên:
-                          </span>
+                            <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-2">
+                                    <label
+                                        htmlFor="ordersPerPage"
+                                        className="text-sm font-medium text-gray-700"
+                                    >
+                                        Hiển thị:
+                                    </label>
 
-                          <span className="font-medium">
-                            {
-                              orderDetail.customerName
-                            }
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Số điện thoại:
-                          </span>
-
-                          <span className="font-medium">
-                            {
-                              orderDetail.customerPhone
-                            }
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Email:
-                          </span>
-
-                          <span className="font-medium">
-                            {
-                              orderDetail.customerEmail
-                            }
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2 text-indigo-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h2m0-13v13m0-13c.789 0 1.456.602 1.52 1.359l.05.641H18m-.08 13.879C17.856 21.398 17.189 22 16.4 22H9m7-13c-.041-.789-.607-1.456-1.359-1.52L14 7.5H9.6m7.4 0c.789 0 1.456.602 1.52 1.359l.05.641H21m-2 13.879C18.856 21.398 18.189 22 17.4 22h-2"
-                          />
-                        </svg>
-                        Dịch vụ đi kèm
-                      </h3>
-
-                      <div className="space-y-2">
-                        {orderDetail.services.length >
-                          0 ? (
-                          orderDetail.services.map(
-                            (service, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center justify-between"
-                              >
-                                <div className="flex items-center">
-                                  <svg
-                                    className="w-4 h-4 text-green-500 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={
-                                        2
-                                      }
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
-
-                                  <span className="text-gray-700">
-                                    {
-                                      service.serviceName
-                                    }
-                                  </span>
+                                    <select
+                                        id="ordersPerPage"
+                                        value={ordersPerPage}
+                                        onChange={(e) => {
+                                            setOrdersPerPage(
+                                                Number(e.target.value)
+                                            );
+                                            setCurrentPage(1);
+                                        }}
+                                        className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                    >
+                                        <option value={5}>5</option>
+                                        <option value={10}>10</option>
+                                        <option value={20}>20</option>
+                                        <option value={50}>50</option>
+                                    </select>
                                 </div>
 
-                                <div className="text-sm text-gray-600">
-                                  {
-                                    service.quantity
-                                  }
-                                  x
-                                  {service.price.toLocaleString()}
-                                  đ
+                                <div className="flex items-center space-x-1">
+                                    <button
+                                        onClick={() => setCurrentPage(1)}
+                                        disabled={currentPage === 1}
+                                        className={`p-2 rounded-lg border ${
+                                            currentPage === 1
+                                                ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                                                : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                                        } transition-colors duration-200`}
+                                        aria-label="Trang đầu"
+                                    >
+                                        <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                                            />
+                                        </svg>
+                                    </button>
+
+                                    <button
+                                        onClick={() =>
+                                            setCurrentPage((prev) =>
+                                                Math.max(prev - 1, 1)
+                                            )
+                                        }
+                                        disabled={currentPage === 1}
+                                        className={`p-2 rounded-lg border ${
+                                            currentPage === 1
+                                                ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                                                : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                                        } transition-colors duration-200`}
+                                        aria-label="Trang trước"
+                                    >
+                                        <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M15 19l-7-7 7-7"
+                                            />
+                                        </svg>
+                                    </button>
+
+                                    <div className="flex items-center space-x-1">
+                                        {Array.from(
+                                            { length: Math.min(5, totalPages) },
+                                            (_, i) => {
+                                                let pageNumber;
+                                                if (totalPages <= 5) {
+                                                    pageNumber = i + 1;
+                                                } else if (currentPage <= 3) {
+                                                    pageNumber = i + 1;
+                                                } else if (
+                                                    currentPage >=
+                                                    totalPages - 2
+                                                ) {
+                                                    pageNumber =
+                                                        totalPages - 4 + i;
+                                                } else {
+                                                    pageNumber =
+                                                        currentPage - 2 + i;
+                                                }
+
+                                                return (
+                                                    <button
+                                                        key={pageNumber}
+                                                        onClick={() =>
+                                                            setCurrentPage(
+                                                                pageNumber
+                                                            )
+                                                        }
+                                                        className={`w-8 h-8 rounded-lg border text-sm font-medium transition-colors duration-200 ${
+                                                            pageNumber ===
+                                                            currentPage
+                                                                ? "bg-blue-600 text-white border-blue-600"
+                                                                : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                                                        }`}
+                                                    >
+                                                        {pageNumber}
+                                                    </button>
+                                                );
+                                            }
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={() =>
+                                            setCurrentPage((prev) =>
+                                                Math.min(prev + 1, totalPages)
+                                            )
+                                        }
+                                        disabled={currentPage === totalPages}
+                                        className={`p-2 rounded-lg border ${
+                                            currentPage === totalPages
+                                                ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                                                : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                                        } transition-colors duration-200`}
+                                        aria-label="Trang tiếp"
+                                    >
+                                        <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 5l7 7-7 7"
+                                            />
+                                        </svg>
+                                    </button>
+
+                                    <button
+                                        onClick={() =>
+                                            setCurrentPage(totalPages)
+                                        }
+                                        disabled={currentPage === totalPages}
+                                        className={`p-2 rounded-lg border ${
+                                            currentPage === totalPages
+                                                ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                                                : "text-gray-700 border-gray-300 hover:bg-gray-50"
+                                        } transition-colors duration-200`}
+                                        aria-label="Trang cuối"
+                                    >
+                                        <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                                            />
+                                        </svg>
+                                    </button>
                                 </div>
-                              </div>
-                            )
-                          )
-                        ) : (
-                          <div className="text-sm text-gray-500 italic">
-                            Không có dịch vụ đi kèm.
-                          </div>
-                        )}
-                      </div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
 
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <svg
-                          className="w-5 h-5 mr-2 text-orange-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
-                        Thông tin thanh toán
-                      </h3>
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-xl">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-xl font-bold">
+                                        Chi tiết đơn đặt sân
+                                    </h2>
 
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Giá thuê sân:
-                          </span>
+                                    <p className="text-blue-100 text-sm">
+                                        Đơn hàng #{selectedOrder?.orderId}
+                                    </p>
+                                </div>
 
-                          <span className="font-medium">
-                            {orderDetail.fieldRentalPrice.toLocaleString()}
-                            đ
-                          </span>
+                                <button
+                                    onClick={closeModal}
+                                    title="Đóng modal"
+                                    className="text-white hover:text-gray-200 transition-colors duration-200"
+                                >
+                                    <svg
+                                        className="w-6 h-6"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Tiền dịch vụ:
-                          </span>
+                        <div className="p-6">
+                            {modalLoading ? (
+                                <div className="text-center p-10 text-gray-500">
+                                    Đang tải chi tiết đơn hàng...
+                                </div>
+                            ) : orderDetail ? (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="space-y-6">
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                                <svg
+                                                    className="w-5 h-5 mr-2 text-purple-600"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                                    />
+                                                </svg>
+                                                Thông tin sân
+                                            </h3>
 
-                          <span className="font-medium">
-                            {orderDetail.totalServicePrice.toLocaleString()}
-                            đ
-                          </span>
-                        </div>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Cơ sở:
+                                                    </span>
 
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Giảm giá:
-                          </span>
+                                                    <span className="font-medium">
+                                                        {
+                                                            orderDetail.facilityName
+                                                        }
+                                                    </span>
+                                                </div>
 
-                          <span className="font-medium text-red-600">
-                            -
-                            {orderDetail.discountAmount.toLocaleString()}
-                            đ
-                          </span>
-                        </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Tên sân:
+                                                    </span>
 
-                        <div className="border-t pt-2">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">
-                              Tổng tiền:
-                            </span>
+                                                    <span className="font-medium">
+                                                        {orderDetail.fieldName}
+                                                    </span>
+                                                </div>
 
-                            <span className="font-bold text-lg text-blue-600">
-                              {orderDetail.totalPrice.toLocaleString()}
-                              đ
-                            </span>
-                          </div>
-                        </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Loại sân:
+                                                    </span>
 
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Đã cọc:
-                          </span>
+                                                    <span className="font-medium">
+                                                        {
+                                                            orderDetail.categoryFieldName
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                          <span className="font-medium text-green-600">
-                            {orderDetail.deposit.toLocaleString()}
-                            đ
-                          </span>
-                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                                <svg
+                                                    className="w-5 h-5 mr-2 text-blue-600"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                    />
+                                                </svg>
+                                                Thông tin đơn hàng
+                                            </h3>
 
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Còn lại cần thanh toán:
-                          </span>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Ngày đặt sân:
+                                                    </span>
 
-                          <span className="font-medium text-orange-600">
-                            {(
-                              orderDetail.totalPrice -
-                              orderDetail.deposit
-                            ).toLocaleString()}
-                            đ
-                          </span>
-                        </div>
+                                                    <span className="font-medium">
+                                                        {new Date(
+                                                            orderDetail.bookingDate
+                                                        ).toLocaleDateString(
+                                                            "vi-VN"
+                                                        )}
+                                                    </span>
+                                                </div>
 
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Trạng thái:
-                          </span>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Thời gian sân:
+                                                    </span>
 
-                          <span
-                            className={`px-3 py-1 rounded-full text-100 font-medium ${getPaymentStatusColor(
-                              orderDetail.statusPayment
-                            )}`}
-                          >
-                            {mapBookingStatus(
-                              orderDetail.statusPayment
+                                                    <span className="font-medium">
+                                                        {orderDetail.startTime}-{" "}
+                                                        {orderDetail.endTime}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                                <svg
+                                                    className="w-5 h-5 mr-2 text-green-600"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                    />
+                                                </svg>
+                                                Thông tin khách hàng
+                                            </h3>
+
+                                            <div className="grid grid-cols-1 gap-3">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Họ tên:
+                                                    </span>
+
+                                                    <span className="font-medium">
+                                                        {
+                                                            orderDetail.customerName
+                                                        }
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Số điện thoại:
+                                                    </span>
+
+                                                    <span className="font-medium">
+                                                        {
+                                                            orderDetail.customerPhone
+                                                        }
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Email:
+                                                    </span>
+
+                                                    <span className="font-medium">
+                                                        {
+                                                            orderDetail.customerEmail
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                                <svg
+                                                    className="w-5 h-5 mr-2 text-indigo-600"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M9 5H7a2 2 0 00-2 2v11a2 2 0 002 2h2m0-13v13m0-13c.789 0 1.456.602 1.52 1.359l.05.641H18m-.08 13.879C17.856 21.398 17.189 22 16.4 22H9m7-13c-.041-.789-.607-1.456-1.359-1.52L14 7.5H9.6m7.4 0c.789 0 1.456.602 1.52 1.359l.05.641H21m-2 13.879C18.856 21.398 18.189 22 17.4 22h-2"
+                                                    />
+                                                </svg>
+                                                Dịch vụ đi kèm
+                                            </h3>
+
+                                            <div className="space-y-2">
+                                                {orderDetail.services.length >
+                                                0 ? (
+                                                    orderDetail.services.map(
+                                                        (service, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="flex items-center justify-between"
+                                                            >
+                                                                <div className="flex items-center">
+                                                                    <svg
+                                                                        className="w-4 h-4 text-green-500 mr-2"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={
+                                                                                2
+                                                                            }
+                                                                            d="M5 13l4 4L19 7"
+                                                                        />
+                                                                    </svg>
+
+                                                                    <span className="text-gray-700">
+                                                                        {
+                                                                            service.serviceName
+                                                                        }
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="text-sm text-gray-600">
+                                                                    {
+                                                                        service.quantity
+                                                                    }
+                                                                    x
+                                                                    {service.price.toLocaleString()}
+                                                                    đ
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    )
+                                                ) : (
+                                                    <div className="text-sm text-gray-500 italic">
+                                                        Không có dịch vụ đi kèm.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                                <svg
+                                                    className="w-5 h-5 mr-2 text-orange-600"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                                                    />
+                                                </svg>
+                                                Thông tin thanh toán
+                                            </h3>
+
+                                            <div className="grid grid-cols-1 gap-3">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Giá thuê sân:
+                                                    </span>
+
+                                                    <span className="font-medium">
+                                                        {orderDetail.fieldRentalPrice.toLocaleString()}
+                                                        đ
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Tiền dịch vụ:
+                                                    </span>
+
+                                                    <span className="font-medium">
+                                                        {orderDetail.totalServicePrice.toLocaleString()}
+                                                        đ
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Giảm giá:
+                                                    </span>
+
+                                                    <span className="font-medium text-red-600">
+                                                        -
+                                                        {orderDetail.discountAmount.toLocaleString()}
+                                                        đ
+                                                    </span>
+                                                </div>
+
+                                                <div className="border-t pt-2">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">
+                                                            Tổng tiền:
+                                                        </span>
+
+                                                        <span className="font-bold text-lg text-blue-600">
+                                                            {orderDetail.totalPrice.toLocaleString()}
+                                                            đ
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Đã cọc:
+                                                    </span>
+
+                                                    <span className="font-medium text-green-600">
+                                                        {orderDetail.deposit.toLocaleString()}
+                                                        đ
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Còn lại cần thanh toán:
+                                                    </span>
+
+                                                    <span className="font-medium text-orange-600">
+                                                        {(
+                                                            orderDetail.totalPrice -
+                                                            orderDetail.deposit
+                                                        ).toLocaleString()}
+                                                        đ
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Trạng thái:
+                                                    </span>
+
+                                                    <span
+                                                        className={`px-3 py-1 rounded-full text-100 font-medium ${getPaymentStatusColor(
+                                                            orderDetail.statusPayment
+                                                        )}`}
+                                                    >
+                                                        {mapBookingStatus(
+                                                            orderDetail.statusPayment
+                                                        )}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">
+                                                        Phương thức:
+                                                    </span>
+
+                                                    <span className="font-medium text-sm">
+                                                        {
+                                                            orderDetail.contentPayment
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center p-10 text-gray-500">
+                                    Không thể tải chi tiết đơn hàng.
+                                </div>
                             )}
-                          </span>
                         </div>
 
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            Phương thức:
-                          </span>
-
-                          <span className="font-medium text-sm">
-                            {
-                              orderDetail.contentPayment
-                            }
-                          </span>
+                        <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end space-x-3">
+                            <button
+                                onClick={closeModal}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                            >
+                                Đóng
+                            </button>
                         </div>
-                      </div>
                     </div>
-                  </div>
                 </div>
-              ) : (
-                <div className="text-center p-10 text-gray-500">
-                  Không thể tải chi tiết đơn hàng.
+            )}
+
+            {confirmPopup.show && (
+                <div className="fixed inset-0 flex items-center justify-center z-[100]">
+                    <div
+                        className="absolute inset-0 bg-gray-500 bg-opacity-30"
+                        onClick={handleCancelChangeStatus}
+                    ></div>
+
+                    <div className="relative bg-white rounded-lg shadow-xl p-6 min-w-[320px]">
+                        <h3 className="text-lg font-semibold mb-2 text-gray-900">
+                            Xác nhận chuyển trạng thái
+                        </h3>
+
+                        <p className="mb-4 text-gray-700">
+                            Bạn có chắc muốn chuyển trạng thái đơn hàng
+                            <span className="font-bold">
+                                #{confirmPopup.orderId}
+                            </span>
+                            thành
+                            <span className="font-bold">
+                                {confirmPopup.newStatus}
+                            </span>
+                            ?
+                        </p>
+
+                        <div className="flex justify-end space-x-2">
+                            <button
+                                onClick={handleCancelChangeStatus}
+                                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                            >
+                                Hủy
+                            </button>
+
+                            <button
+                                onClick={handleConfirmChangeStatus}
+                                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+                            >
+                                Xác nhận
+                            </button>
+                        </div>
+                    </div>
                 </div>
-              )}
-            </div>
-
-            <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end space-x-3">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {confirmPopup.show && (
-        <div className="fixed inset-0 flex items-center justify-center z-[100]">
-          <div
-            className="absolute inset-0 bg-gray-500 bg-opacity-30"
-            onClick={handleCancelChangeStatus}
-          ></div>
-
-          <div className="relative bg-white rounded-lg shadow-xl p-6 min-w-[320px]">
-            <h3 className="text-lg font-semibold mb-2 text-gray-900">
-              Xác nhận chuyển trạng thái
-            </h3>
-
-            <p className="mb-4 text-gray-700">
-              Bạn có chắc muốn chuyển trạng thái đơn hàng
-              <span className="font-bold">
-                #{confirmPopup.orderId}
-              </span>
-              thành
-              <span className="font-bold">
-                {confirmPopup.newStatus}
-              </span>
-              ?
-            </p>
-
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={handleCancelChangeStatus}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
-              >
-                Hủy
-              </button>
-
-              <button
-                onClick={handleConfirmChangeStatus}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
-              >
-                Xác nhận
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+            )}
+        </>
+    );
 };
 
 export default OrdersTable;
