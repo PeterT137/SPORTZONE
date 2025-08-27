@@ -59,7 +59,7 @@ interface OrderServiceDetail {
 const mapPaymentStatus = (status?: string): string => {
     if (!status || status === "NULL" || status == null) return "Chưa xác định";
     const s = String(status).toLowerCase();
-    if (s === "pending") return "Chờ thanh toán";
+    if (s === "pending") return "Đã cọc";
     if (s === "success") return "Đã thanh toán";
     if (s == "arrived") return "Đã đến";
     if (s === "cancelled" || s === "cancel") return "Đã hủy";
@@ -760,12 +760,7 @@ const OrdersTable: React.FC = () => {
     const uniqueCustomers = [
         ...new Set(orders.map((order) => order.customerName)),
     ];
-    const paymentStatuses = [
-        "Chờ thanh toán",
-        "Đã thanh toán",
-        "Đã hủy",
-        "Đã đến",
-    ];
+    const paymentStatuses = ["Đã cọc", "Đã thanh toán", "Đã hủy", "Đã đến"];
 
     const filteredOrders = orders.filter((order) => {
         const matchesFacility =
@@ -803,6 +798,10 @@ const OrdersTable: React.FC = () => {
         );
     });
 
+    const filteredOrdersArrived = orders.filter((order) => {
+        return order.statusPayment === "Đã đến";
+    });
+
     const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
     const paginatedOrders = filteredOrders.slice(
         (currentPage - 1) * ordersPerPage,
@@ -813,14 +812,14 @@ const OrdersTable: React.FC = () => {
         switch (status) {
             case "Đã thanh toán":
                 return "bg-green-100 text-green-800 border border-green-300";
-            case "Chờ thanh toán":
+            case "Đã cọc":
                 return "bg-orange-100 text-orange-800 border border-orange-300";
             case "Đã hủy":
                 return "bg-red-200 text-red-800 border border-red-400";
             case "Chưa xác định":
                 return "bg-gray-100 text-gray-800 border border-gray-300";
             case "Đã đến":
-                return "bg-blue-200 text-blue-800 border border-blue-300";
+                return "bg-pink-200 text-pink-800 border border-pink-300";
             default:
                 return "bg-gray-100 text-gray-800 border border-gray-300";
         }
@@ -835,7 +834,7 @@ const OrdersTable: React.FC = () => {
 
     const mapStatusToOption = (status: string): number => {
         switch (status) {
-            case "Chờ thanh toán":
+            case "Đã cọc":
                 return 1;
             case "Đã thanh toán":
                 return 2;
@@ -937,6 +936,13 @@ const OrdersTable: React.FC = () => {
                             </div>
 
                             <div className="flex items-center space-x-3">
+                                <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+                                    <span className="text-green-700 font-medium text-sm">
+                                        {loading
+                                            ? "Đang tải..."
+                                            : `Đơn đã check-in: ${filteredOrdersArrived.length} đơn`}
+                                    </span>
+                                </div>
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
                                     <span className="text-blue-700 font-medium text-sm">
                                         {loading
@@ -1603,10 +1609,16 @@ const OrdersTable: React.FC = () => {
                                                                     className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md ${getPaymentStatusColor(
                                                                         order.statusPayment
                                                                     )} `}
+                                                                    disabled={
+                                                                        order.statusPayment ==
+                                                                            "Đã hủy" ||
+                                                                        order.statusPayment ===
+                                                                            "Đã thanh toán"
+                                                                    }
                                                                     title={
                                                                         order.statusPayment !==
-                                                                        "Chờ thanh toán"
-                                                                            ? "Chỉ có thể thay đổi trạng thái khi đơn hàng đang 'Chờ thanh toán'"
+                                                                        "Đã cọc"
+                                                                            ? "Chỉ có thể thay đổi trạng thái khi đơn hàng đang 'Đã cọc'"
                                                                             : "Đổi trạng thái thanh toán"
                                                                     }
                                                                 >
@@ -1614,24 +1626,26 @@ const OrdersTable: React.FC = () => {
                                                                         order.statusPayment
                                                                     }
 
-                                                                    {order.statusPayment ===
-                                                                        "Chờ thanh toán" && (
-                                                                        <svg
-                                                                            className="w-3 h-3 ml-1"
-                                                                            fill="none"
-                                                                            stroke="currentColor"
-                                                                            viewBox="0 0 24 24"
-                                                                        >
-                                                                            <path
-                                                                                strokeLinecap="round"
-                                                                                strokeLinejoin="round"
-                                                                                strokeWidth={
-                                                                                    2
-                                                                                }
-                                                                                d="M19 9l-7 7-7-7"
-                                                                            />
-                                                                        </svg>
-                                                                    )}
+                                                                    {order.statusPayment !==
+                                                                        "Đã hủy" &&
+                                                                        order.statusPayment !==
+                                                                            "Đã thanh toán" && (
+                                                                            <svg
+                                                                                className="w-3 h-3 ml-1"
+                                                                                fill="none"
+                                                                                stroke="currentColor"
+                                                                                viewBox="0 0 24 24"
+                                                                            >
+                                                                                <path
+                                                                                    strokeLinecap="round"
+                                                                                    strokeLinejoin="round"
+                                                                                    strokeWidth={
+                                                                                        2
+                                                                                    }
+                                                                                    d="M19 9l-7 7-7-7"
+                                                                                />
+                                                                            </svg>
+                                                                        )}
                                                                 </button>
 
                                                                 {showDropdowns[
@@ -1645,7 +1659,7 @@ const OrdersTable: React.FC = () => {
                                                                                         status
                                                                                     ) =>
                                                                                         status !==
-                                                                                        "Chờ thanh toán"
+                                                                                        "Đã cọc"
                                                                                 ) // Lọc bỏ trạng thái hiện tại
                                                                                 .map(
                                                                                     (

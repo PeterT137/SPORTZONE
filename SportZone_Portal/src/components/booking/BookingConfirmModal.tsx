@@ -480,9 +480,16 @@ const BookingConfirmModal: React.FC<BookingConfirmModalProps> = ({
                                 <p>
                                     • Vui lòng thanh toán tiền cọc trong vòng{" "}
                                     <strong style={{ color: "red" }}>
-                                        5 phút
+                                        15 phút
                                     </strong>{" "}
                                     để hoàn tất đặt sân.
+                                </p>
+                                <p>
+                                    • Đơn hàng của bạn sẽ tự hủy sau{" "}
+                                    <strong style={{ color: "red" }}>
+                                        15 phút
+                                    </strong>{" "}
+                                    nếu bạn không hoàn tất thanh toán.
                                 </p>
                                 <p>
                                     • Bạn có thể hủy đặt sân nếu hủy trước giờ

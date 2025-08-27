@@ -118,7 +118,7 @@ const FacilityManager: React.FC = () => {
     // Function to get full image URL
     const getImageUrl = (imageUrl: string | undefined) => {
         if (!imageUrl) {
-            return "https://co-nhan-tao.com/wp-content/uploads/2020/03/san-co-nhan-tao-1-1024x768.jpg";
+            return "https://w7.pngwing.com/pngs/395/283/png-transparent-empty-set-null-set-null-sign-mathematics-mathematics-angle-logo-number.png";
         }
 
         // If it's already a full URL, return as is
@@ -540,10 +540,9 @@ const FacilityManager: React.FC = () => {
                 const errorMessages = Object.entries(responseData.errors)
                     .map(
                         ([field, messages]) =>
-                            `${field}: ${
-                                Array.isArray(messages)
-                                    ? messages.join(", ")
-                                    : messages
+                            `${field}: ${Array.isArray(messages)
+                                ? messages.join(", ")
+                                : messages
                             }`
                     )
                     .join("\n");
@@ -972,11 +971,10 @@ const FacilityManager: React.FC = () => {
             pageNumbers.push(
                 <button
                     key={i}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                        i === currentPage
-                            ? "z-10 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
-                            : "bg-white text-gray-700 hover:bg-green-50 hover:text-green-600"
-                    }`}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-medium transition-all duration-200 ${i === currentPage
+                        ? "z-10 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md"
+                        : "bg-white text-gray-700 hover:bg-green-50 hover:text-green-600"
+                        }`}
                     onClick={() => goToPage(i)}
                     disabled={i === currentPage}
                 >
@@ -1313,7 +1311,7 @@ const FacilityManager: React.FC = () => {
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-100">
                                                 {currentFacilities.length ===
-                                                0 ? (
+                                                    0 ? (
                                                     <tr>
                                                         <td
                                                             colSpan={7}
@@ -1356,7 +1354,7 @@ const FacilityManager: React.FC = () => {
                                                                                     localStorage.getItem(
                                                                                         "user"
                                                                                     ) ||
-                                                                                        "{}"
+                                                                                    "{}"
                                                                                 );
                                                                             if (
                                                                                 user.RoleId !==
@@ -1471,7 +1469,7 @@ const FacilityManager: React.FC = () => {
                                                                                 const target =
                                                                                     e.target as HTMLImageElement;
                                                                                 target.src =
-                                                                                    "https://co-nhan-tao.com/wp-content/uploads/2020/03/san-co-nhan-tao-1-1024x768.jpg";
+                                                                                    "https://w7.pngwing.com/pngs/395/283/png-transparent-empty-set-null-set-null-sign-mathematics-mathematics-angle-logo-number.png";
                                                                             }}
                                                                         />
                                                                     </div>
@@ -1516,70 +1514,70 @@ const FacilityManager: React.FC = () => {
                                                                     <div className="flex items-center space-x-2">
                                                                         {user.RoleId ===
                                                                             2 && (
-                                                                            <>
-                                                                                <button
-                                                                                    className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:shadow-md"
-                                                                                    onClick={(
-                                                                                        e
-                                                                                    ) => {
-                                                                                        e.stopPropagation();
-                                                                                        handleEdit(
-                                                                                            fac.fac_id
-                                                                                        );
-                                                                                    }}
-                                                                                    title="Chỉnh sửa cơ sở"
-                                                                                    aria-label="Chỉnh sửa cơ sở"
-                                                                                >
-                                                                                    <svg
-                                                                                        className="w-4 h-4"
-                                                                                        fill="none"
-                                                                                        stroke="currentColor"
-                                                                                        viewBox="0 0 24 24"
+                                                                                <>
+                                                                                    <button
+                                                                                        className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:shadow-md"
+                                                                                        onClick={(
+                                                                                            e
+                                                                                        ) => {
+                                                                                            e.stopPropagation();
+                                                                                            handleEdit(
+                                                                                                fac.fac_id
+                                                                                            );
+                                                                                        }}
+                                                                                        title="Chỉnh sửa cơ sở"
+                                                                                        aria-label="Chỉnh sửa cơ sở"
                                                                                     >
-                                                                                        <path
-                                                                                            strokeLinecap="round"
-                                                                                            strokeLinejoin="round"
-                                                                                            strokeWidth={
-                                                                                                2
-                                                                                            }
-                                                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                                                        />
-                                                                                    </svg>
-                                                                                </button>
-                                                                                <button
-                                                                                    className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:shadow-md"
-                                                                                    onClick={(
-                                                                                        e
-                                                                                    ) => {
-                                                                                        e.stopPropagation();
-                                                                                        setFacilityToDelete(
-                                                                                            fac.fac_id
-                                                                                        );
-                                                                                        setShowDeleteModal(
-                                                                                            true
-                                                                                        );
-                                                                                    }}
-                                                                                    title="Xóa cơ sở"
-                                                                                    aria-label="Xóa cơ sở"
-                                                                                >
-                                                                                    <svg
-                                                                                        className="w-4 h-4"
-                                                                                        fill="none"
-                                                                                        stroke="currentColor"
-                                                                                        viewBox="0 0 24 24"
+                                                                                        <svg
+                                                                                            className="w-4 h-4"
+                                                                                            fill="none"
+                                                                                            stroke="currentColor"
+                                                                                            viewBox="0 0 24 24"
+                                                                                        >
+                                                                                            <path
+                                                                                                strokeLinecap="round"
+                                                                                                strokeLinejoin="round"
+                                                                                                strokeWidth={
+                                                                                                    2
+                                                                                                }
+                                                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                                                            />
+                                                                                        </svg>
+                                                                                    </button>
+                                                                                    <button
+                                                                                        className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:shadow-md"
+                                                                                        onClick={(
+                                                                                            e
+                                                                                        ) => {
+                                                                                            e.stopPropagation();
+                                                                                            setFacilityToDelete(
+                                                                                                fac.fac_id
+                                                                                            );
+                                                                                            setShowDeleteModal(
+                                                                                                true
+                                                                                            );
+                                                                                        }}
+                                                                                        title="Xóa cơ sở"
+                                                                                        aria-label="Xóa cơ sở"
                                                                                     >
-                                                                                        <path
-                                                                                            strokeLinecap="round"
-                                                                                            strokeLinejoin="round"
-                                                                                            strokeWidth={
-                                                                                                2
-                                                                                            }
-                                                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                                                        />
-                                                                                    </svg>
-                                                                                </button>
-                                                                            </>
-                                                                        )}
+                                                                                        <svg
+                                                                                            className="w-4 h-4"
+                                                                                            fill="none"
+                                                                                            stroke="currentColor"
+                                                                                            viewBox="0 0 24 24"
+                                                                                        >
+                                                                                            <path
+                                                                                                strokeLinecap="round"
+                                                                                                strokeLinejoin="round"
+                                                                                                strokeWidth={
+                                                                                                    2
+                                                                                                }
+                                                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                                                            />
+                                                                                        </svg>
+                                                                                    </button>
+                                                                                </>
+                                                                            )}
                                                                         <button
                                                                             className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 hover:shadow-md"
                                                                             onClick={(
@@ -1631,11 +1629,10 @@ const FacilityManager: React.FC = () => {
                                 <div className="bg-white px-6 py-4 flex items-center justify-between border-t border-gray-200 rounded-b-2xl shadow-lg">
                                     <div className="flex-1 flex justify-between sm:hidden">
                                         <button
-                                            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${
-                                                currentPage === 1
-                                                    ? "opacity-50 cursor-not-allowed"
-                                                    : "hover:shadow-md"
-                                            }`}
+                                            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${currentPage === 1
+                                                ? "opacity-50 cursor-not-allowed"
+                                                : "hover:shadow-md"
+                                                }`}
                                             onClick={goToPrevPage}
                                             disabled={currentPage === 1}
                                         >
@@ -1666,12 +1663,11 @@ const FacilityManager: React.FC = () => {
                                             </span>
                                         </div>
                                         <button
-                                            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${
-                                                currentPage === totalPages ||
+                                            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 whitespace-nowrap transition-all duration-200 ${currentPage === totalPages ||
                                                 totalPages === 0
-                                                    ? "opacity-50 cursor-not-allowed"
-                                                    : "hover:shadow-md"
-                                            }`}
+                                                ? "opacity-50 cursor-not-allowed"
+                                                : "hover:shadow-md"
+                                                }`}
                                             onClick={goToNextPage}
                                             disabled={
                                                 currentPage === totalPages ||
@@ -1701,7 +1697,7 @@ const FacilityManager: React.FC = () => {
                                                     Hiển thị{" "}
                                                     <span className="font-bold">
                                                         {filteredFacilities.length >
-                                                        0
+                                                            0
                                                             ? startIndex + 1
                                                             : 0}
                                                     </span>{" "}
@@ -1749,11 +1745,10 @@ const FacilityManager: React.FC = () => {
                                                 aria-label="Phân trang"
                                             >
                                                 <button
-                                                    className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${
-                                                        currentPage === 1
-                                                            ? "opacity-50 cursor-not-allowed"
-                                                            : "hover:text-gray-700"
-                                                    }`}
+                                                    className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${currentPage === 1
+                                                        ? "opacity-50 cursor-not-allowed"
+                                                        : "hover:text-gray-700"
+                                                        }`}
                                                     onClick={goToPrevPage}
                                                     disabled={currentPage === 1}
                                                 >
@@ -1778,17 +1773,16 @@ const FacilityManager: React.FC = () => {
                                                     {renderPaginationNumbers()}
                                                 </div>
                                                 <button
-                                                    className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${
-                                                        currentPage ===
-                                                            totalPages ||
+                                                    className={`relative inline-flex items-center px-3 py-2 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-200 ${currentPage ===
+                                                        totalPages ||
                                                         totalPages === 0
-                                                            ? "opacity-50 cursor-not-allowed"
-                                                            : "hover:text-gray-700"
-                                                    }`}
+                                                        ? "opacity-50 cursor-not-allowed"
+                                                        : "hover:text-gray-700"
+                                                        }`}
                                                     onClick={goToNextPage}
                                                     disabled={
                                                         currentPage ===
-                                                            totalPages ||
+                                                        totalPages ||
                                                         totalPages === 0
                                                     }
                                                 >
@@ -2167,25 +2161,25 @@ const FacilityManager: React.FC = () => {
                                                             </p>
                                                             {editId !==
                                                                 null && (
-                                                                <p className="text-xs text-gray-500 mt-1">
-                                                                    <span className="inline-block w-3 h-3 bg-blue-500 rounded mr-1"></span>
-                                                                    Có sẵn: ảnh
-                                                                    hiện tại sẽ
-                                                                    được giữ lại
-                                                                    <br />
-                                                                    <span className="inline-block w-3 h-3 bg-green-500 rounded mr-1"></span>
-                                                                    Mới: ảnh mới
-                                                                    sẽ được thêm
-                                                                    vào
-                                                                    <br />
-                                                                    <span className="text-red-500">
-                                                                        ×
-                                                                    </span>{" "}
-                                                                    Nhấn để xóa
-                                                                    ảnh khỏi
-                                                                    danh sách
-                                                                </p>
-                                                            )}
+                                                                    <p className="text-xs text-gray-500 mt-1">
+                                                                        <span className="inline-block w-3 h-3 bg-blue-500 rounded mr-1"></span>
+                                                                        Có sẵn: ảnh
+                                                                        hiện tại sẽ
+                                                                        được giữ lại
+                                                                        <br />
+                                                                        <span className="inline-block w-3 h-3 bg-green-500 rounded mr-1"></span>
+                                                                        Mới: ảnh mới
+                                                                        sẽ được thêm
+                                                                        vào
+                                                                        <br />
+                                                                        <span className="text-red-500">
+                                                                            ×
+                                                                        </span>{" "}
+                                                                        Nhấn để xóa
+                                                                        ảnh khỏi
+                                                                        danh sách
+                                                                    </p>
+                                                                )}
                                                         </div>
                                                         <button
                                                             type="button"
@@ -2257,13 +2251,12 @@ const FacilityManager: React.FC = () => {
                                                                                 )
                                                                                     ? preview
                                                                                     : getImageUrl(
-                                                                                          preview
-                                                                                      )
+                                                                                        preview
+                                                                                    )
                                                                             }
-                                                                            alt={`Preview ${
-                                                                                index +
+                                                                            alt={`Preview ${index +
                                                                                 1
-                                                                            }`}
+                                                                                }`}
                                                                             className="w-full h-full object-cover"
                                                                             onError={(
                                                                                 e
@@ -2491,7 +2484,7 @@ const FacilityManager: React.FC = () => {
                                             <img
                                                 src={
                                                     selectedService.image ||
-                                                    "https://co-nhan-tao.com/wp-content/uploads/2020/03/san-co-nhan-tao-1-1024x768.jpg"
+                                                    "https://w7.pngwing.com/pngs/395/283/png-transparent-empty-set-null-set-null-sign-mathematics-mathematics-angle-logo-number.png"
                                                 }
                                                 alt="Dịch vụ"
                                                 className="h-32 w-32 object-cover rounded-2xl mx-auto shadow-lg border-4 border-gray-200"
@@ -2572,12 +2565,11 @@ const FacilityManager: React.FC = () => {
                                                     </span>
                                                 </div>
                                                 <span
-                                                    className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                                                        selectedService.status ===
+                                                    className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${selectedService.status ===
                                                         "active"
-                                                            ? "bg-green-100 text-green-800"
-                                                            : "bg-red-100 text-red-800"
-                                                    }`}
+                                                        ? "bg-green-100 text-green-800"
+                                                        : "bg-red-100 text-red-800"
+                                                        }`}
                                                 >
                                                     {selectedService.status}
                                                 </span>

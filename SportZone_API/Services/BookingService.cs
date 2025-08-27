@@ -326,7 +326,7 @@ namespace SportZone_API.Services
                     OrderId = orderId,
                     BookingId = booking.BookingId,
                     CreatedAt = DateTime.Now,
-                    ExpiresAt = DateTime.Now.AddMinutes(1) // Hết hạn sau 1 phút
+                    ExpiresAt = DateTime.Now.AddMinutes(15) // Hết hạn sau 15 phút
                 };
 
                 lock (_pendingLock)

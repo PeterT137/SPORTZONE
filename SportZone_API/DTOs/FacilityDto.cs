@@ -19,6 +19,7 @@ namespace SportZone_API.DTOs
         public string? Subdescription { get; set; }
 
         public List<IFormFile>? Images { get; set; }
+        public List<string> ImageUrls { get; set; } = new List<string>();
     }
 
     public class FacilityUpdateDto

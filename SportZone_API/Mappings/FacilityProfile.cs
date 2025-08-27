@@ -31,7 +31,9 @@ public class FacilityProfile : Profile
         CreateMap<Facility, FacilityDto>()
             .ForMember(dest => dest.Images, opt => opt.Ignore())
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UId))
-            .ForMember(dest => dest.FacId, opt => opt.MapFrom(src => src.FacId));
+            .ForMember(dest => dest.FacId, opt => opt.MapFrom(src => src.FacId))
+            .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src =>
+                src.Images != null ? src.Images.Select(img => img.ImageUrl).ToList() : new List<string>()));
 
         CreateMap<FacilityUpdateDto, Facility>()
             .ForMember(dest => dest.UId, opt => opt.MapFrom(src => src.UserId))

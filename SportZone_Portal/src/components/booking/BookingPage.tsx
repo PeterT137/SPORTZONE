@@ -535,10 +535,10 @@ const TimeSlotsGrid = React.memo(
                             <div className="w-3 h-3 bg-red-500 rounded"></div>
                             <span>Đã đặt</span>
                         </div>
-                        <div className="flex items-center space-x-1">
+                        {/* <div className="flex items-center space-x-1">
                             <div className="w-3 h-3 bg-gray-400 rounded"></div>
                             <span>Bị khóa</span>
-                        </div>
+                        </div> */}
                         <div className="flex items-center space-x-1">
                             <div className="w-3 h-3 bg-gray-300 rounded opacity-50"></div>
                             <span>Đã qua giờ</span>
@@ -584,109 +584,130 @@ const TimeSlotsGrid = React.memo(
                                 ))}
                             </div>
 
-                            {fields.map((field) => (
-                                <div
-                                    key={field.fieldId}
-                                    className="grid gap-px bg-gray-200 mb-px"
-                                    style={{
-                                        gridTemplateColumns: `180px repeat(${timeSlots.length}, minmax(40px, 1fr))`,
-                                    }}
-                                >
-                                    <div className="bg-gray-100 text-xs font-medium p-2 flex items-center break-words">
-                                        {field.fieldName}
-                                    </div>
-                                    {timeSlots.map((timeSlot, slotIndex) => {
-                                        const slot = availableSlots.find(
-                                            (s) =>
-                                                s.fieldId === field.fieldId &&
-                                                s.startTime === timeSlot.time
-                                        );
-                                        const isSelected = selectedSlots.some(
-                                            (s) =>
-                                                s.scheduleId ===
-                                                slot?.scheduleId
-                                        );
+                            {fields.map((field) =>
+                                field.isBookingEnable ? (
+                                    <div
+                                        key={field.fieldId}
+                                        className="grid gap-px bg-gray-200 mb-px"
+                                        style={{
+                                            gridTemplateColumns: `180px repeat(${timeSlots.length}, minmax(40px, 1fr))`,
+                                        }}
+                                    >
+                                        <div className="bg-gray-100 text-xs font-medium p-2 flex items-center break-words">
+                                            {field.fieldName}
+                                        </div>
+                                        {timeSlots.map(
+                                            (timeSlot, slotIndex) => {
+                                                const slot =
+                                                    availableSlots.find(
+                                                        (s) =>
+                                                            s.fieldId ===
+                                                                field.fieldId &&
+                                                            s.startTime ===
+                                                                timeSlot.time
+                                                    );
+                                                const isSelected =
+                                                    selectedSlots.some(
+                                                        (s) =>
+                                                            s.scheduleId ===
+                                                            slot?.scheduleId
+                                                    );
 
-                                        // Check if the slot is in the past
-                                        let isPastSlot = false;
-                                        if (slot) {
-                                            const now = new Date();
-                                            const slotDate = new Date(
-                                                slot.date
-                                            );
-                                            const [slotHour, slotMinute] =
-                                                slot.startTime
-                                                    .split(":")
-                                                    .map(Number);
-                                            const slotDateTime = new Date(
-                                                slotDate
-                                            );
-                                            slotDateTime.setHours(
-                                                slotHour,
-                                                slotMinute,
-                                                0,
-                                                0
-                                            );
-                                            isPastSlot = slotDateTime < now;
-                                        }
-
-                                        let bgColor = "bg-gray-100";
-                                        let textColor = "text-gray-500";
-                                        let isClickable = false;
-                                        let title = `${field.fieldName} - ${timeSlot.time} - Không có lịch`;
-
-                                        if (slot) {
-                                            title = `${field.fieldName} - ${
-                                                timeSlot.time
-                                            } - ${
-                                                slot.status
-                                            } - ${slot.price.toLocaleString()}đ`;
-
-                                            if (isPastSlot) {
-                                                bgColor = "bg-gray-300";
-                                                textColor = "text-gray-400";
-                                                title += " - Đã qua thời gian";
-                                            } else if (isSelected) {
-                                                bgColor = "bg-purple-700";
-                                                textColor = "text-white";
-                                                isClickable = true;
-                                            } else if (
-                                                slot.status === "Available"
-                                            ) {
-                                                // If current time is past the slot start, mark as expired and disable
-                                                if (isPastSlot) {
-                                                    bgColor = "bg-gray-300";
-                                                    textColor = "text-gray-500";
-                                                    isClickable = false;
-                                                    title += " - Hết hạn";
-                                                } else {
-                                                    bgColor = "bg-green-400";
-                                                    textColor = "text-white";
-                                                    isClickable = true;
+                                                // Check if the slot is in the past
+                                                let isPastSlot = false;
+                                                if (slot) {
+                                                    const now = new Date();
+                                                    const slotDate = new Date(
+                                                        slot.date
+                                                    );
+                                                    const [
+                                                        slotHour,
+                                                        slotMinute,
+                                                    ] = slot.startTime
+                                                        .split(":")
+                                                        .map(Number);
+                                                    const slotDateTime =
+                                                        new Date(slotDate);
+                                                    slotDateTime.setHours(
+                                                        slotHour,
+                                                        slotMinute,
+                                                        0,
+                                                        0
+                                                    );
+                                                    isPastSlot =
+                                                        slotDateTime < now;
                                                 }
-                                            } else if (
-                                                slot.status === "Booked"
-                                            ) {
-                                                bgColor = "bg-red-500";
-                                                textColor = "text-white";
-                                            } else if (
-                                                slot.status === "Blocked"
-                                            ) {
-                                                bgColor = "bg-gray-400";
-                                                textColor = "text-white";
-                                            }
-                                        }
 
-                                        return (
-                                            <button
-                                                key={slotIndex}
-                                                onClick={() =>
-                                                    slot &&
-                                                    isClickable &&
-                                                    onSlotClick(slot)
+                                                let bgColor = "bg-gray-100";
+                                                let textColor = "text-gray-500";
+                                                let isClickable = false;
+                                                let title = `${field.fieldName} - ${timeSlot.time} - Không có lịch`;
+
+                                                if (slot) {
+                                                    title = `${
+                                                        field.fieldName
+                                                    } - ${timeSlot.time} - ${
+                                                        slot.status
+                                                    } - ${slot.price.toLocaleString()}đ`;
+
+                                                    if (isPastSlot) {
+                                                        bgColor = "bg-gray-300";
+                                                        textColor =
+                                                            "text-gray-400";
+                                                        title +=
+                                                            " - Đã qua thời gian";
+                                                    } else if (isSelected) {
+                                                        bgColor =
+                                                            "bg-purple-700";
+                                                        textColor =
+                                                            "text-white";
+                                                        isClickable = true;
+                                                    } else if (
+                                                        slot.status ===
+                                                        "Available"
+                                                    ) {
+                                                        // If current time is past the slot start, mark as expired and disable
+                                                        if (isPastSlot) {
+                                                            bgColor =
+                                                                "bg-gray-300";
+                                                            textColor =
+                                                                "text-gray-500";
+                                                            isClickable = false;
+                                                            title +=
+                                                                " - Hết hạn";
+                                                        } else {
+                                                            bgColor =
+                                                                "bg-green-400";
+                                                            textColor =
+                                                                "text-white";
+                                                            isClickable = true;
+                                                        }
+                                                    } else if (
+                                                        slot.status === "Booked"
+                                                    ) {
+                                                        bgColor = "bg-red-500";
+                                                        textColor =
+                                                            "text-white";
+                                                    } else if (
+                                                        slot.status ===
+                                                        "Blocked"
+                                                    ) {
+                                                        bgColor = "bg-gray-400";
+                                                        textColor =
+                                                            "text-white";
+                                                    }
                                                 }
-                                                disabled={!isClickable}
-                                                className={`
+
+                                                return (
+                                                    <button
+                                                        key={slotIndex}
+                                                        onClick={() =>
+                                                            slot &&
+                                                            isClickable &&
+                                                            onSlotClick(slot)
+                                                        }
+                                                        disabled={!isClickable}
+                                                        className={`
                           ${bgColor} ${textColor} h-8 text-xs font-medium transition-colors
                           ${
                               isClickable
@@ -695,22 +716,25 @@ const TimeSlotsGrid = React.memo(
                           }
                           ${isPastSlot ? "opacity-50" : ""}
                         `}
-                                                title={title}
-                                                aria-label={`Khung giờ ${timeSlot.time} cho ${field.fieldName}`}
-                                            >
-                                                {slot && (
-                                                    <div className="text-xs">
-                                                        {(
-                                                            slot.price / 1000
-                                                        ).toFixed(0)}
-                                                        k
-                                                    </div>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ))}
+                                                        title={title}
+                                                        aria-label={`Khung giờ ${timeSlot.time} cho ${field.fieldName}`}
+                                                    >
+                                                        {slot && (
+                                                            <div className="text-xs">
+                                                                {(
+                                                                    slot.price /
+                                                                    1000
+                                                                ).toFixed(0)}
+                                                                k
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                );
+                                            }
+                                        )}
+                                    </div>
+                                ) : null
+                            )}
                         </div>
                     </div>
                 ) : (
@@ -858,6 +882,7 @@ const BookingPage: React.FC = () => {
                         guestName: userInfo.name || userInfo.fullName || "",
                         guestPhone:
                             userInfo.phone || userInfo.phoneNumber || "",
+                        guestEmail: userInfo.email || "",
                     }));
                 }
             } catch (error) {
@@ -1389,42 +1414,47 @@ const BookingPage: React.FC = () => {
                                         </p>
                                     ) : (
                                         <div className="space-y-4">
-                                            {regulations.map((r) => (
-                                                <div
-                                                    key={r.id}
-                                                    className="border border-gray-200 rounded-lg p-4"
-                                                >
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <h4 className="font-semibold text-gray-900">
-                                                            {r.title}
-                                                        </h4>
-                                                        <span
-                                                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                                r.status ===
-                                                                "Active"
-                                                                    ? "bg-green-100 text-green-700"
-                                                                    : "bg-gray-100 text-gray-700"
-                                                            }`}
-                                                            title={`Trạng thái: ${
-                                                                r.status ===
-                                                                "Active"
-                                                                    ? "Hoạt động"
-                                                                    : "Tạm dừng"
-                                                            }`}
+                                            {regulations.map(
+                                                (r) =>
+                                                    r.status != "Inactive" && (
+                                                        <div
+                                                            key={r.id}
+                                                            className="border border-gray-200 rounded-lg p-4"
                                                         >
-                                                            {r.status ===
-                                                            "Active"
-                                                                ? "Hoạt động"
-                                                                : "Tạm dừng"}
-                                                        </span>
-                                                    </div>
-                                                    {r.description && (
-                                                        <p className="text-sm text-gray-700 whitespace-pre-line">
-                                                            {r.description}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <h4 className="font-semibold text-gray-900">
+                                                                    {r.title}
+                                                                </h4>
+                                                                <span
+                                                                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                        r.status ===
+                                                                        "Active"
+                                                                            ? "bg-green-100 text-green-700"
+                                                                            : "bg-gray-100 text-gray-700"
+                                                                    }`}
+                                                                    title={`Trạng thái: ${
+                                                                        r.status ===
+                                                                        "Active"
+                                                                            ? "Hoạt động"
+                                                                            : "Tạm dừng"
+                                                                    }`}
+                                                                >
+                                                                    {r.status ===
+                                                                    "Active"
+                                                                        ? "Hoạt động"
+                                                                        : "Tạm dừng"}
+                                                                </span>
+                                                            </div>
+                                                            {r.description && (
+                                                                <p className="text-sm text-gray-700 whitespace-pre-line">
+                                                                    {
+                                                                        r.description
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )
+                                            )}
                                         </div>
                                     )}
                                 </div>

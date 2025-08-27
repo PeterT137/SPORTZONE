@@ -6,7 +6,7 @@ namespace SportZone_API.Services
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<ReservationCleanupService> _logger;
-        private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(5); 
+        private readonly TimeSpan _cleanupInterval = TimeSpan.FromSeconds(5); 
 
         public ReservationCleanupService(IServiceProvider serviceProvider, ILogger<ReservationCleanupService> logger)
         {
