@@ -88,5 +88,27 @@ namespace SportZone_API.Services
                 throw new Exception($"Lỗi service khi tạo tài khoản: {ex.Message}", ex);
             }
         }
+
+        public async Task<User> UpdateUserStatus(int userId, string status)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(status))
+                {
+                    throw new ArgumentException("Status không được null hoặc rỗng");
+                }
+
+                if (status != "Active" && status != "Inactive")
+                {
+                    throw new ArgumentException("Status chỉ có thể là 'Active' hoặc 'Inactive'");
+                }
+
+                return await _adminRepository.UpdateUserStatusAsync(userId, status);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi service khi cập nhật trạng thái tài khoản: {ex.Message}", ex);
+            }
+        }
     }
 }

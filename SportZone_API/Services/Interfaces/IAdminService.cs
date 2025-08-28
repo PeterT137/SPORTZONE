@@ -8,5 +8,6 @@ namespace SportZone_API.Services.Interfaces
         Task<List<User>> GetAllAccount();
         Task<List<User>> SearchUsers(SearchUserDto searchDto);
         Task<User> CreateAccount(CreateAccountDto createAccountDto);
+        Task<User> UpdateUserStatus(int userId, string status);
     }
 }

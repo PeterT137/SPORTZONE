@@ -18,9 +18,33 @@ const GoogleAuthCallback = () => {
     }
 
     if (token && user) {
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', user);
-      navigate('/homepage');
+      try {
+        const userData = JSON.parse(user);
+
+        // Kiểm tra trạng thái tài khoản
+        const userStatus = userData.uStatus || userData.UStatus || "Active";
+        if (userStatus.toLowerCase() !== "active") {
+          alert("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.");
+          navigate('/');
+          return;
+        }
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', user);
+
+        // Điều hướng dựa trên role
+        const roleId = userData.roleId || userData.RoleId || 0;
+        if (roleId === 3) {
+          navigate("/users_manager");
+        } else if (roleId === 2 || roleId === 4) {
+          navigate("/facility_manager");
+        } else {
+          navigate("/homepage");
+        }
+      } catch (parseError) {
+        console.error("Error parsing user data:", parseError);
+        navigate('/');
+      }
     } else {
       navigate('/');
     }

@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import type { User } from "./types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import StatusToggleDropdown from "./StatusToggleDropdown";
 
 interface UsersListProps {
   users: User[];
   getRoleName: (roleId: number) => string;
+  onStatusChange: (userId: number, newStatus: string) => Promise<void>;
 }
 
-const UsersList: React.FC<UsersListProps> = ({ users, getRoleName }) => {
+const UsersList: React.FC<UsersListProps> = ({ users, getRoleName, onStatusChange }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -34,9 +36,8 @@ const UsersList: React.FC<UsersListProps> = ({ users, getRoleName }) => {
       status?.toLowerCase() === "active" || status === "Hoạt động";
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${
-          isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-        }`}
+        className={`px-2 py-1 rounded-full text-xs font-medium ${isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+          }`}
       >
         {isActive ? "Đã xác thực" : "Chưa xác thực"}
       </span>
@@ -70,13 +71,10 @@ const UsersList: React.FC<UsersListProps> = ({ users, getRoleName }) => {
                 Tài khoản
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
-                Trạng thái
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
                 Ngày tạo tài khoản
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
-                Xác thực
+                Trạng thái
               </th>
               <th className="px-6 py-3 text-left text-xs font-bold text-black-500 uppercase tracking-wider">
                 Liên hệ
@@ -100,13 +98,14 @@ const UsersList: React.FC<UsersListProps> = ({ users, getRoleName }) => {
                     {getRoleName(user.RoleId)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.UStatus || "Hoạt động"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatDate(user.UCreateDate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(user.UStatus)}
+                    <StatusToggleDropdown
+                      currentStatus={user.UStatus || "Active"}
+                      userId={user.UId}
+                      onStatusChange={onStatusChange}
+                    />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {user.phone || user.roleInfo?.phone || "Chưa cập nhật"}

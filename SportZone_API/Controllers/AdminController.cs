@@ -131,5 +131,51 @@ namespace SportZone_API.Controllers
                 });
             }
         }
+
+        [HttpPut("update-user-status/{userId}")]
+        [RoleAuthorize("3")]
+        [SwaggerOperation(Summary = "Cập nhật trạng thái tài khoản : Admin")]
+        public async Task<IActionResult> UpdateUserStatus(int userId, [FromBody] UpdateUserStatusDto updateStatusDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState
+                        .Where(x => x.Value.Errors.Count > 0)
+                        .Select(x => new { Field = x.Key, Errors = x.Value.Errors.Select(e => e.ErrorMessage) });
+
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Dữ liệu không hợp lệ",
+                        errors = errors
+                    });
+                }
+
+                var updatedUser = await _adminService.UpdateUserStatus(userId, updateStatusDto.Status);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Cập nhật trạng thái tài khoản thành công",
+                    data = new
+                    {
+                        userId = updatedUser.UId,
+                        email = updatedUser.UEmail,
+                        status = updatedUser.UStatus,
+                        updateDate = DateTime.Now
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    message = $"Lỗi server: {ex.Message}"
+                });
+            }
+        }
     }
 }

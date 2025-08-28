@@ -106,6 +106,14 @@ const SignInForm: React.FC = () => {
 
       const { token, user, facilityInfo } = response.data;
 
+      // Kiểm tra trạng thái tài khoản
+      const userStatus = user.uStatus || user.UStatus || "Active";
+      if (userStatus.toLowerCase() !== "active") {
+        showToast("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ.", "error");
+        setSignInLoading(false);
+        return;
+      }
+
       let name = user.name || "";
       let phone = user.phone || "";
       if (!name || !phone) {
@@ -135,7 +143,7 @@ const SignInForm: React.FC = () => {
         RoleId: user.roleId || 0,
         UEmail: user.uEmail || user.UEmail,
         UPassword: user.uPassword || user.UPassword,
-        UStatus: user.uStatus || user.UStatus || "Active",
+        UStatus: userStatus,
         UCreateDate:
           user.uCreateDate || user.UCreateDate || new Date().toISOString(),
         IsExternalLogin: user.isExternalLogin ?? false,

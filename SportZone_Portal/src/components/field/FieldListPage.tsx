@@ -142,33 +142,59 @@ const FieldListPage: React.FC = () => {
                   {/* Custom pagination logic with ... */}
                   {(() => {
                     const pages = [];
-                    // Always show first 1,2,3
-                    for (let i = 1; i <= Math.min(3, totalPages); i++) {
-                      pages.push(i);
-                    }
-                    // Show ... if needed before currentPage-1
-                    if (currentPage > 5 && totalPages > 6) {
-                      pages.push("left-ellipsis");
-                    }
-                    // Show currentPage-1, currentPage, currentPage+1 if in range
-                    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                      if (i > 3 && i < totalPages - 1) {
+
+                    // Logic để hiển thị các trang một cách thông minh
+                    if (totalPages <= 7) {
+                      // Nếu tổng số trang <= 7, hiển thị tất cả
+                      for (let i = 1; i <= totalPages; i++) {
                         pages.push(i);
                       }
+                    } else {
+                      // Nếu tổng số trang > 7, sử dụng logic phức tạp hơn
+
+                      // Luôn hiển thị trang đầu
+                      pages.push(1);
+
+                      // Hiển thị trang 2 nếu currentPage <= 4
+                      if (currentPage <= 4) {
+                        pages.push(2);
+                      }
+
+                      // Hiển thị trang 3 nếu currentPage <= 4
+                      if (currentPage <= 4) {
+                        pages.push(3);
+                      }
+
+                      // Hiển thị ellipsis bên trái nếu cần
+                      if (currentPage > 4) {
+                        pages.push("left-ellipsis");
+                      }
+
+                      // Hiển thị các trang xung quanh currentPage
+                      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                        if (!pages.includes(i)) {
+                          pages.push(i);
+                        }
+                      }
+
+                      // Hiển thị ellipsis bên phải nếu cần
+                      if (currentPage < totalPages - 3) {
+                        pages.push("right-ellipsis");
+                      }
+
+                      // Hiển thị trang cuối nếu chưa có
+                      if (!pages.includes(totalPages)) {
+                        pages.push(totalPages);
+                      }
                     }
-                    // Show ... if needed after currentPage+1
-                    if (currentPage < totalPages - 3 && totalPages > 6) {
-                      pages.push("right-ellipsis");
-                    }
-                    // Always show last page if > 1
-                    if (totalPages > 1) {
-                      pages.push(totalPages);
-                    }
-                    // Remove duplicates and sort
-                    const uniquePages = Array.from(new Set(pages)).filter((p) =>
-                      typeof p === "number" ? p >= 1 && p <= totalPages : true
-                    );
-                    return uniquePages.map((page, idx) => {
+
+                    // Sắp xếp các trang theo thứ tự
+                    const sortedPages = pages.sort((a, b) => {
+                      if (typeof a === "string") return 1;
+                      if (typeof b === "string") return -1;
+                      return a - b;
+                    });
+                    return sortedPages.map((page, idx) => {
                       if (
                         page === "left-ellipsis" ||
                         page === "right-ellipsis"
