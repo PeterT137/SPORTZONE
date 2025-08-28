@@ -384,38 +384,6 @@ const FacilityDetail: React.FC = () => {
 
                       {/* Filter and Search */}
                       <div className="flex flex-col sm:flex-row gap-3 items-center flex-1 lg:max-w-2xl w-full">
-                        {activeTab === "discounts" && (
-                          <div className="relative w-full sm:w-auto flex-shrink-0">
-                            <label
-                              htmlFor="discountStatusFilter"
-                              className="sr-only"
-                            >
-                              Lọc theo trạng thái mã giảm giá
-                            </label>
-                            <select
-                              id="discountStatusFilter"
-                              title="Lọc theo trạng thái mã giảm giá"
-                              value={
-                                discountFilter.startsWith("status:")
-                                  ? discountFilter.replace("status:", "")
-                                  : "all"
-                              }
-                              onChange={(e) => {
-                                if (e.target.value === "all") {
-                                  setDiscountFilter("");
-                                } else {
-                                  setDiscountFilter(`status:${e.target.value}`);
-                                }
-                              }}
-                              className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md bg-white font-medium text-gray-700"
-                            >
-                              <option value="all">Tất cả trạng thái</option>
-                              <option value="active">Đang hoạt động</option>
-                              <option value="inactive">Tạm dừng</option>
-                            </select>
-                          </div>
-                        )}
-
                         <div className="relative flex-1 w-full">
                           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                             <FiSearch className="h-5 w-5" />
@@ -424,12 +392,12 @@ const FacilityDetail: React.FC = () => {
                             type="text"
                             placeholder={
                               activeTab === "fields"
-                                ? "Tìm kiếm sân theo tên hoặc mô tả..."
+                                ? "Tìm kiếm sân theo tên, loại sân, mô tả và địa chỉ"
                                 : activeTab === "services"
-                                  ? "Tìm kiếm dịch vụ theo tên, mô tả..."
+                                  ? "Tìm kiếm dịch vụ theo tên và giá"
                                   : activeTab === "discounts"
-                                    ? "Tìm kiếm mã giảm giá theo mô tả..."
-                                    : "Tìm kiếm quy định..."
+                                    ? "Tìm kiếm mã giảm giá theo tên, phần trăm giảm giá và số lượng"
+                                    : "Tìm kiếm quy định theo tên và mô tả"
                             }
                             value={
                               activeTab === "fields"
@@ -705,18 +673,23 @@ const FacilityDetail: React.FC = () => {
                             />
                           </svg>
                           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            Chưa có sân nào
+                            {fieldFilter.trim() ? "Không tìm được sân theo yêu cầu" : "Chưa có sân nào"}
                           </h3>
                           <p className="text-gray-600 mb-4">
-                            Hãy thêm sân đầu tiên để bắt đầu quản lý
+                            {fieldFilter.trim()
+                              ? "Không có sân nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác."
+                              : "Hãy thêm sân đầu tiên để bắt đầu quản lý"
+                            }
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddFieldModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
-                          >
-                            <FiPlus className="h-4 w-4" /> Thêm sân đầu tiên
-                          </button>
+                          {!fieldFilter.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddFieldModalOpen(true)}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                            >
+                              <FiPlus className="h-4 w-4" /> Thêm sân đầu tiên
+                            </button>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -839,11 +812,13 @@ const FacilityDetail: React.FC = () => {
                     {filteredServices.length === 0 ? (
                       <div className="text-center py-16 text-gray-500">
                         <div className="text-lg font-medium mb-2">
-                          Chưa có dịch vụ nào
+                          {serviceFilter.trim() ? "Không tìm được dịch vụ theo yêu cầu" : "Chưa có dịch vụ nào"}
                         </div>
                         <div className="text-sm">
-                          Hãy thêm dịch vụ mới hoặc kiểm tra lại từ khóa tìm
-                          kiếm.
+                          {serviceFilter.trim()
+                            ? "Không có dịch vụ nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác."
+                            : "Hãy thêm dịch vụ mới hoặc kiểm tra lại từ khóa tìm kiếm."
+                          }
                         </div>
                       </div>
                     ) : (
@@ -902,7 +877,7 @@ const FacilityDetail: React.FC = () => {
                                     className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${service.status === "Active" ||
                                       service.status === "Available"
                                       ? "bg-green-100 text-green-800"
-                                      : "bg-gray-100 text-gray-800"
+                                      : "bg-red-100 text-red-800"
                                       }`}
                                   >
                                     {service.status === "Active" ||
@@ -949,18 +924,23 @@ const FacilityDetail: React.FC = () => {
                       <div className="text-center py-16">
                         <div className="bg-gradient-to-br from-gray-50 to-green-50 rounded-2xl p-12 max-w-md mx-auto border border-gray-200 shadow-sm">
                           <h3 className="text-xl font-bold text-gray-900 mb-3">
-                            Chưa có mã giảm giá nào
+                            {discountFilter.trim() ? "Không tìm được mã giảm giá theo yêu cầu" : "Chưa có mã giảm giá nào"}
                           </h3>
                           <p className="text-gray-600 mb-6 leading-relaxed">
-                            Hãy tạo mã giảm giá mới để thu hút khách hàng.
+                            {discountFilter.trim()
+                              ? "Không có mã giảm giá nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác."
+                              : "Hãy tạo mã giảm giá mới để thu hút khách hàng."
+                            }
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddDiscountModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl"
-                          >
-                            <FiPlus className="h-5 w-5" /> Tạo mã giảm giá
-                          </button>
+                          {!discountFilter.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddDiscountModalOpen(true)}
+                              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl"
+                            >
+                              <FiPlus className="h-5 w-5" /> Tạo mã giảm giá
+                            </button>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -1027,7 +1007,7 @@ const FacilityDetail: React.FC = () => {
                                   <span
                                     className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${discount.isActive
                                       ? "bg-green-100 text-green-800"
-                                      : "bg-gray-100 text-gray-800"
+                                      : "bg-red-100 text-red-800"
                                       }`}
                                   >
                                     {discount.isActive
@@ -1128,7 +1108,7 @@ const FacilityDetail: React.FC = () => {
                                     <span
                                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${regulation.status === "Active"
                                         ? "bg-green-100 text-green-800"
-                                        : "bg-gray-100 text-gray-800"
+                                        : "bg-red-100 text-red-800"
                                         }`}
                                     >
                                       {regulation.status === "Active"
@@ -1164,10 +1144,16 @@ const FacilityDetail: React.FC = () => {
                           </table>
                           {filteredRegulations.length === 0 &&
                             regulationFilter && (
-                              <p className="p-8 text-center text-gray-500">
-                                Không tìm thấy quy định nào khớp với tìm kiếm
-                                của bạn.
-                              </p>
+                              <div className="text-center py-16">
+                                <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
+                                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    Không tìm được quy định theo yêu cầu
+                                  </h3>
+                                  <p className="text-gray-600 mb-4">
+                                    Không có quy định nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác.
+                                  </p>
+                                </div>
+                              </div>
                             )}
                         </div>
                       </div>
@@ -1204,7 +1190,7 @@ const FacilityDetail: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Tên sân
+                  Tên sân <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1305,7 +1291,7 @@ const FacilityDetail: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Tên sân
+                  Tên sân <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1402,7 +1388,7 @@ const FacilityDetail: React.FC = () => {
             </div>
             <div className="p-6 space-y-6">
               <div>
-                <label htmlFor="serviceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ</label>
+                <label htmlFor="serviceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ <span className="text-red-500">*</span></label>
                 <input
                   id="serviceName"
                   type="text"
@@ -1413,7 +1399,7 @@ const FacilityDetail: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="price" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ</label>
+                <label htmlFor="price" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ <span className="text-red-500">*</span></label>
                 <input
                   id="price"
                   type="number"
@@ -1509,7 +1495,7 @@ const FacilityDetail: React.FC = () => {
             </div>
             <div className="p-6 space-y-6">
               <div>
-                <label htmlFor="editServiceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ</label>
+                <label htmlFor="editServiceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ <span className="text-red-500">*</span></label>
                 <input
                   id="editServiceName"
                   type="text"
@@ -1520,7 +1506,7 @@ const FacilityDetail: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="editPrice" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ</label>
+                <label htmlFor="editPrice" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ <span className="text-red-500">*</span></label>
                 <input
                   id="editPrice"
                   type="number"
@@ -1642,7 +1628,7 @@ const FacilityDetail: React.FC = () => {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%)</label>
+                <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%) <span className="text-red-500">*</span></label>
                 <input
                   id="discountPercentage"
                   type="number"
@@ -1653,7 +1639,7 @@ const FacilityDetail: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá</label>
+                <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá <span className="text-red-500">*</span></label>
                 <input
                   id="description"
                   type="text"
@@ -1665,7 +1651,7 @@ const FacilityDetail: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="startDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày bắt đầu</label>
+                  <label htmlFor="startDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày bắt đầu <span className="text-red-500">*</span></label>
                   <input
                     id="startDate"
                     type="date"
@@ -1676,7 +1662,7 @@ const FacilityDetail: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="endDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày kết thúc</label>
+                  <label htmlFor="endDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày kết thúc <span className="text-red-500">*</span></label>
                   <input
                     id="endDate"
                     type="date"
@@ -1688,7 +1674,7 @@ const FacilityDetail: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng</label>
+                <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng <span className="text-red-500">*</span></label>
                 <input
                   id="quantity"
                   type="number"
@@ -1752,30 +1738,30 @@ const FacilityDetail: React.FC = () => {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%)</label>
-              <input
-                type="number"
-                name="discountPercentage"
-                value={discountFormData.discountPercentage}
-                onChange={handleDiscountChange}
-                placeholder="Phần trăm giảm giá (%)"
-                className="w-full p-3 border rounded-xl"
-              />
+                <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="discountPercentage"
+                  value={discountFormData.discountPercentage}
+                  onChange={handleDiscountChange}
+                  placeholder="Phần trăm giảm giá (%)"
+                  className="w-full p-3 border rounded-xl"
+                />
               </div>
               <div>
-                <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá</label>
-              <input
-                type="text"
-                name="description"
-                value={discountFormData.description}
-                onChange={handleDiscountChange}
-                placeholder="Tên / Mô tả mã giảm giá"
-                className="w-full p-3 border rounded-xl"
-              />
+                <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  name="description"
+                  value={discountFormData.description}
+                  onChange={handleDiscountChange}
+                  placeholder="Tên / Mô tả mã giảm giá"
+                  className="w-full p-3 border rounded-xl"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="font-bold text-sm text-gray-600">Ngày bắt đầu</label>
+                  <label className="font-bold text-sm text-gray-600">Ngày bắt đầu <span className="text-red-500">*</span></label>
                   <input
                     type="date"
                     name="startDate"
@@ -1785,7 +1771,7 @@ const FacilityDetail: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-sm text-gray-600">Ngày kết thúc</label>
+                  <label className="font-bold text-sm text-gray-600">Ngày kết thúc <span className="text-red-500">*</span></label>
                   <input
                     type="date"
                     name="endDate"
@@ -1796,15 +1782,15 @@ const FacilityDetail: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng</label>
-              <input
-                type="number"
-                name="quantity"
-                value={discountFormData.quantity}
-                onChange={handleDiscountChange}
-                placeholder="Số lượng"
-                className="w-full p-3 border rounded-xl"
-              />
+                <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={discountFormData.quantity}
+                  onChange={handleDiscountChange}
+                  placeholder="Số lượng"
+                  className="w-full p-3 border rounded-xl"
+                />
               </div>
               <div className="flex items-center space-x-2">
                 <input
@@ -1860,7 +1846,7 @@ const FacilityDetail: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Tiêu đề
+                  Tiêu đề <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1878,7 +1864,7 @@ const FacilityDetail: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Mô tả
+                  Mô tả <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="description"
@@ -1934,11 +1920,12 @@ const FacilityDetail: React.FC = () => {
                       !newRegulationFormData.title ||
                       !newRegulationFormData.description ||
                       !newRegulationFormData.status
-                    ) {
-                      alert("Vui lòng nhập đầy đủ thông tin quy định.");
-                      return;
-                    }
-                    addRegulation();
+                    )
+                      // {
+                      //   alert("Vui lòng nhập đầy đủ thông tin quy định.");
+                      //   return;
+                      // }
+                      addRegulation();
                   }}
                   className="px-6 py-2 bg-green-600 text-white rounded-xl"
                   disabled={isSubmitting}
@@ -1973,7 +1960,7 @@ const FacilityDetail: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Tiêu đề
+                  Tiêu đề <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1991,7 +1978,7 @@ const FacilityDetail: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Mô tả
+                  Mô tả <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="description"

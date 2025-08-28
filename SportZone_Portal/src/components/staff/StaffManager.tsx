@@ -305,7 +305,7 @@ const StaffManager: React.FC = () => {
           }
           throw new Error(
             apiResponse.message ||
-              `Lỗi khi xóa nhân viên (HTTP ${response.status})`
+            `Lỗi khi xóa nhân viên (HTTP ${response.status})`
           );
         }
 
@@ -353,7 +353,10 @@ const StaffManager: React.FC = () => {
       Swal.fire("Vui lòng chọn cơ sở làm việc", "", "error");
       return;
     }
-
+    if (!formData.startTime) {
+      Swal.fire("Vui lòng chọn ngày bắt đầu làm việc", "", "error");
+      return;
+    }
     const buildErrorMsg = (apiResponse: any, defaultMsg: string) => {
       let errorMsg = apiResponse?.message || apiResponse?.error || defaultMsg;
       if (apiResponse?.errors) {
@@ -653,11 +656,10 @@ const StaffManager: React.FC = () => {
                       <td className="p-3">{staff.facilityNames.join(", ")}</td>
                       <td className="p-3">
                         <span
-                          className={`px-2 py-1 rounded text-white ${
-                            staff.status === "Active"
-                              ? "bg-green-600"
-                              : "bg-red-600"
-                          }`}
+                          className={`px-2 py-1 rounded text-white ${staff.status === "Active"
+                            ? "bg-green-600"
+                            : "bg-red-600"
+                            }`}
                         >
                           {staff.status === "Active"
                             ? "Hoạt động"
@@ -801,22 +803,24 @@ const StaffManager: React.FC = () => {
                       required
                     />
                   </div>
-                  <div className="flex flex-col col-span-2 sm:col-span-1">
-                    <label className="mb-1 font-semibold text-gray-700">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Nhập email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      required
-                      disabled={!!selectedStaff} // Disable email editing
-                    />
-                  </div>
                   {!selectedStaff && (
+                    <div className="flex flex-col col-span-2 sm:col-span-1">
+                      <label className="mb-1 font-semibold text-gray-700">
+                        Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Nhập email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        required
+                      />
+                    </div>
+                  )}
+                  {!selectedStaff && (
+
                     <div className="flex flex-col col-span-2 sm:col-span-1">
                       <label className="mb-1 font-semibold text-gray-700">
                         Mật khẩu <span className="text-red-500">*</span>
@@ -843,7 +847,7 @@ const StaffManager: React.FC = () => {
                   )}
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
-                      Ngày sinh
+                      Ngày sinh <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -856,7 +860,7 @@ const StaffManager: React.FC = () => {
                   </div>
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
-                      Ngày bắt đầu
+                      Ngày bắt đầu làm việc <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -869,7 +873,7 @@ const StaffManager: React.FC = () => {
                   </div>
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
-                      Ngày kết thúc
+                      Ngày kết thúc làm việc
                     </label>
                     <input
                       type="date"

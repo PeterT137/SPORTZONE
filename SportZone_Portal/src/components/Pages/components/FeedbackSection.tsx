@@ -57,14 +57,14 @@ const FeedbackSection = () => {
                   {reg.title}
                 </h3>
                 <p className="text-gray-700 mb-2">{reg.description}</p>
-                <span
+                {/* <span
                   className={`inline-block px-3 py-1 rounded-full text-xs ${reg.status === "active"
                     ? "bg-green-100 text-green-700"
                     : "bg-gray-200 text-gray-600"
                     }`}
                 >
                   {reg.status === "active" ? "Đang áp dụng" : "Không áp dụng"}
-                </span>
+                </span> */}
               </div>
             ))}
           </div>

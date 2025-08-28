@@ -27,6 +27,7 @@ interface ApiFieldResponse {
     fieldName: string;
     description: string;
     isBookingEnable: boolean;
+    ownerPhone?: string;
 }
 
 interface ApiFacilityWithDetails {
@@ -107,6 +108,16 @@ interface ApiDiscount {
     isActive: boolean;
     quantity: number;
     code?: string;
+}
+
+interface ApiService {
+    serviceId: number;
+    facId: number;
+    serviceName: string;
+    description: string;
+    price: number;
+    status: string;
+    imageUrl?: string;
 }
 
 interface RegulationItem {
@@ -248,8 +259,8 @@ const fetchFacilityDiscounts = async (
         const raw: any[] = Array.isArray(result)
             ? result
             : Array.isArray(result?.data)
-            ? result.data
-            : [];
+                ? result.data
+                : [];
         const toBool = (v: any): boolean => {
             if (typeof v === "boolean") return v;
             if (v === 1 || v === "1") return true;
@@ -275,6 +286,41 @@ const fetchFacilityDiscounts = async (
             code: d.code ?? d.Code ?? d.couponCode ?? undefined,
         }));
     } catch {
+        return [];
+    }
+};
+
+const fetchFacilityServices = async (
+    facilityId: number
+): Promise<ApiService[]> => {
+    try {
+        const response = await fetch(
+            `https://localhost:7057/api/Service/facility/${facilityId}`
+        );
+        if (!response.ok) return [];
+        const result = await response.json();
+        const raw: any[] = Array.isArray(result)
+            ? result
+            : Array.isArray(result?.data)
+                ? result.data
+                : [];
+
+        return raw
+            .filter((service: any) =>
+                service.status?.toLowerCase() === "active" ||
+                service.Status?.toLowerCase() === "active"
+            )
+            .map((service: any) => ({
+                serviceId: service.serviceId ?? service.ServiceId ?? service.id ?? service.Id ?? 0,
+                facId: service.facId ?? service.FacId ?? facilityId,
+                serviceName: service.serviceName ?? service.ServiceName ?? service.name ?? service.Name ?? "",
+                description: service.description ?? service.Description ?? "",
+                price: service.price ?? service.Price ?? 0,
+                status: service.status ?? service.Status ?? "Active",
+                imageUrl: service.imageUrl ?? service.ImageUrl ?? service.image ?? service.Image ?? undefined,
+            }));
+    } catch (error) {
+        console.error("Error fetching facility services:", error);
         return [];
     }
 };
@@ -409,7 +455,7 @@ const PricingModal = React.memo(
                                                                             className={
                                                                                 index %
                                                                                     2 ===
-                                                                                0
+                                                                                    0
                                                                                     ? "bg-white"
                                                                                     : "bg-gray-50"
                                                                             }
@@ -602,9 +648,9 @@ const TimeSlotsGrid = React.memo(
                                                     availableSlots.find(
                                                         (s) =>
                                                             s.fieldId ===
-                                                                field.fieldId &&
+                                                            field.fieldId &&
                                                             s.startTime ===
-                                                                timeSlot.time
+                                                            timeSlot.time
                                                     );
                                                 const isSelected =
                                                     selectedSlots.some(
@@ -644,11 +690,9 @@ const TimeSlotsGrid = React.memo(
                                                 let title = `${field.fieldName} - ${timeSlot.time} - Không có lịch`;
 
                                                 if (slot) {
-                                                    title = `${
-                                                        field.fieldName
-                                                    } - ${timeSlot.time} - ${
-                                                        slot.status
-                                                    } - ${slot.price.toLocaleString()}đ`;
+                                                    title = `${field.fieldName
+                                                        } - ${timeSlot.time} - ${slot.status
+                                                        } - ${slot.price.toLocaleString()}đ`;
 
                                                     if (isPastSlot) {
                                                         bgColor = "bg-gray-300";
@@ -709,11 +753,10 @@ const TimeSlotsGrid = React.memo(
                                                         disabled={!isClickable}
                                                         className={`
                           ${bgColor} ${textColor} h-8 text-xs font-medium transition-colors
-                          ${
-                              isClickable
-                                  ? "hover:opacity-80 cursor-pointer"
-                                  : "cursor-not-allowed"
-                          }
+                          ${isClickable
+                                                                ? "hover:opacity-80 cursor-pointer"
+                                                                : "cursor-not-allowed"
+                                                            }
                           ${isPastSlot ? "opacity-50" : ""}
                         `}
                                                         title={title}
@@ -803,6 +846,7 @@ const BookingPage: React.FC = () => {
     const [selectedDiscountId, setSelectedDiscountId] = useState<number | null>(
         null
     );
+    const [availableServices, setAvailableServices] = useState<ApiService[]>([]);
     const [formData, setFormData] = useState<BookingFormData>({
         fieldId: 0,
         date: "",
@@ -999,6 +1043,13 @@ const BookingPage: React.FC = () => {
                             setAvailableDiscounts(activeDiscounts);
                         })
                         .catch(() => isMounted && setAvailableDiscounts([]));
+
+                    fetchFacilityServices(firstField.facId)
+                        .then((services) => {
+                            if (!isMounted) return;
+                            setAvailableServices(services);
+                        })
+                        .catch(() => isMounted && setAvailableServices([]));
                 }
             } catch (err) {
                 if (isMounted)
@@ -1342,7 +1393,7 @@ const BookingPage: React.FC = () => {
                                         <div className="flex items-center space-x-4">
                                             <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                                                 {facilityDetails?.images &&
-                                                facilityDetails.images.length >
+                                                    facilityDetails.images.length >
                                                     0 ? (
                                                     <img
                                                         src={
@@ -1404,6 +1455,72 @@ const BookingPage: React.FC = () => {
                                     facilityDetails={facilityDetails}
                                 />
 
+                                {/* Services Section */}
+                                <div className="bg-white rounded-lg p-6 shadow-md">
+                                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-green-600" />
+                                        Dịch vụ
+                                    </h3>
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                                        <div className="text-sm text-blue-700 space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-blue-600">ℹ️</span>
+                                                <span><strong>Lưu ý:</strong></span>
+                                            </div>
+                                            <div className="ml-6 text-black">
+                                                <div>• Các dịch vụ này chỉ có thể chọn khi bạn đến sân.</div>
+                                                <div>• Bạn có thể liên hệ chủ sân để đặt trước dịch vụ {selectedField?.ownerPhone ? (
+                                                    <>
+                                                        (SDT: <span className="font-bold text-red-600">{selectedField.ownerPhone}</span>)
+                                                    </>
+                                                ) : ''}.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {availableServices.length === 0 ? (
+                                        <p className="text-sm text-gray-500 text-center py-4">
+                                            Hiện chưa có dịch vụ nào cho cơ sở này.
+                                        </p>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {availableServices.map((service) => (
+                                                <div
+                                                    key={service.serviceId}
+                                                    className="border border-gray-200 rounded-lg p-4"
+                                                >
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <h4 className="font-semibold text-gray-900 text-sm">
+                                                            {service.serviceName}
+                                                        </h4>
+                                                    </div>
+                                                    {service.description && (
+                                                        <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                                                            {service.description}
+                                                        </p>
+                                                    )}
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-green-600 font-semibold text-sm">
+                                                            {service.price.toLocaleString()} đ
+                                                        </span>
+                                                        {service.imageUrl && (
+                                                            <div className="w-8 h-8 rounded overflow-hidden">
+                                                                <img
+                                                                    src={service.imageUrl.startsWith('http') ? service.imageUrl : `https://localhost:7057${service.imageUrl}`}
+                                                                    alt={service.serviceName}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        e.currentTarget.style.display = 'none';
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="bg-white rounded-lg p-6 shadow-md">
                                     <h3 className="text-lg font-semibold mb-4">
                                         Quy định sân
@@ -1425,7 +1542,7 @@ const BookingPage: React.FC = () => {
                                                                 <h4 className="font-semibold text-gray-900">
                                                                     {r.title}
                                                                 </h4>
-                                                                <span
+                                                                {/* <span
                                                                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                                                                         r.status ===
                                                                         "Active"
@@ -1443,7 +1560,7 @@ const BookingPage: React.FC = () => {
                                                                     "Active"
                                                                         ? "Hoạt động"
                                                                         : "Tạm dừng"}
-                                                                </span>
+                                                                </span> */}
                                                             </div>
                                                             {r.description && (
                                                                 <p className="text-sm text-gray-700 whitespace-pre-line">
@@ -1505,11 +1622,10 @@ const BookingPage: React.FC = () => {
                                                         e.target.value
                                                     )
                                                 }
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${
-                                                    phoneError
-                                                        ? "border-red-500"
-                                                        : "border-gray-300"
-                                                }`}
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${phoneError
+                                                    ? "border-red-500"
+                                                    : "border-gray-300"
+                                                    }`}
                                                 placeholder={
                                                     isLoadingUserInfo
                                                         ? "Đang tải thông tin..."
@@ -1536,11 +1652,10 @@ const BookingPage: React.FC = () => {
                                                         e.target.value
                                                     )
                                                 }
-                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${
-                                                    emailError
-                                                        ? "border-red-500"
-                                                        : "border-gray-300"
-                                                }`}
+                                                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 ${emailError
+                                                    ? "border-red-500"
+                                                    : "border-gray-300"
+                                                    }`}
                                                 placeholder={
                                                     isLoadingUserInfo
                                                         ? "Đang tải thông tin..."
@@ -1648,7 +1763,7 @@ const BookingPage: React.FC = () => {
                                         Tóm tắt đặt sân
                                     </h3>
                                     {selectedSlots.length > 0 &&
-                                    selectedField ? (
+                                        selectedField ? (
                                         <div className="space-y-3 text-sm">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-gray-600">
@@ -1690,6 +1805,7 @@ const BookingPage: React.FC = () => {
                                                     )}
                                                 </span>
                                             </div>
+
                                             <hr className="my-3" />
                                             <div className="space-y-1">
                                                 <div className="flex justify-between items-center text-green-700">
@@ -1718,7 +1834,7 @@ const BookingPage: React.FC = () => {
                                                                     Math.floor(
                                                                         (totalPrice *
                                                                             pct) /
-                                                                            100
+                                                                        100
                                                                     );
                                                                 return amount.toLocaleString();
                                                             })()}
@@ -1744,9 +1860,9 @@ const BookingPage: React.FC = () => {
                                                                     0,
                                                                     Math.floor(
                                                                         totalPrice -
-                                                                            (totalPrice *
-                                                                                pct) /
-                                                                                100
+                                                                        (totalPrice *
+                                                                            pct) /
+                                                                        100
                                                                     )
                                                                 );
                                                             return discounted.toLocaleString();
@@ -1789,18 +1905,18 @@ const BookingPage: React.FC = () => {
                 booking={{
                     field: selectedField
                         ? {
-                              ...selectedField,
-                              facilityName:
-                                  facilityDetails?.facilityName ||
-                                  "SportZone Facility",
-                              image:
-                                  facilityDetails?.images?.[0] ||
-                                  "/api/placeholder/400/300",
-                              openTime: facilityDetails?.openTime || "05:30:00",
-                              closeTime:
-                                  facilityDetails?.closeTime || "22:30:00",
-                              pricing: [],
-                          }
+                            ...selectedField,
+                            facilityName:
+                                facilityDetails?.facilityName ||
+                                "SportZone Facility",
+                            image:
+                                facilityDetails?.images?.[0] ||
+                                "/api/placeholder/400/300",
+                            openTime: facilityDetails?.openTime || "05:30:00",
+                            closeTime:
+                                facilityDetails?.closeTime || "22:30:00",
+                            pricing: [],
+                        }
                         : null,
                     slots: selectedSlots,
                     guestInfo: {
