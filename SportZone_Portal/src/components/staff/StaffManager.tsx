@@ -60,6 +60,39 @@ const StaffManager: React.FC = () => {
     []
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [dobError, setDobError] = useState<string | null>(null);
+
+  // Hàm validation ngày sinh - đảm bảo đủ 18 tuổi
+  const validateDateOfBirth = (dob: string): string | null => {
+    if (!dob) {
+      return "Ngày sinh không được để trống";
+    }
+
+    const birthDate = new Date(dob);
+    const today = new Date();
+
+    // Tính tuổi chính xác đến từng ngày
+    let age = today.getFullYear() - birthDate.getFullYear();
+
+    // Kiểm tra xem đã đến sinh nhật trong năm nay chưa
+    const hasHadBirthdayThisYear =
+      today.getMonth() > birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+    if (!hasHadBirthdayThisYear) {
+      age--;
+    }
+
+    if (age < 18) {
+      return "Nhân viên phải đủ 18 tuổi";
+    }
+
+    if (age > 100) {
+      return "Ngày sinh không hợp lệ";
+    }
+
+    return null;
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -341,6 +374,7 @@ const StaffManager: React.FC = () => {
       status: staff.status,
       facilityId: staff.facIds[0] || null,
     });
+    setDobError(null);
     setIsModalOpen(true);
   };
 
@@ -357,6 +391,12 @@ const StaffManager: React.FC = () => {
       Swal.fire("Vui lòng chọn ngày bắt đầu làm việc", "", "error");
       return;
     }
+    const dobError = validateDateOfBirth(formData.dob);
+    if (dobError) {
+      Swal.fire("Vui lòng điền đúng ngày sinh và đủ 18 tuổi", dobError, "error");
+      return;
+    }
+
     const buildErrorMsg = (apiResponse: any, defaultMsg: string) => {
       let errorMsg = apiResponse?.message || apiResponse?.error || defaultMsg;
       if (apiResponse?.errors) {
@@ -442,6 +482,13 @@ const StaffManager: React.FC = () => {
         Swal.fire("Vui lòng nhập mật khẩu", "", "error");
         return;
       }
+
+      // Validation ngày sinh cho nhân viên mới
+      const dobError = validateDateOfBirth(formData.dob);
+      if (dobError) {
+        Swal.fire("Vui lòng điền đúng ngày sinh và đủ 18 tuổi", dobError, "error");
+        return;
+      }
       const form = new FormData();
       form.append("RoleName", "Staff");
       form.append("Name", formData.name);
@@ -509,6 +556,12 @@ const StaffManager: React.FC = () => {
       ...prev,
       [name]: name === "facilityId" ? Number(value) : value,
     }));
+
+    // Validation real-time cho ngày sinh
+    if (name === "dob") {
+      const error = validateDateOfBirth(value);
+      setDobError(error);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -539,6 +592,7 @@ const StaffManager: React.FC = () => {
       status: "Active",
       facilityId: null,
     });
+    setDobError(null);
     setIsModalOpen(false);
   };
 
@@ -569,6 +623,7 @@ const StaffManager: React.FC = () => {
                   status: "Active",
                   facilityId: null,
                 });
+                setDobError(null);
                 setIsModalOpen(true);
               }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -855,8 +910,12 @@ const StaffManager: React.FC = () => {
                       placeholder="Ngày sinh"
                       value={formData.dob}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className={`border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${dobError ? 'border-red-500' : 'border-gray-300'
+                        }`}
                     />
+                    {dobError && (
+                      <span className="text-red-500 text-xs mt-1">{dobError}</span>
+                    )}
                   </div>
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
