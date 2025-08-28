@@ -130,6 +130,26 @@ namespace SportZone_API.Services
                 {
                     return Fail("Ngày sinh không được để trống cho nhân viên.");
                 }
+
+                // Validation độ tuổi - phải đủ 18 tuổi
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                var age = today.Year - dto.Dob.Value.Year;
+                
+                // Kiểm tra xem đã đến sinh nhật trong năm nay chưa
+                var hasHadBirthdayThisYear = 
+                    today.Month > dto.Dob.Value.Month || 
+                    (today.Month == dto.Dob.Value.Month && today.Day >= dto.Dob.Value.Day);
+                
+                if (!hasHadBirthdayThisYear)
+                {
+                    age--;
+                }
+
+                if (age < 18)
+                {
+                    return Fail("Nhân viên phải đủ 18 tuổi.");
+                }
+
                 if (dto.StartTime.HasValue)
                 {
                     var currentDate = DateOnly.FromDateTime(DateTime.Now);

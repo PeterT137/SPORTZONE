@@ -111,12 +111,14 @@ export const useFacilityDetail = () => {
   // Regulations State
   const [regulations, setRegulations] = useState<Regulation[]>([]);
   const [regulationFilter, setRegulationFilter] = useState("");
-  const [filteredRegulations, setFilteredRegulations] = useState<Regulation[]>(
-    []
-  );
+  const [filteredRegulations, setFilteredRegulations] = useState<
+    Regulation[]
+  >([]);
   const [isAddRegulationModalOpen, setIsAddRegulationModalOpen] =
     useState(false);
-  const [editRegulation, setEditRegulation] = useState<Regulation | null>(null);
+  const [editRegulation, setEditRegulation] = useState<Regulation | null>(
+    null
+  );
   const [newRegulationFormData, setNewRegulationFormData] = useState({
     title: "",
     description: "",
@@ -143,7 +145,9 @@ export const useFacilityDetail = () => {
   const [serviceFilter, setServiceFilter] = useState<string>("");
   const [discountFilter, setDiscountFilter] = useState<string>("");
   const [selectedField, setSelectedField] = useState<Field | null>(null);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(
+    null
+  );
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(
     null
   );
@@ -154,9 +158,8 @@ export const useFacilityDetail = () => {
   const [serviceFormData, setServiceFormData] = useState<EditService | null>(
     null
   );
-  const [discountFormData, setDiscountFormData] = useState<EditDiscount | null>(
-    null
-  );
+  const [discountFormData, setDiscountFormData] =
+    useState<EditDiscount | null>(null);
   const [isAddFieldModalOpen, setIsAddFieldModalOpen] =
     useState<boolean>(false);
   const [isAddServiceModalOpen, setIsAddServiceModalOpen] =
@@ -177,19 +180,30 @@ export const useFacilityDetail = () => {
     description: "",
     facilityAddress: "",
   });
-  const [newDiscountFormData, setNewDiscountFormData] = useState<EditDiscount>({
-    discountPercentage: 0,
-    startDate: "",
-    endDate: "",
-    description: "",
-    isActive: true,
-    quantity: 1,
-  });
+  const [newDiscountFormData, setNewDiscountFormData] =
+    useState<EditDiscount>({
+      discountPercentage: 0,
+      startDate: "",
+      endDate: "",
+      description: "",
+      isActive: true,
+      quantity: 1,
+    });
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isCarouselPaused, setIsCarouselPaused] = useState<boolean>(false);
+
+  // Delete confirmation modal state
+  const [showDeleteFieldModal, setShowDeleteFieldModal] = useState<boolean>(false);
+  const [fieldToDelete, setFieldToDelete] = useState<number | null>(null);
+  const [showDeleteServiceModal, setShowDeleteServiceModal] = useState<boolean>(false);
+  const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
+  const [showDeleteDiscountModal, setShowDeleteDiscountModal] = useState<boolean>(false);
+  const [discountToDelete, setDiscountToDelete] = useState<number | null>(null);
+  const [showDeleteRegulationModal, setShowDeleteRegulationModal] = useState<boolean>(false);
+  const [regulationToDelete, setRegulationToDelete] = useState<number | null>(null);
 
   // *********************************************************************************
   // HELPER & UTILITY FUNCTIONS
@@ -243,7 +257,11 @@ export const useFacilityDetail = () => {
   const normalizeStatusValue = (value: string | undefined): string => {
     const v = (value || "").toLowerCase().trim();
     if (v === "active" || v === "hoạt động") return "Active";
-    if (v === "inactive" || v === "không hoạt động" || v === "khong hoat dong")
+    if (
+      v === "inactive" ||
+      v === "không hoạt động" ||
+      v === "khong hoat dong"
+    )
       return "Inactive";
     return "Active";
   };
@@ -260,16 +278,25 @@ export const useFacilityDetail = () => {
           headers: getAuthHeaders(),
         }
       );
-      if (!response.ok) throw new Error("Không thể lấy danh sách quy định");
+      if (!response.ok)
+        throw new Error("Không thể lấy danh sách quy định");
       const result = await response.json();
-      const mapped = (Array.isArray(result) ? result : []).map((r: any) => ({
-        id:
-          r.regulationFacilityId ?? r.RegulationFacilityId ?? r.id ?? r.Id ?? 0,
-        facId: r.facId ?? r.FacId ?? 0,
-        title: r.title ?? r.Title ?? "",
-        description: r.description ?? r.Description ?? "",
-        status: normalizeStatusValue(r.status ?? r.Status ?? "Active"),
-      }));
+      const mapped = (Array.isArray(result) ? result : []).map(
+        (r: any) => ({
+          id:
+            r.regulationFacilityId ??
+            r.RegulationFacilityId ??
+            r.id ??
+            r.Id ??
+            0,
+          facId: r.facId ?? r.FacId ?? 0,
+          title: r.title ?? r.Title ?? "",
+          description: r.description ?? r.Description ?? "",
+          status: normalizeStatusValue(
+            r.status ?? r.Status ?? "Active"
+          ),
+        })
+      );
       setRegulations(mapped);
     } catch (err) {
       setRegulations([]);
@@ -291,11 +318,19 @@ export const useFacilityDetail = () => {
       showToast("Tiêu đề quy định là bắt buộc!", "error");
       return;
     }
+    const des = (newRegulationFormData.description || "").trim();
+    if (!des) {
+      showToast("Mô tả quy định là bắt buộc!", "error");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const response = await fetch(`${API_URL}/api/RegulationFacility`, {
         method: "POST",
-        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           facId: facIdNumber,
           title,
@@ -332,7 +367,9 @@ export const useFacilityDetail = () => {
   const editRegulationHandler = (regulation: Regulation) => {
     // Ensure we carry the correct id field
     const normalized: Regulation = {
-      id: (regulation as any).id ?? (regulation as any).regulationFacilityId,
+      id:
+        (regulation as any).id ??
+        (regulation as any).regulationFacilityId,
       facId: regulation.facId,
       title: regulation.title,
       description: regulation.description,
@@ -351,6 +388,10 @@ export const useFacilityDetail = () => {
       showToast("Tiêu đề quy định là bắt buộc!", "error");
       return;
     }
+    if (!regulationFormData.description) {
+      showToast("Mô tả quy định là bắt buộc!", "error");
+      return;
+    }
     const regulationId =
       (editRegulation as any).id ??
       (editRegulation as any).regulationFacilityId;
@@ -364,7 +405,10 @@ export const useFacilityDetail = () => {
         `${API_URL}/api/RegulationFacility/${regulationId}`,
         {
           method: "PUT",
-          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             facId: Number(facId),
             title: (regulationFormData.title || "").trim(),
@@ -392,13 +436,18 @@ export const useFacilityDetail = () => {
     }
   }, [facId, editRegulation, regulationFormData, fetchRegulations]);
 
-  const deleteRegulation = useCallback(
-    async (id: number) => {
-      if (!window.confirm("Bạn có chắc chắn muốn xóa quy định này?")) return;
+  const handleDeleteRegulation = (id: number) => {
+    setRegulationToDelete(id);
+    setShowDeleteRegulationModal(true);
+  };
+
+  const confirmDeleteRegulation = useCallback(
+    async () => {
+      if (!regulationToDelete) return;
       setIsSubmitting(true);
       try {
         const response = await fetch(
-          `${API_URL}/api/RegulationFacility/${id}`,
+          `${API_URL}/api/RegulationFacility/${regulationToDelete}`,
           {
             method: "DELETE",
             headers: getAuthHeaders(),
@@ -414,10 +463,17 @@ export const useFacilityDetail = () => {
         );
       } finally {
         setIsSubmitting(false);
+        setShowDeleteRegulationModal(false);
+        setRegulationToDelete(null);
       }
     },
-    [fetchRegulations]
+    [fetchRegulations, regulationToDelete]
   );
+
+  const cancelDeleteRegulation = () => {
+    setShowDeleteRegulationModal(false);
+    setRegulationToDelete(null);
+  };
 
   // Filter regulations by search
   useEffect(() => {
@@ -434,16 +490,20 @@ export const useFacilityDetail = () => {
 
   const fetchFacility = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/Facility/with-details`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/Facility/with-details`,
+        {
+          method: "GET",
+          headers: getAuthHeaders(),
+        }
+      );
       if (!response.ok) throw new Error(`Lỗi HTTP: ${response.status}`);
       const allFacilities = await response.json();
       const apiFacility = allFacilities.find(
         (fac: any) => fac.facId === Number(facId)
       );
-      if (!apiFacility) throw new Error("Không tìm thấy cơ sở với ID này");
+      if (!apiFacility)
+        throw new Error("Không tìm thấy cơ sở với ID này");
 
       const mappedFacility: Facility = {
         name: apiFacility.name || "Unknown",
@@ -455,11 +515,13 @@ export const useFacilityDetail = () => {
         subdescription: apiFacility.subdescription,
         picture: getImageUrl(apiFacility.imageUrls?.[0]),
         images:
-          apiFacility.imageUrls?.map((url: string, index: number) => ({
-            imgId: index + 1,
-            facId: Number(facId),
-            imageUrl: getImageUrl(url),
-          })) || [],
+          apiFacility.imageUrls?.map(
+            (url: string, index: number) => ({
+              imgId: index + 1,
+              facId: Number(facId),
+              imageUrl: getImageUrl(url),
+            })
+          ) || [],
         fields: [],
         services: [],
         discounts: [],
@@ -475,19 +537,28 @@ export const useFacilityDetail = () => {
 
   const fetchServices = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/Service/facility/${facId}`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/Service/facility/${facId}`,
+        {
+          headers: getAuthHeaders(),
+        }
+      );
       if (!response.ok)
-        throw new Error(`Lỗi khi lấy danh sách dịch vụ: ${response.status}`);
+        throw new Error(
+          `Lỗi khi lấy danh sách dịch vụ: ${response.status}`
+        );
       const result = await response.json();
       if (result.success && Array.isArray(result.data)) {
-        const mappedServices: Service[] = result.data.map((service: any) => ({
-          ...service,
-          image: getImageUrl(service.image),
-          facilityAddress:
-            service.facilityAddress || facility?.address || "Unknown",
-        }));
+        const mappedServices: Service[] = result.data.map(
+          (service: any) => ({
+            ...service,
+            image: getImageUrl(service.image),
+            facilityAddress:
+              service.facilityAddress ||
+              facility?.address ||
+              "Unknown",
+          })
+        );
         setServices(mappedServices);
       } else {
         setServices([]);
@@ -524,9 +595,11 @@ export const useFacilityDetail = () => {
         discountData = result.data;
 
       if (discountData.length > 0) {
-        const mappedDiscounts: Discount[] = discountData.map((d: any) => ({
-          ...d,
-        }));
+        const mappedDiscounts: Discount[] = discountData.map(
+          (d: any) => ({
+            ...d,
+          })
+        );
         setDiscounts(mappedDiscounts);
       } else {
         setDiscounts([]);
@@ -542,17 +615,25 @@ export const useFacilityDetail = () => {
 
   const fetchFields = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/Field/facility/${facId}`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/Field/facility/${facId}`,
+        {
+          headers: getAuthHeaders(),
+        }
+      );
       if (!response.ok)
-        throw new Error(`Lỗi khi lấy danh sách sân: ${response.status}`);
+        throw new Error(
+          `Lỗi khi lấy danh sách sân: ${response.status}`
+        );
       const result = await response.json();
       if (result.success && Array.isArray(result.data)) {
         setFields(result.data);
       } else {
         setFields([]);
-        showToast(result.message || "Không thể lấy danh sách sân.", "error");
+        showToast(
+          result.message || "Không thể lấy danh sách sân.",
+          "error"
+        );
       }
     } catch (err) {
       setFields([]);
@@ -569,13 +650,17 @@ export const useFacilityDetail = () => {
         headers: getAuthHeaders(),
       });
       if (!response.ok)
-        throw new Error(`Lỗi khi lấy danh sách danh mục: ${response.status}`);
+        throw new Error(
+          `Lỗi khi lấy danh sách danh mục: ${response.status}`
+        );
       const result = await response.json();
       if (Array.isArray(result)) {
-        const mappedCategories: Category[] = result.map((item: any) => ({
-          categoryId: item.categoryFieldId,
-          categoryName: item.categoryFieldName,
-        }));
+        const mappedCategories: Category[] = result.map(
+          (item: any) => ({
+            categoryId: item.categoryFieldId,
+            categoryName: item.categoryFieldName,
+          })
+        );
         setCategories(mappedCategories);
       } else {
         showToast("Định dạng dữ liệu danh mục không hợp lệ.", "error");
@@ -635,7 +720,6 @@ export const useFacilityDetail = () => {
   // *********************************************************************************
 
   const closeModal = () => {
-    // Reset selections for Field/Service/Discount
     setSelectedField(null);
     setSelectedService(null);
     setSelectedDiscount(null);
@@ -648,25 +732,36 @@ export const useFacilityDetail = () => {
     setIsAddFieldModalOpen(false);
     setIsAddServiceModalOpen(false);
     setIsAddDiscountModalOpen(false);
-    // Close and reset Regulation modals/forms
     setIsAddRegulationModalOpen(false);
     setEditRegulation(null);
     setRegulationFormData({ title: "", description: "", status: "Active" });
-    setNewRegulationFormData({ title: "", description: "", status: "Active" });
+    setNewRegulationFormData({
+      title: "",
+      description: "",
+      status: "Active",
+    });
   };
 
   // --- Field Handlers ---
   const handleDeleteField = async (fieldId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa sân này?")) return;
+    setFieldToDelete(fieldId);
+    setShowDeleteFieldModal(true);
+  };
+
+  const confirmDeleteField = async () => {
+    if (!fieldToDelete) return;
+
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/api/Field/${fieldId}`, {
+      const response = await fetch(`${API_URL}/api/Field/${fieldToDelete}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
       if (!response.ok)
-        throw new Error((await response.json()).message || "Lỗi khi xóa sân");
-      setFields((prev) => prev.filter((f) => f.fieldId !== fieldId));
+        throw new Error(
+          (await response.json()).message || "Lỗi khi xóa sân"
+        );
+      setFields((prev) => prev.filter((f) => f.fieldId !== fieldToDelete));
       showToast("Xóa sân thành công!", "success");
     } catch (err) {
       showToast(
@@ -675,7 +770,14 @@ export const useFacilityDetail = () => {
       );
     } finally {
       setIsSubmitting(false);
+      setShowDeleteFieldModal(false);
+      setFieldToDelete(null);
     }
+  };
+
+  const cancelDeleteField = () => {
+    setShowDeleteFieldModal(false);
+    setFieldToDelete(null);
   };
 
   const handleEditField = (field: Field) => {
@@ -689,8 +791,13 @@ export const useFacilityDetail = () => {
   };
 
   const handleSaveFieldEdit = async () => {
-    if (!editField || !fieldFormData?.fieldName || !fieldFormData?.categoryId) {
-      showToast("Tên sân và loại sân là bắt buộc!", "error");
+    if (
+      !editField ||
+      !fieldFormData?.fieldName
+      // ||
+      // !fieldFormData?.categoryId
+    ) {
+      showToast("Tên sân là bắt buộc!", "error");
       return;
     }
     setIsSubmitting(true);
@@ -699,7 +806,10 @@ export const useFacilityDetail = () => {
         `${API_URL}/api/Field/${editField.fieldId}`,
         {
           method: "PUT",
-          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ ...fieldFormData }),
         }
       );
@@ -720,19 +830,27 @@ export const useFacilityDetail = () => {
   };
 
   const handleAddField = async () => {
-    if (!newFieldFormData.fieldName || !newFieldFormData.categoryId) {
-      showToast("Tên sân và loại sân là bắt buộc!", "error");
+    if (!newFieldFormData.fieldName) {
+      showToast("Tên sân là bắt buộc!", "error");
       return;
     }
     setIsSubmitting(true);
     try {
       const response = await fetch(`${API_URL}/api/Field/Create-Field`, {
         method: "POST",
-        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newFieldFormData, facId: Number(facId) }),
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...newFieldFormData,
+          facId: Number(facId),
+        }),
       });
       if (!response.ok)
-        throw new Error((await response.json()).message || "Lỗi khi thêm sân");
+        throw new Error(
+          (await response.json()).message || "Lỗi khi thêm sân"
+        );
       await fetchFields();
       closeModal();
       setNewFieldFormData({
@@ -799,12 +917,17 @@ export const useFacilityDetail = () => {
   };
 
   // --- Service Handlers ---
-  const handleDeleteService = async (serviceId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này?")) return;
+  const handleDeleteService = (serviceId: number) => {
+    setServiceToDelete(serviceId);
+    setShowDeleteServiceModal(true);
+  };
+
+  const confirmDeleteService = async () => {
+    if (!serviceToDelete) return;
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        `${API_URL}/api/Service/DeleteService/${serviceId}`,
+        `${API_URL}/api/Service/DeleteService/${serviceToDelete}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -814,7 +937,9 @@ export const useFacilityDetail = () => {
         throw new Error(
           (await response.json()).message || "Lỗi khi xóa dịch vụ"
         );
-      setServices((prev) => prev.filter((s) => s.serviceId !== serviceId));
+      setServices((prev) =>
+        prev.filter((s) => s.serviceId !== serviceToDelete)
+      );
       showToast("Xóa dịch vụ thành công!", "success");
     } catch (err) {
       showToast(
@@ -823,7 +948,14 @@ export const useFacilityDetail = () => {
       );
     } finally {
       setIsSubmitting(false);
+      setShowDeleteServiceModal(false);
+      setServiceToDelete(null);
     }
+  };
+
+  const cancelDeleteService = () => {
+    setShowDeleteServiceModal(false);
+    setServiceToDelete(null);
   };
 
   const handleEditService = (service: Service) => {
@@ -843,10 +975,14 @@ export const useFacilityDetail = () => {
     if (
       !editService ||
       !serviceFormData ||
-      !serviceFormData.serviceName ||
-      serviceFormData.price <= 0
+      !serviceFormData.serviceName
     ) {
-      showToast("Tên dịch vụ và giá là bắt buộc!", "error");
+      showToast("Tên dịch vụ là bắt buộc!", "error");
+      return;
+    }
+    if (serviceFormData.price <= 0
+    ) {
+      showToast("Giá phải lớn hơn 0!", "error");
       return;
     }
     if (!validateToken()) {
@@ -863,7 +999,10 @@ export const useFacilityDetail = () => {
       formData.append("Description", serviceFormData.description);
       if (serviceFormData.imageFile)
         formData.append("ImageFile", serviceFormData.imageFile);
-      formData.append("RemoveImage", String(!!serviceFormData.removeImage));
+      formData.append(
+        "RemoveImage",
+        String(!!serviceFormData.removeImage)
+      );
 
       const response = await fetch(
         `${API_URL}/api/Service/UpdateService/${editService.serviceId}`,
@@ -875,7 +1014,9 @@ export const useFacilityDetail = () => {
       );
 
       if (!response.ok)
-        throw new Error((await response.text()) || "Lỗi khi cập nhật dịch vụ");
+        throw new Error(
+          (await response.text()) || "Lỗi khi cập nhật dịch vụ"
+        );
 
       await fetchServices();
       closeModal();
@@ -891,8 +1032,12 @@ export const useFacilityDetail = () => {
   };
 
   const handleAddService = async () => {
-    if (!newServiceFormData.serviceName || newServiceFormData.price <= 0) {
-      showToast("Tên dịch vụ và giá là bắt buộc!", "error");
+    if (!newServiceFormData.serviceName) {
+      showToast("Tên dịch vụ là bắt buộc!", "error");
+      return;
+    }
+    if (newServiceFormData.price <= 0) {
+      showToast("Giá phải lớn hơn 0!", "error");
       return;
     }
     if (!validateToken()) {
@@ -917,7 +1062,9 @@ export const useFacilityDetail = () => {
       });
 
       if (!response.ok)
-        throw new Error((await response.text()) || "Lỗi khi thêm dịch vụ");
+        throw new Error(
+          (await response.text()) || "Lỗi khi thêm dịch vụ"
+        );
 
       await fetchServices();
       closeModal();
@@ -954,7 +1101,10 @@ export const useFacilityDetail = () => {
     } else {
       setServiceFormData((prev) =>
         prev
-          ? { ...prev, [name]: type === "number" ? Number(value) : value }
+          ? {
+            ...prev,
+            [name]: type === "number" ? Number(value) : value,
+          }
           : null
       );
     }
@@ -978,19 +1128,29 @@ export const useFacilityDetail = () => {
   };
 
   // --- Discount Handlers ---
-  const handleDeleteDiscount = async (discountId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa mã giảm giá này?")) return;
+  const handleDeleteDiscount = (discountId: number) => {
+    setDiscountToDelete(discountId);
+    setShowDeleteDiscountModal(true);
+  };
+
+  const confirmDeleteDiscount = async () => {
+    if (!discountToDelete) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/api/Discount/${discountId}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${API_URL}/api/Discount/${discountToDelete}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        }
+      );
       if (!response.ok)
         throw new Error(
           (await response.json()).message || "Lỗi khi xóa mã giảm giá"
         );
-      setDiscounts((prev) => prev.filter((d) => d.discountId !== discountId));
+      setDiscounts((prev) =>
+        prev.filter((d) => d.discountId !== discountToDelete)
+      );
       showToast("Xóa mã giảm giá thành công!", "success");
     } catch (err) {
       showToast(
@@ -999,7 +1159,14 @@ export const useFacilityDetail = () => {
       );
     } finally {
       setIsSubmitting(false);
+      setShowDeleteDiscountModal(false);
+      setDiscountToDelete(null);
     }
+  };
+
+  const cancelDeleteDiscount = () => {
+    setShowDeleteDiscountModal(false);
+    setDiscountToDelete(null);
   };
 
   const handleEditDiscount = (discount: Discount) => {
@@ -1013,12 +1180,17 @@ export const useFacilityDetail = () => {
 
   const handleSaveDiscountEdit = async () => {
     if (!editDiscount || !discountFormData) return;
-    if (
-      !discountFormData.startDate ||
-      !discountFormData.endDate ||
-      discountFormData.discountPercentage <= 0
-    ) {
-      showToast("Vui lòng điền đầy đủ thông tin bắt buộc.", "error");
+
+    // Validate using the same function as add discount
+    const errMsg = validateDiscountForm({
+      startDate: discountFormData.startDate,
+      endDate: discountFormData.endDate,
+      discountPercentage: Number(discountFormData.discountPercentage),
+      quantity: Number(discountFormData.quantity),
+      description: discountFormData.description,
+    });
+    if (errMsg) {
+      showToast(errMsg, "error");
       return;
     }
     setIsSubmitting(true);
@@ -1027,7 +1199,10 @@ export const useFacilityDetail = () => {
         `${API_URL}/api/Discount/${editDiscount.discountId}`,
         {
           method: "PUT",
-          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             ...discountFormData,
             facId: editDiscount.facId,
@@ -1036,7 +1211,8 @@ export const useFacilityDetail = () => {
       );
       if (!response.ok)
         throw new Error(
-          (await response.json()).message || "Lỗi khi cập nhật mã giảm giá"
+          (await response.json()).message ||
+          "Lỗi khi cập nhật mã giảm giá"
         );
       await fetchDiscounts();
       closeModal();
@@ -1051,26 +1227,86 @@ export const useFacilityDetail = () => {
     }
   };
 
+  const isPositiveInt = (n: unknown) =>
+    Number.isInteger(Number(n)) && Number(n) > 0;
+
+  function validateDiscountForm(data: {
+    startDate: string;
+    endDate: string;
+    discountPercentage: number;
+    quantity: number;
+    description: string;
+  }) {
+    const { startDate, endDate, discountPercentage, quantity } = data;
+
+    if (!startDate || !endDate || !data.description) {
+      return "Vui lòng điền đầy đủ thông tin bắt buộc.";
+    }
+
+    if (discountPercentage <= 0) {
+      return "Phần trăm giảm giá phải lớn hơn 0.";
+    }
+
+    if (!isPositiveInt(quantity)) {
+      return "Số lượng mã giảm giá phải là số nguyên dương.";
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return "Ngày bắt đầu/kết thúc không hợp lệ.";
+    }
+
+    if (end < start) {
+      return "Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.";
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDay = new Date(start);
+    startDay.setHours(0, 0, 0, 0);
+    const endDay = new Date(end);
+    endDay.setHours(0, 0, 0, 0);
+
+    if (startDay < today && endDay < today) {
+      return "Ngày bắt đầu và ngày kết thúc không được cùng nằm trong quá khứ.";
+    }
+
+    return null;
+  }
+
   const handleAddDiscount = async () => {
-    if (
-      !newDiscountFormData.startDate ||
-      !newDiscountFormData.endDate ||
-      newDiscountFormData.discountPercentage <= 0
-    ) {
-      showToast("Vui lòng điền đầy đủ thông tin bắt buộc.", "error");
+    const errMsg = validateDiscountForm({
+      startDate: newDiscountFormData.startDate,
+      endDate: newDiscountFormData.endDate,
+      discountPercentage: Number(newDiscountFormData.discountPercentage),
+      quantity: Number(newDiscountFormData.quantity),
+      description: newDiscountFormData.description,
+    });
+    if (errMsg) {
+      showToast(errMsg, "error");
       return;
     }
+
     setIsSubmitting(true);
     try {
       const response = await fetch(`${API_URL}/api/Discount`, {
         method: "POST",
-        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newDiscountFormData, facId: Number(facId) }),
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...newDiscountFormData,
+          facId: Number(facId),
+        }),
       });
-      if (!response.ok)
-        throw new Error(
-          (await response.json()).message || "Lỗi khi thêm mã giảm giá"
-        );
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.message || "Lỗi khi thêm mã giảm giá");
+      }
+
       await fetchDiscounts();
       closeModal();
       setNewDiscountFormData({
@@ -1099,18 +1335,32 @@ export const useFacilityDetail = () => {
   ) => {
     const { name, value, type } = e.target;
     const isCheckbox = type === "checkbox";
-    setDiscountFormData((prev) =>
-      prev
-        ? {
-          ...prev,
-          [name]: isCheckbox
-            ? (e.target as HTMLInputElement).checked
-            : type === "number"
-              ? Number(value)
-              : value,
+
+    setDiscountFormData((prev) => {
+      if (!prev) return null;
+
+      const updatedData = {
+        ...prev,
+        [name]: isCheckbox
+          ? (e.target as HTMLInputElement).checked
+          : type === "number"
+            ? Number(value)
+            : value,
+      };
+
+      // Nếu thay đổi ngày bắt đầu, cập nhật ngày kết thúc tối thiểu
+      if (name === "startDate" && value) {
+        const startDate = new Date(value);
+        const currentEndDate = new Date(updatedData.endDate);
+
+        // Nếu ngày kết thúc hiện tại nhỏ hơn ngày bắt đầu mới, cập nhật ngày kết thúc
+        if (currentEndDate < startDate) {
+          updatedData.endDate = value;
         }
-        : null
-    );
+      }
+
+      return updatedData;
+    });
   };
 
   const handleNewDiscountChange = (
@@ -1120,14 +1370,30 @@ export const useFacilityDetail = () => {
   ) => {
     const { name, value, type } = e.target;
     const isCheckbox = type === "checkbox";
-    setNewDiscountFormData((prev) => ({
-      ...prev,
-      [name]: isCheckbox
-        ? (e.target as HTMLInputElement).checked
-        : type === "number"
-          ? Number(value)
-          : value,
-    }));
+
+    setNewDiscountFormData((prev) => {
+      const updatedData = {
+        ...prev,
+        [name]: isCheckbox
+          ? (e.target as HTMLInputElement).checked
+          : type === "number"
+            ? Number(value)
+            : value,
+      };
+
+      // Nếu thay đổi ngày bắt đầu, cập nhật ngày kết thúc tối thiểu
+      if (name === "startDate" && value) {
+        const startDate = new Date(value);
+        const currentEndDate = new Date(updatedData.endDate);
+
+        // Nếu ngày kết thúc hiện tại nhỏ hơn ngày bắt đầu mới, cập nhật ngày kết thúc
+        if (currentEndDate < startDate) {
+          updatedData.endDate = value;
+        }
+      }
+
+      return updatedData;
+    });
   };
 
   // --- Carousel Handlers ---
@@ -1203,7 +1469,9 @@ export const useFacilityDetail = () => {
         (f) =>
           f.fieldName.toLowerCase().includes(lowerCaseFilter) ||
           f.description.toLowerCase().includes(lowerCaseFilter) ||
-          f.categoryName.toLowerCase().includes(lowerCaseFilter)
+          f.categoryName.toLowerCase().includes(lowerCaseFilter) ||
+          f.facilityAddress.toLowerCase().includes(lowerCaseFilter) ||
+          (f.isBookingEnable ? "có thể đặt" : "không thể đặt").includes(lowerCaseFilter)
       )
     );
   }, [fieldFilter, fields]);
@@ -1215,7 +1483,9 @@ export const useFacilityDetail = () => {
         (s) =>
           s.serviceName.toLowerCase().includes(lowerCaseFilter) ||
           s.description.toLowerCase().includes(lowerCaseFilter) ||
-          s.status.toLowerCase().includes(lowerCaseFilter)
+          s.price.toString().includes(lowerCaseFilter) ||
+          (s.status === "Active" ? "hoạt động" : "tạm dừng").includes(
+            lowerCaseFilter)
       )
     );
   }, [serviceFilter, services]);
@@ -1233,10 +1503,13 @@ export const useFacilityDetail = () => {
         discounts.filter(
           (d) =>
             d.description.toLowerCase().includes(lowerCaseFilter) ||
-            d.discountPercentage.toString().includes(lowerCaseFilter) ||
-            (d.isActive ? "hoạt động" : "không hoạt động").includes(
+            d.discountPercentage
+              .toString()
+              .includes(lowerCaseFilter) ||
+            (d.isActive ? "hoạt động" : "tạm dừng").includes(
               lowerCaseFilter
-            )
+            ) ||
+            d.quantity.toString().includes(lowerCaseFilter)
         )
       );
     };
@@ -1260,7 +1533,11 @@ export const useFacilityDetail = () => {
   }, [facility?.images, prevImage, nextImage]);
 
   useEffect(() => {
-    if (facility?.images && facility.images.length > 1 && !isCarouselPaused) {
+    if (
+      facility?.images &&
+      facility.images.length > 1 &&
+      !isCarouselPaused
+    ) {
       const interval = setInterval(nextImage, 5000);
       return () => clearInterval(interval);
     }
@@ -1287,7 +1564,7 @@ export const useFacilityDetail = () => {
     addRegulation,
     editRegulationHandler,
     saveRegulationEdit,
-    deleteRegulation,
+    handleDeleteRegulation,
     // State & Data
     loading,
     isSubmitting,
@@ -1325,6 +1602,16 @@ export const useFacilityDetail = () => {
     currentImageIndex,
     isCarouselPaused,
 
+    // Delete confirmation modal
+    showDeleteFieldModal,
+    fieldToDelete,
+    showDeleteServiceModal,
+    serviceToDelete,
+    showDeleteDiscountModal,
+    discountToDelete,
+    showDeleteRegulationModal,
+    regulationToDelete,
+
     // Functions & Handlers
     setActiveTab,
     setFieldFilter,
@@ -1341,6 +1628,14 @@ export const useFacilityDetail = () => {
     // CRUD and other actions
     closeModal,
     handleDeleteField,
+    confirmDeleteField,
+    cancelDeleteField,
+    confirmDeleteService,
+    cancelDeleteService,
+    confirmDeleteDiscount,
+    cancelDeleteDiscount,
+    confirmDeleteRegulation,
+    cancelDeleteRegulation,
     handleEditField,
     handleSaveFieldEdit,
     handleAddField,

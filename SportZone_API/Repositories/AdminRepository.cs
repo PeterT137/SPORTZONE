@@ -180,5 +180,25 @@ namespace SportZone_API.Repositories
                 throw new Exception($"Lỗi khi tạo tài khoản: {ex.Message}", ex);
             }
         }
+
+        public async Task<User> UpdateUserStatusAsync(int userId, string status)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    throw new Exception("User not found");
+                }
+
+                user.UStatus = status;
+                await _context.SaveChangesAsync();
+                return user;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật trạng thái tài khoản: {ex.Message}", ex);
+            }
+        }
     }
 }

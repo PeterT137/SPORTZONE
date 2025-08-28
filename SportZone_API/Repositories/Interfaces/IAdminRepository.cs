@@ -9,5 +9,6 @@ namespace SportZone_API.Repositories.Interfaces
         Task<List<User>> SearchUsersAsync(SearchUserDto searchDto);
         Task<User> CreateAccountAsync(CreateAccountDto createAccountDto, string hashedPassword);
         Task<bool> IsEmailExistAsync(string email);
+        Task<User> UpdateUserStatusAsync(int userId, string status);
     }
 }

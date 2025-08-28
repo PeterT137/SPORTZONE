@@ -1403,8 +1403,8 @@ const CreateSlotModal: React.FC<{
                 onClick={() => handleSubmit("delete")}
                 disabled={isSubmitting}
                 className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-red-500 hover:bg-red-600 hover:shadow-lg"
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-red-500 hover:bg-red-600 hover:shadow-lg"
                   }`}
               >
                 Xóa slot
@@ -1415,8 +1415,8 @@ const CreateSlotModal: React.FC<{
                 onClick={() => handleSubmit("update")}
                 disabled={isSubmitting}
                 className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-yellow-500 hover:bg-yellow-600 hover:shadow-lg"
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-yellow-500 hover:bg-yellow-600 hover:shadow-lg"
                   }`}
               >
                 Cập nhật slot
@@ -1427,8 +1427,8 @@ const CreateSlotModal: React.FC<{
                 onClick={() => handleSubmit("create")}
                 disabled={isSubmitting}
                 className={`px-6 py-3 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${isSubmitting
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-green-500 hover:bg-green-600 hover:shadow-lg"
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-500 hover:bg-green-600 hover:shadow-lg"
                   }`}
               >
                 {isSubmitting ? "Đang xử lý..." : "Tạo slot"}
@@ -2220,7 +2220,12 @@ const WeeklySchedule: React.FC = () => {
 
       const result = await response.json();
       if (result.success) {
-        const mappedServices: Service[] = result.data.map((service: any) => {
+        // Lọc chỉ các service có status "Active"
+        const activeServices = result.data.filter((service: any) =>
+          service.status === "Active"
+        );
+
+        const mappedServices: Service[] = activeServices.map((service: any) => {
           const { icon, unit } = mapServiceToIconAndUnit(service.serviceName);
           return {
             id: service.serviceId,

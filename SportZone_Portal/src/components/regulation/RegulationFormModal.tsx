@@ -50,7 +50,7 @@ const RegulationFormModal: React.FC<RegulationFormModalProps> = ({
         >
           <div>
             <label className="block text-sm font-medium mb-1">
-              Tên quy định
+              Tên quy định <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -63,7 +63,7 @@ const RegulationFormModal: React.FC<RegulationFormModalProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Mô tả</label>
+            <label className="block text-sm font-medium mb-1">Mô tả <span className="text-red-500">*</span></label>
             <textarea
               className="w-full border rounded px-3 py-2"
               value={form.description}

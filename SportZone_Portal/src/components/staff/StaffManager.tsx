@@ -60,6 +60,39 @@ const StaffManager: React.FC = () => {
     []
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [dobError, setDobError] = useState<string | null>(null);
+
+  // Hàm validation ngày sinh - đảm bảo đủ 18 tuổi
+  const validateDateOfBirth = (dob: string): string | null => {
+    if (!dob) {
+      return "Ngày sinh không được để trống";
+    }
+
+    const birthDate = new Date(dob);
+    const today = new Date();
+
+    // Tính tuổi chính xác đến từng ngày
+    let age = today.getFullYear() - birthDate.getFullYear();
+
+    // Kiểm tra xem đã đến sinh nhật trong năm nay chưa
+    const hasHadBirthdayThisYear =
+      today.getMonth() > birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+    if (!hasHadBirthdayThisYear) {
+      age--;
+    }
+
+    if (age < 18) {
+      return "Nhân viên phải đủ 18 tuổi";
+    }
+
+    if (age > 100) {
+      return "Ngày sinh không hợp lệ";
+    }
+
+    return null;
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -305,7 +338,7 @@ const StaffManager: React.FC = () => {
           }
           throw new Error(
             apiResponse.message ||
-              `Lỗi khi xóa nhân viên (HTTP ${response.status})`
+            `Lỗi khi xóa nhân viên (HTTP ${response.status})`
           );
         }
 
@@ -341,6 +374,7 @@ const StaffManager: React.FC = () => {
       status: staff.status,
       facilityId: staff.facIds[0] || null,
     });
+    setDobError(null);
     setIsModalOpen(true);
   };
 
@@ -351,6 +385,15 @@ const StaffManager: React.FC = () => {
     }
     if (!formData.facilityId) {
       Swal.fire("Vui lòng chọn cơ sở làm việc", "", "error");
+      return;
+    }
+    if (!formData.startTime) {
+      Swal.fire("Vui lòng chọn ngày bắt đầu làm việc", "", "error");
+      return;
+    }
+    const dobError = validateDateOfBirth(formData.dob);
+    if (dobError) {
+      Swal.fire("Vui lòng điền đúng ngày sinh và đủ 18 tuổi", dobError, "error");
       return;
     }
 
@@ -439,6 +482,13 @@ const StaffManager: React.FC = () => {
         Swal.fire("Vui lòng nhập mật khẩu", "", "error");
         return;
       }
+
+      // Validation ngày sinh cho nhân viên mới
+      const dobError = validateDateOfBirth(formData.dob);
+      if (dobError) {
+        Swal.fire("Vui lòng điền đúng ngày sinh và đủ 18 tuổi", dobError, "error");
+        return;
+      }
       const form = new FormData();
       form.append("RoleName", "Staff");
       form.append("Name", formData.name);
@@ -506,6 +556,12 @@ const StaffManager: React.FC = () => {
       ...prev,
       [name]: name === "facilityId" ? Number(value) : value,
     }));
+
+    // Validation real-time cho ngày sinh
+    if (name === "dob") {
+      const error = validateDateOfBirth(value);
+      setDobError(error);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -536,6 +592,7 @@ const StaffManager: React.FC = () => {
       status: "Active",
       facilityId: null,
     });
+    setDobError(null);
     setIsModalOpen(false);
   };
 
@@ -566,6 +623,7 @@ const StaffManager: React.FC = () => {
                   status: "Active",
                   facilityId: null,
                 });
+                setDobError(null);
                 setIsModalOpen(true);
               }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -653,11 +711,10 @@ const StaffManager: React.FC = () => {
                       <td className="p-3">{staff.facilityNames.join(", ")}</td>
                       <td className="p-3">
                         <span
-                          className={`px-2 py-1 rounded text-white ${
-                            staff.status === "Active"
-                              ? "bg-green-600"
-                              : "bg-red-600"
-                          }`}
+                          className={`px-2 py-1 rounded text-white ${staff.status === "Active"
+                            ? "bg-green-600"
+                            : "bg-red-600"
+                            }`}
                         >
                           {staff.status === "Active"
                             ? "Hoạt động"
@@ -801,22 +858,24 @@ const StaffManager: React.FC = () => {
                       required
                     />
                   </div>
-                  <div className="flex flex-col col-span-2 sm:col-span-1">
-                    <label className="mb-1 font-semibold text-gray-700">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Nhập email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      required
-                      disabled={!!selectedStaff} // Disable email editing
-                    />
-                  </div>
                   {!selectedStaff && (
+                    <div className="flex flex-col col-span-2 sm:col-span-1">
+                      <label className="mb-1 font-semibold text-gray-700">
+                        Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Nhập email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        required
+                      />
+                    </div>
+                  )}
+                  {!selectedStaff && (
+
                     <div className="flex flex-col col-span-2 sm:col-span-1">
                       <label className="mb-1 font-semibold text-gray-700">
                         Mật khẩu <span className="text-red-500">*</span>
@@ -843,7 +902,7 @@ const StaffManager: React.FC = () => {
                   )}
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
-                      Ngày sinh
+                      Ngày sinh <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -851,12 +910,16 @@ const StaffManager: React.FC = () => {
                       placeholder="Ngày sinh"
                       value={formData.dob}
                       onChange={handleInputChange}
-                      className="border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className={`border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${dobError ? 'border-red-500' : 'border-gray-300'
+                        }`}
                     />
+                    {dobError && (
+                      <span className="text-red-500 text-xs mt-1">{dobError}</span>
+                    )}
                   </div>
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
-                      Ngày bắt đầu
+                      Ngày bắt đầu làm việc <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -869,7 +932,7 @@ const StaffManager: React.FC = () => {
                   </div>
                   <div className="flex flex-col col-span-2 sm:col-span-1">
                     <label className="mb-1 font-semibold text-gray-700">
-                      Ngày kết thúc
+                      Ngày kết thúc làm việc
                     </label>
                     <input
                       type="date"

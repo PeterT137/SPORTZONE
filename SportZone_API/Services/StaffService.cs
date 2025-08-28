@@ -127,7 +127,30 @@ namespace SportZone_API.Services
                 if (!string.IsNullOrEmpty(dto.Status)) staffToUpdate.UIdNavigation.UStatus = dto.Status;
                 if (!string.IsNullOrEmpty(dto.Name)) staffToUpdate.Name = dto.Name;
                 if (!string.IsNullOrEmpty(dto.Phone)) staffToUpdate.Phone = dto.Phone;
-                if (dto.Dob.HasValue) staffToUpdate.Dob = dto.Dob.Value;
+                
+                // Validation độ tuổi khi cập nhật ngày sinh
+                if (dto.Dob.HasValue)
+                {
+                    var today = DateOnly.FromDateTime(DateTime.Now);
+                    var age = today.Year - dto.Dob.Value.Year;
+                    
+                    // Kiểm tra xem đã đến sinh nhật trong năm nay chưa
+                    var hasHadBirthdayThisYear = 
+                        today.Month > dto.Dob.Value.Month || 
+                        (today.Month == dto.Dob.Value.Month && today.Day >= dto.Dob.Value.Day);
+                    
+                    if (!hasHadBirthdayThisYear)
+                    {
+                        age--;
+                    }
+
+                    if (age < 18)
+                    {
+                        return Fail<string>("Nhân viên phải đủ 18 tuổi.");
+                    }
+
+                    staffToUpdate.Dob = dto.Dob.Value;
+                }
 
                 if (dto.FacId.HasValue)
                 {

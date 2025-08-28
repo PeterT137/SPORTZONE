@@ -4,6 +4,7 @@ import UsersList from "./UsersList";
 import UserSearchBar from "./UserSearchBar";
 import CreateUserModal from "./CreateUserModal";
 import Pagination from "./Pagination";
+import Toast from "../common/Toast";
 import type { User } from "./types";
 
 const UsersManager: React.FC = () => {
@@ -15,6 +16,15 @@ const UsersManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 5; // 5 users per page
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "success",
+    isVisible: false,
+  });
 
   // Fetch users from API
   const fetchUsers = async () => {
@@ -163,6 +173,81 @@ const UsersManager: React.FC = () => {
     fetchUsers();
   };
 
+  const handleStatusChange = async (userId: number, newStatus: string) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Không tìm thấy token xác thực");
+      }
+
+      console.log(`Updating user ${userId} status to ${newStatus}`);
+      console.log(`API URL: https://localhost:7057/api/Admin/update-user-status/${userId}`);
+
+      const requestBody = { status: newStatus };
+      console.log("Request body:", requestBody);
+
+      const response = await fetch(`https://localhost:7057/api/Admin/update-user-status/${userId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log(`Response status: ${response.status}`);
+      console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(
+          `HTTP error! status: ${response.status} - ${errorText}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Success response:", result);
+
+      if (result.success) {
+        // Cập nhật trạng thái trong danh sách users
+        setUsers(prevUsers =>
+          prevUsers.map(user =>
+            user.UId === userId
+              ? { ...user, UStatus: newStatus }
+              : user
+          )
+        );
+
+        setFilteredUsers(prevUsers =>
+          prevUsers.map(user =>
+            user.UId === userId
+              ? { ...user, UStatus: newStatus }
+              : user
+          )
+        );
+
+        // Hiển thị thông báo thành công
+        setToast({
+          message: "Cập nhật trạng thái thành công!",
+          type: "success",
+          isVisible: true,
+        });
+      } else {
+        throw new Error(result.message || "Lỗi khi cập nhật trạng thái");
+      }
+    } catch (err) {
+      console.error("Error updating user status:", err);
+      setToast({
+        message: err instanceof Error ? err.message : "Lỗi không xác định",
+        type: "error",
+        isVisible: true,
+      });
+      throw err;
+    }
+  };
+
   const getRoleName = (roleId: number): string => {
     switch (roleId) {
       case 1:
@@ -229,7 +314,11 @@ const UsersManager: React.FC = () => {
             totalUsers={filteredUsers.length}
           />
 
-          <UsersList users={currentUsers} getRoleName={getRoleName} />
+          <UsersList
+            users={currentUsers}
+            getRoleName={getRoleName}
+            onStatusChange={handleStatusChange}
+          />
 
           {/* Pagination */}
           <Pagination
@@ -249,6 +338,14 @@ const UsersManager: React.FC = () => {
           onUserCreated={handleUserCreated}
         />
       )}
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 };

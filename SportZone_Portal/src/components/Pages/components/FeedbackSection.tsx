@@ -25,8 +25,11 @@ const FeedbackSection = () => {
         );
         if (!response.ok) throw new Error("Không thể lấy quy định hệ thống");
         const data = await response.json();
-        const slicedData = Array.isArray(data) ? data.slice(0, 2) : [];
-        setRegulations(slicedData);
+        // Filter only active regulations
+        const activeRegulations = Array.isArray(data)
+          ? data.filter((reg: RegulationSystem) => reg.status === "active")
+          : [];
+        setRegulations(activeRegulations);
       } catch (err: any) {
         setError(err.message || "Lỗi không xác định");
       } finally {
@@ -47,7 +50,12 @@ const FeedbackSection = () => {
         ) : regulations.length === 0 ? (
           <div className="text-gray-500">Không có quy định nào.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className={`grid gap-8 ${regulations.length === 1
+            ? "grid-cols-1 max-w-2xl mx-auto"
+            : regulations.length === 2
+              ? "grid-cols-1 md:grid-cols-2"
+              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+            }`}>
             {regulations.map((reg) => (
               <div
                 key={reg.regulationSystemId}
@@ -57,14 +65,14 @@ const FeedbackSection = () => {
                   {reg.title}
                 </h3>
                 <p className="text-gray-700 mb-2">{reg.description}</p>
-                <span
+                {/* <span
                   className={`inline-block px-3 py-1 rounded-full text-xs ${reg.status === "active"
                     ? "bg-green-100 text-green-700"
                     : "bg-gray-200 text-gray-600"
                     }`}
                 >
                   {reg.status === "active" ? "Đang áp dụng" : "Không áp dụng"}
-                </span>
+                </span> */}
               </div>
             ))}
           </div>

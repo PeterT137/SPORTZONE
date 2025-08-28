@@ -31,11 +31,11 @@ const RevenueChart: React.FC<RevenueChartProps> = ({
   }
 
   const chartLabel =
-    filterMode === "year" ? "Doanh thu theo năm" : "Doanh thu theo tháng";
+    filterMode === "year" ? "Doanh thu theo năm" : "Tổng doanh thu";
   const chartTitle =
     filterMode === "year"
       ? "Biểu đồ doanh thu theo năm"
-      : "Biểu đồ doanh thu theo tháng";
+      : "Biểu đồ tổng doanh thu";
 
   return (
     <div className="h-64 flex items-center justify-center">

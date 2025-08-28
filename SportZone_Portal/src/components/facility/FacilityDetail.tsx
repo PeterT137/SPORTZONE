@@ -50,6 +50,14 @@ const FacilityDetail: React.FC = () => {
     newDiscountFormData,
     currentImageIndex,
     isCarouselPaused,
+    showDeleteFieldModal,
+    fieldToDelete,
+    showDeleteServiceModal,
+    serviceToDelete,
+    showDeleteDiscountModal,
+    discountToDelete,
+    showDeleteRegulationModal,
+    regulationToDelete,
     setActiveTab,
     setFieldFilter,
     setServiceFilter,
@@ -60,6 +68,14 @@ const FacilityDetail: React.FC = () => {
     setServiceFormData,
     closeModal,
     handleDeleteField,
+    confirmDeleteField,
+    cancelDeleteField,
+    confirmDeleteService,
+    cancelDeleteService,
+    confirmDeleteDiscount,
+    cancelDeleteDiscount,
+    confirmDeleteRegulation,
+    cancelDeleteRegulation,
     handleEditField,
     handleSaveFieldEdit,
     handleAddField,
@@ -96,7 +112,7 @@ const FacilityDetail: React.FC = () => {
     addRegulation,
     editRegulationHandler,
     saveRegulationEdit,
-    deleteRegulation,
+    handleDeleteRegulation,
   } = useFacilityDetail();
 
   if (loading) {
@@ -336,17 +352,20 @@ const FacilityDetail: React.FC = () => {
                     <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
                       {/* Add Button */}
                       <div className="flex-shrink-0">
-                        {activeTab === "fields" && (
-                          <button
-                            type="button"
-                            onClick={() => setIsAddFieldModalOpen(true)}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium"
-                            disabled={isSubmitting}
-                          >
-                            <FiPlus className="h-5 w-5" />
-                            <span>Thêm sân mới</span>
-                          </button>
-                        )}
+                        {activeTab === "fields" && (() => {
+                          const user = JSON.parse(localStorage.getItem("user") || "{}");
+                          return user.RoleId === 2 ? (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddFieldModalOpen(true)}
+                              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium"
+                              disabled={isSubmitting}
+                            >
+                              <FiPlus className="h-5 w-5" />
+                              <span>Thêm sân mới</span>
+                            </button>
+                          ) : null;
+                        })()}
                         {activeTab === "services" && (
                           <button
                             type="button"
@@ -358,64 +377,38 @@ const FacilityDetail: React.FC = () => {
                             <span>Thêm dịch vụ mới</span>
                           </button>
                         )}
-                        {activeTab === "discounts" && (
-                          <button
-                            type="button"
-                            onClick={() => setIsAddDiscountModalOpen(true)}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium"
-                            disabled={isSubmitting}
-                          >
-                            <FiPlus className="h-5 w-5" />
-                            <span>Thêm mã giảm giá mới</span>
-                          </button>
-                        )}
-                        {activeTab === "regulations" && (
-                          <button
-                            type="button"
-                            onClick={() => setIsAddRegulationModalOpen(true)}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium"
-                            disabled={isSubmitting}
-                          >
-                            <FiPlus className="h-5 w-5" />
-                            <span>Thêm quy định mới</span>
-                          </button>
-                        )}
+                        {activeTab === "discounts" && (() => {
+                          const user = JSON.parse(localStorage.getItem("user") || "{}");
+                          return user.RoleId === 2 ? (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddDiscountModalOpen(true)}
+                              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium"
+                              disabled={isSubmitting}
+                            >
+                              <FiPlus className="h-5 w-5" />
+                              <span>Thêm mã giảm giá mới</span>
+                            </button>
+                          ) : null;
+                        })()}
+                        {activeTab === "regulations" && (() => {
+                          const user = JSON.parse(localStorage.getItem("user") || "{}");
+                          return user.RoleId === 2 ? (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddRegulationModalOpen(true)}
+                              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium"
+                              disabled={isSubmitting}
+                            >
+                              <FiPlus className="h-5 w-5" />
+                              <span>Thêm quy định mới</span>
+                            </button>
+                          ) : null;
+                        })()}
                       </div>
 
                       {/* Filter and Search */}
                       <div className="flex flex-col sm:flex-row gap-3 items-center flex-1 lg:max-w-2xl w-full">
-                        {activeTab === "discounts" && (
-                          <div className="relative w-full sm:w-auto flex-shrink-0">
-                            <label
-                              htmlFor="discountStatusFilter"
-                              className="sr-only"
-                            >
-                              Lọc theo trạng thái mã giảm giá
-                            </label>
-                            <select
-                              id="discountStatusFilter"
-                              title="Lọc theo trạng thái mã giảm giá"
-                              value={
-                                discountFilter.startsWith("status:")
-                                  ? discountFilter.replace("status:", "")
-                                  : "all"
-                              }
-                              onChange={(e) => {
-                                if (e.target.value === "all") {
-                                  setDiscountFilter("");
-                                } else {
-                                  setDiscountFilter(`status:${e.target.value}`);
-                                }
-                              }}
-                              className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md bg-white font-medium text-gray-700"
-                            >
-                              <option value="all">Tất cả trạng thái</option>
-                              <option value="active">Đang hoạt động</option>
-                              <option value="inactive">Tạm dừng</option>
-                            </select>
-                          </div>
-                        )}
-
                         <div className="relative flex-1 w-full">
                           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                             <FiSearch className="h-5 w-5" />
@@ -424,12 +417,12 @@ const FacilityDetail: React.FC = () => {
                             type="text"
                             placeholder={
                               activeTab === "fields"
-                                ? "Tìm kiếm sân theo tên hoặc mô tả..."
+                                ? "Tìm kiếm sân theo tên, loại sân, mô tả và địa chỉ"
                                 : activeTab === "services"
-                                  ? "Tìm kiếm dịch vụ theo tên, mô tả..."
+                                  ? "Tìm kiếm dịch vụ theo tên và giá"
                                   : activeTab === "discounts"
-                                    ? "Tìm kiếm mã giảm giá theo mô tả..."
-                                    : "Tìm kiếm quy định..."
+                                    ? "Tìm kiếm mã giảm giá theo tên, phần trăm giảm giá và số lượng"
+                                    : "Tìm kiếm quy định theo tên và mô tả"
                             }
                             value={
                               activeTab === "fields"
@@ -705,18 +698,23 @@ const FacilityDetail: React.FC = () => {
                             />
                           </svg>
                           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            Chưa có sân nào
+                            {fieldFilter.trim() ? "Không tìm được sân theo yêu cầu" : "Chưa có sân nào"}
                           </h3>
                           <p className="text-gray-600 mb-4">
-                            Hãy thêm sân đầu tiên để bắt đầu quản lý
+                            {fieldFilter.trim()
+                              ? "Không có sân nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác."
+                              : "Hãy thêm sân đầu tiên để bắt đầu quản lý"
+                            }
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddFieldModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
-                          >
-                            <FiPlus className="h-4 w-4" /> Thêm sân đầu tiên
-                          </button>
+                          {!fieldFilter.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddFieldModalOpen(true)}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                            >
+                              <FiPlus className="h-4 w-4" /> Thêm sân đầu tiên
+                            </button>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -790,25 +788,32 @@ const FacilityDetail: React.FC = () => {
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center space-x-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleEditField(field)}
-                                        className="bg-blue-100 text-blue-700 hover:bg-blue-200 p-2 rounded-lg text-xs font-medium transition-all"
-                                        title="Chỉnh sửa"
-                                      >
-                                        <FiEdit className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          handleDeleteField(field.fieldId)
-                                        }
-                                        className="bg-red-100 text-red-700 hover:bg-red-200 p-2 rounded-lg text-xs font-medium transition-all"
-                                        title="Xóa"
-                                        disabled={isSubmitting}
-                                      >
-                                        <FiTrash2 className="h-4 w-4" />
-                                      </button>
+                                      {(() => {
+                                        const user = JSON.parse(localStorage.getItem("user") || "{}");
+                                        return user.RoleId === 2 ? (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleEditField(field)}
+                                              className="bg-blue-100 text-blue-700 hover:bg-blue-200 p-2 rounded-lg text-xs font-medium transition-all"
+                                              title="Chỉnh sửa"
+                                            >
+                                              <FiEdit className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleDeleteField(field.fieldId)
+                                              }
+                                              className="bg-red-100 text-red-700 hover:bg-red-200 p-2 rounded-lg text-xs font-medium transition-all"
+                                              title="Xóa"
+                                              disabled={isSubmitting}
+                                            >
+                                              <FiTrash2 className="h-4 w-4" />
+                                            </button>
+                                          </>
+                                        ) : null;
+                                      })()}
                                       <button
                                         type="button"
                                         onClick={() =>
@@ -839,11 +844,13 @@ const FacilityDetail: React.FC = () => {
                     {filteredServices.length === 0 ? (
                       <div className="text-center py-16 text-gray-500">
                         <div className="text-lg font-medium mb-2">
-                          Chưa có dịch vụ nào
+                          {serviceFilter.trim() ? "Không tìm được dịch vụ theo yêu cầu" : "Chưa có dịch vụ nào"}
                         </div>
                         <div className="text-sm">
-                          Hãy thêm dịch vụ mới hoặc kiểm tra lại từ khóa tìm
-                          kiếm.
+                          {serviceFilter.trim()
+                            ? "Không có dịch vụ nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác."
+                            : "Hãy thêm dịch vụ mới hoặc kiểm tra lại từ khóa tìm kiếm."
+                          }
                         </div>
                       </div>
                     ) : (
@@ -902,7 +909,7 @@ const FacilityDetail: React.FC = () => {
                                     className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${service.status === "Active" ||
                                       service.status === "Available"
                                       ? "bg-green-100 text-green-800"
-                                      : "bg-gray-100 text-gray-800"
+                                      : "bg-red-100 text-red-800"
                                       }`}
                                   >
                                     {service.status === "Active" ||
@@ -949,18 +956,23 @@ const FacilityDetail: React.FC = () => {
                       <div className="text-center py-16">
                         <div className="bg-gradient-to-br from-gray-50 to-green-50 rounded-2xl p-12 max-w-md mx-auto border border-gray-200 shadow-sm">
                           <h3 className="text-xl font-bold text-gray-900 mb-3">
-                            Chưa có mã giảm giá nào
+                            {discountFilter.trim() ? "Không tìm được mã giảm giá theo yêu cầu" : "Chưa có mã giảm giá nào"}
                           </h3>
                           <p className="text-gray-600 mb-6 leading-relaxed">
-                            Hãy tạo mã giảm giá mới để thu hút khách hàng.
+                            {discountFilter.trim()
+                              ? "Không có mã giảm giá nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác."
+                              : "Hãy tạo mã giảm giá mới để thu hút khách hàng."
+                            }
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddDiscountModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl"
-                          >
-                            <FiPlus className="h-5 w-5" /> Tạo mã giảm giá
-                          </button>
+                          {!discountFilter.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => setIsAddDiscountModalOpen(true)}
+                              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl"
+                            >
+                              <FiPlus className="h-5 w-5" /> Tạo mã giảm giá
+                            </button>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -1027,7 +1039,7 @@ const FacilityDetail: React.FC = () => {
                                   <span
                                     className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${discount.isActive
                                       ? "bg-green-100 text-green-800"
-                                      : "bg-gray-100 text-gray-800"
+                                      : "bg-red-100 text-red-800"
                                       }`}
                                   >
                                     {discount.isActive
@@ -1037,29 +1049,36 @@ const FacilityDetail: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                   <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleEditDiscount(discount)
-                                      }
-                                      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-md"
-                                      title="Chỉnh sửa"
-                                    >
-                                      <FiEdit className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleDeleteDiscount(
-                                          discount.discountId
-                                        )
-                                      }
-                                      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-md"
-                                      title="Xóa"
-                                      disabled={isSubmitting}
-                                    >
-                                      <FiTrash2 className="h-4 w-4" />
-                                    </button>
+                                    {(() => {
+                                      const user = JSON.parse(localStorage.getItem("user") || "{}");
+                                      return user.RoleId === 2 ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleEditDiscount(discount)
+                                            }
+                                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-md"
+                                            title="Chỉnh sửa"
+                                          >
+                                            <FiEdit className="h-4 w-4" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleDeleteDiscount(
+                                                discount.discountId
+                                              )
+                                            }
+                                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-md"
+                                            title="Xóa"
+                                            disabled={isSubmitting}
+                                          >
+                                            <FiTrash2 className="h-4 w-4" />
+                                          </button>
+                                        </>
+                                      ) : null;
+                                    })()}
                                   </div>
                                 </td>
                               </tr>
@@ -1128,7 +1147,7 @@ const FacilityDetail: React.FC = () => {
                                     <span
                                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${regulation.status === "Active"
                                         ? "bg-green-100 text-green-800"
-                                        : "bg-gray-100 text-gray-800"
+                                        : "bg-red-100 text-red-800"
                                         }`}
                                     >
                                       {regulation.status === "Active"
@@ -1138,24 +1157,31 @@ const FacilityDetail: React.FC = () => {
                                   </td>
                                   <td className="px-4 py-3">
                                     <div className="flex items-center space-x-2">
-                                      <button
-                                        onClick={() =>
-                                          editRegulationHandler(regulation)
-                                        }
-                                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
-                                        title="Chỉnh sửa"
-                                      >
-                                        <FiEdit className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          deleteRegulation(regulation.id)
-                                        }
-                                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
-                                        title="Xóa"
-                                      >
-                                        <FiTrash2 className="w-4 h-4" />
-                                      </button>
+                                      {(() => {
+                                        const user = JSON.parse(localStorage.getItem("user") || "{}");
+                                        return user.RoleId === 2 ? (
+                                          <>
+                                            <button
+                                              onClick={() =>
+                                                editRegulationHandler(regulation)
+                                              }
+                                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                                              title="Chỉnh sửa"
+                                            >
+                                              <FiEdit className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                handleDeleteRegulation(regulation.id)
+                                              }
+                                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
+                                              title="Xóa"
+                                            >
+                                              <FiTrash2 className="w-4 h-4" />
+                                            </button>
+                                          </>
+                                        ) : null;
+                                      })()}
                                     </div>
                                   </td>
                                 </tr>
@@ -1164,10 +1190,16 @@ const FacilityDetail: React.FC = () => {
                           </table>
                           {filteredRegulations.length === 0 &&
                             regulationFilter && (
-                              <p className="p-8 text-center text-gray-500">
-                                Không tìm thấy quy định nào khớp với tìm kiếm
-                                của bạn.
-                              </p>
+                              <div className="text-center py-16">
+                                <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
+                                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    Không tìm được quy định theo yêu cầu
+                                  </h3>
+                                  <p className="text-gray-600 mb-4">
+                                    Không có quy định nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác.
+                                  </p>
+                                </div>
+                              </div>
                             )}
                         </div>
                       </div>
@@ -1204,7 +1236,7 @@ const FacilityDetail: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Tên sân
+                  Tên sân <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1305,7 +1337,7 @@ const FacilityDetail: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Tên sân
+                  Tên sân <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1402,7 +1434,7 @@ const FacilityDetail: React.FC = () => {
             </div>
             <div className="p-6 space-y-6">
               <div>
-                <label htmlFor="serviceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ</label>
+                <label htmlFor="serviceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ <span className="text-red-500">*</span></label>
                 <input
                   id="serviceName"
                   type="text"
@@ -1413,7 +1445,7 @@ const FacilityDetail: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="price" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ</label>
+                <label htmlFor="price" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ <span className="text-red-500">*</span></label>
                 <input
                   id="price"
                   type="number"
@@ -1509,7 +1541,7 @@ const FacilityDetail: React.FC = () => {
             </div>
             <div className="p-6 space-y-6">
               <div>
-                <label htmlFor="editServiceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ</label>
+                <label htmlFor="editServiceName" className="block text-sm font-bold text-gray-700 mb-1">Tên dịch vụ <span className="text-red-500">*</span></label>
                 <input
                   id="editServiceName"
                   type="text"
@@ -1520,7 +1552,7 @@ const FacilityDetail: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="editPrice" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ</label>
+                <label htmlFor="editPrice" className="block text-sm font-bold text-gray-700 mb-1">Giá dịch vụ <span className="text-red-500">*</span></label>
                 <input
                   id="editPrice"
                   type="number"
@@ -1642,7 +1674,7 @@ const FacilityDetail: React.FC = () => {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%)</label>
+                <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%) <span className="text-red-500">*</span></label>
                 <input
                   id="discountPercentage"
                   type="number"
@@ -1653,7 +1685,7 @@ const FacilityDetail: React.FC = () => {
                 />
               </div>
               <div>
-                <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá</label>
+                <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá <span className="text-red-500">*</span></label>
                 <input
                   id="description"
                   type="text"
@@ -1665,7 +1697,7 @@ const FacilityDetail: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="startDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày bắt đầu</label>
+                  <label htmlFor="startDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày bắt đầu <span className="text-red-500">*</span></label>
                   <input
                     id="startDate"
                     type="date"
@@ -1676,7 +1708,7 @@ const FacilityDetail: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="endDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày kết thúc</label>
+                  <label htmlFor="endDate" className="block text-sm font-bold text-gray-700 mb-1">Ngày kết thúc <span className="text-red-500">*</span></label>
                   <input
                     id="endDate"
                     type="date"
@@ -1688,7 +1720,7 @@ const FacilityDetail: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng</label>
+                <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng <span className="text-red-500">*</span></label>
                 <input
                   id="quantity"
                   type="number"
@@ -1752,30 +1784,30 @@ const FacilityDetail: React.FC = () => {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%)</label>
-              <input
-                type="number"
-                name="discountPercentage"
-                value={discountFormData.discountPercentage}
-                onChange={handleDiscountChange}
-                placeholder="Phần trăm giảm giá (%)"
-                className="w-full p-3 border rounded-xl"
-              />
+                <label htmlFor="discountPercentage" className="block text-sm font-bold text-gray-700 mb-1">Phần trăm giảm giá (%) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="discountPercentage"
+                  value={discountFormData.discountPercentage}
+                  onChange={handleDiscountChange}
+                  placeholder="Phần trăm giảm giá (%)"
+                  className="w-full p-3 border rounded-xl"
+                />
               </div>
               <div>
-                <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá</label>
-              <input
-                type="text"
-                name="description"
-                value={discountFormData.description}
-                onChange={handleDiscountChange}
-                placeholder="Tên / Mô tả mã giảm giá"
-                className="w-full p-3 border rounded-xl"
-              />
+                <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-1">Tên / Mô tả mã giảm giá <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  name="description"
+                  value={discountFormData.description}
+                  onChange={handleDiscountChange}
+                  placeholder="Tên / Mô tả mã giảm giá"
+                  className="w-full p-3 border rounded-xl"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="font-bold text-sm text-gray-600">Ngày bắt đầu</label>
+                  <label className="font-bold text-sm text-gray-600">Ngày bắt đầu <span className="text-red-500">*</span></label>
                   <input
                     type="date"
                     name="startDate"
@@ -1785,7 +1817,7 @@ const FacilityDetail: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-sm text-gray-600">Ngày kết thúc</label>
+                  <label className="font-bold text-sm text-gray-600">Ngày kết thúc <span className="text-red-500">*</span></label>
                   <input
                     type="date"
                     name="endDate"
@@ -1796,15 +1828,15 @@ const FacilityDetail: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng</label>
-              <input
-                type="number"
-                name="quantity"
-                value={discountFormData.quantity}
-                onChange={handleDiscountChange}
-                placeholder="Số lượng"
-                className="w-full p-3 border rounded-xl"
-              />
+                <label htmlFor="quantity" className="block text-sm font-bold text-gray-700 mb-1">Số lượng <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={discountFormData.quantity}
+                  onChange={handleDiscountChange}
+                  placeholder="Số lượng"
+                  className="w-full p-3 border rounded-xl"
+                />
               </div>
               <div className="flex items-center space-x-2">
                 <input
@@ -1860,7 +1892,7 @@ const FacilityDetail: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Tiêu đề
+                  Tiêu đề <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1878,7 +1910,7 @@ const FacilityDetail: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Mô tả
+                  Mô tả <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="description"
@@ -1934,11 +1966,12 @@ const FacilityDetail: React.FC = () => {
                       !newRegulationFormData.title ||
                       !newRegulationFormData.description ||
                       !newRegulationFormData.status
-                    ) {
-                      alert("Vui lòng nhập đầy đủ thông tin quy định.");
-                      return;
-                    }
-                    addRegulation();
+                    )
+                      // {
+                      //   alert("Vui lòng nhập đầy đủ thông tin quy định.");
+                      //   return;
+                      // }
+                      addRegulation();
                   }}
                   className="px-6 py-2 bg-green-600 text-white rounded-xl"
                   disabled={isSubmitting}
@@ -1973,7 +2006,7 @@ const FacilityDetail: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Tiêu đề
+                  Tiêu đề <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1991,7 +2024,7 @@ const FacilityDetail: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Mô tả
+                  Mô tả <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="description"
@@ -2041,6 +2074,414 @@ const FacilityDetail: React.FC = () => {
                   disabled={isSubmitting}
                 >
                   Lưu
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Field Confirmation Modal */}
+      {showDeleteFieldModal && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto backdrop-blur-sm"
+          onClick={cancelDeleteField}
+        >
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 transition-opacity"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gray-900 opacity-50"></div>
+            </div>
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+            <div
+              className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-white bg-opacity-20 p-2 rounded-xl">
+                      <svg
+                        className="w-6 h-6 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white">
+                      Xác nhận xóa sân
+                    </h3>
+                  </div>
+                  <button
+                    onClick={cancelDeleteField}
+                    className="text-white hover:text-gray-200 transition-colors"
+                    title="Đóng"
+                    aria-label="Đóng"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div className="bg-white px-6 py-6">
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                      <svg
+                        className="h-8 w-8 text-red-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Bạn có chắc chắn muốn xóa sân này?
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Hành động này không thể hoàn tác. Sân sẽ bị xóa vĩnh viễn khỏi hệ thống.
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-2xl">
+                  <button
+                    type="button"
+                    className="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-md"
+                    onClick={cancelDeleteField}
+                    disabled={isSubmitting}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    className="px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                    onClick={confirmDeleteField}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Đang xóa..." : "Xóa sân"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Service Confirmation Modal */}
+      {showDeleteServiceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white bg-opacity-20 p-2 rounded-xl">
+                    <svg
+                      className="w-6 h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white">
+                    Xác nhận xóa dịch vụ
+                  </h3>
+                </div>
+                <button
+                  onClick={cancelDeleteService}
+                  className="text-white hover:text-gray-200 transition-colors"
+                  title="Đóng"
+                  aria-label="Đóng"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="bg-white px-6 py-6">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                    <svg
+                      className="h-8 w-8 text-red-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Bạn có chắc chắn muốn xóa dịch vụ này?
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Hành động này không thể hoàn tác. Dịch vụ sẽ bị xóa vĩnh viễn khỏi hệ thống.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-2xl">
+                <button
+                  type="button"
+                  className="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-md"
+                  onClick={cancelDeleteService}
+                  disabled={isSubmitting}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  className="px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                  onClick={confirmDeleteService}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Đang xóa..." : "Xóa dịch vụ"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Discount Confirmation Modal */}
+      {showDeleteDiscountModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white bg-opacity-20 p-2 rounded-xl">
+                    <svg
+                      className="w-6 h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white">
+                    Xác nhận xóa mã giảm giá
+                  </h3>
+                </div>
+                <button
+                  onClick={cancelDeleteDiscount}
+                  className="text-white hover:text-gray-200 transition-colors"
+                  title="Đóng"
+                  aria-label="Đóng"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="bg-white px-6 py-6">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                    <svg
+                      className="h-8 w-8 text-red-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Bạn có chắc chắn muốn xóa mã giảm giá này?
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Hành động này không thể hoàn tác. Mã giảm giá sẽ bị xóa vĩnh viễn khỏi hệ thống.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-2xl">
+                <button
+                  type="button"
+                  className="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-md"
+                  onClick={cancelDeleteDiscount}
+                  disabled={isSubmitting}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  className="px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                  onClick={confirmDeleteDiscount}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Đang xóa..." : "Xóa mã giảm giá"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Regulation Confirmation Modal */}
+      {showDeleteRegulationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white bg-opacity-20 p-2 rounded-xl">
+                    <svg
+                      className="w-6 h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white">
+                    Xác nhận xóa quy định
+                  </h3>
+                </div>
+                <button
+                  onClick={cancelDeleteRegulation}
+                  className="text-white hover:text-gray-200 transition-colors"
+                  title="Đóng"
+                  aria-label="Đóng"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="bg-white px-6 py-6">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                    <svg
+                      className="h-8 w-8 text-red-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Bạn có chắc chắn muốn xóa quy định này?
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Hành động này không thể hoàn tác. Quy định sẽ bị xóa vĩnh viễn khỏi hệ thống.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-2xl">
+                <button
+                  type="button"
+                  className="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-md"
+                  onClick={cancelDeleteRegulation}
+                  disabled={isSubmitting}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  className="px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                  onClick={confirmDeleteRegulation}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Đang xóa..." : "Xóa quy định"}
                 </button>
               </div>
             </div>

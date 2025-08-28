@@ -45,7 +45,7 @@ const SimpleBarChart: React.FC<SimpleBarChartProps> = ({
     labels,
     datasets: [
       {
-        label: chartLabel || "Doanh thu theo tháng",
+        label: chartLabel || "Tổng doanh thu",
         data: revenues,
         // backgroundColor: "#16a34a",
         backgroundColor: "#187ab7ff",
@@ -59,7 +59,15 @@ const SimpleBarChart: React.FC<SimpleBarChartProps> = ({
       legend: { position: "top" as const },
       title: {
         display: true,
-        text: chartTitle || "Biểu đồ doanh thu theo tháng",
+        text: chartTitle || "Biểu đồ tổng doanh thu",
+      },
+    },
+    scales: {
+      x: {
+        display: false, // Ẩn hoàn toàn trục X
+      },
+      y: {
+        display: true,
       },
     },
   };
