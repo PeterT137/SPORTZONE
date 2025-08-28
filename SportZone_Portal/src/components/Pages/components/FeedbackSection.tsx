@@ -51,10 +51,10 @@ const FeedbackSection = () => {
           <div className="text-gray-500">Không có quy định nào.</div>
         ) : (
           <div className={`grid gap-8 ${regulations.length === 1
-              ? "grid-cols-1 max-w-2xl mx-auto"
-              : regulations.length === 2
-                ? "grid-cols-1 md:grid-cols-2"
-                : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+            ? "grid-cols-1 max-w-2xl mx-auto"
+            : regulations.length === 2
+              ? "grid-cols-1 md:grid-cols-2"
+              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
             }`}>
             {regulations.map((reg) => (
               <div

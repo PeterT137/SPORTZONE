@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Eye, EyeOff } from "lucide-react"; 
+import { X, Eye, EyeOff } from "lucide-react";
 
 interface CreateUserRequest {
   Email: string;
@@ -32,7 +32,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const [formData, setFormData] = useState<CreateUserRequest>({
     Email: "",
     Password: "",
-    RoleId: 1, 
+    RoleId: 1,
     Name: "",
     Phone: "",
     Status: "Active",
@@ -46,10 +46,45 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [facilitiesLoading, setFacilitiesLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFacilities();
   }, []);
+
+  // Hàm validation mật khẩu
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 10) {
+      return "Mật khẩu phải có ít nhất 10 ký tự";
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      return "Mật khẩu phải có ít nhất 1 ký tự in hoa";
+    }
+
+    if (!/[a-z]/.test(password)) {
+      return "Mật khẩu phải có ít nhất 1 ký tự thường";
+    }
+
+    if (!/\d/.test(password)) {
+      return "Mật khẩu phải có ít nhất 1 số";
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return "Mật khẩu phải có ít nhất 1 ký tự đặc biệt";
+    }
+
+    return null;
+  };
+
+  // Hàm validation số điện thoại
+  const validatePhone = (phone: string): string | null => {
+    if (!/^(0|84|\+84)(9|3|7|8|5)[0-9]{8}$/.test(phone)) {
+      return "Định dạng số điện thoại không hợp lệ";
+    }
+    return null;
+  };
 
   const fetchFacilities = async () => {
     try {
@@ -113,6 +148,18 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         );
       }
 
+      // Validation mật khẩu khi người dùng nhập
+      if (name === "Password") {
+        const passwordValidationError = validatePassword(value);
+        setPasswordError(passwordValidationError);
+      }
+
+      // Validation số điện thoại khi người dùng nhập
+      if (name === "Phone") {
+        const phoneValidationError = validatePhone(value);
+        setPhoneError(phoneValidationError);
+      }
+
       return newData;
     });
   };
@@ -121,6 +168,22 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Kiểm tra validation mật khẩu trước khi submit
+    const passwordValidationError = validatePassword(formData.Password);
+    if (passwordValidationError) {
+      setError(passwordValidationError);
+      setLoading(false);
+      return;
+    }
+
+    // Kiểm tra validation số điện thoại trước khi submit
+    const phoneValidationError = validatePhone(formData.Phone || "");
+    if (phoneValidationError) {
+      setError(phoneValidationError);
+      setLoading(false);
+      return;
+    }
 
     try {
       const token = localStorage.getItem("token");
@@ -256,8 +319,9 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                   value={formData.Password}
                   onChange={handleChange}
                   required
-                  minLength={6}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  minLength={10}
+                  className={`w-full px-3 py-2 pr-10 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent ${passwordError ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
                 <button
                   type="button"
@@ -268,6 +332,9 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+              )}
             </div>
 
             {/* Phone Field */}
@@ -276,16 +343,24 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 htmlFor="Phone"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Số điện thoại
+                Số điện thoại <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
                 id="Phone"
                 name="Phone"
+                required
                 value={formData.Phone || ""}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent ${phoneError ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
+              {phoneError && (
+                <p className="text-red-500 text-sm mt-1">{phoneError}</p>
+              )}
+              {/* <p className="text-xs text-gray-500 mt-1">
+                Định dạng: 0xxxxxxxxx, 84xxxxxxxxx, +84xxxxxxxxx (x là số từ 0-9)
+              </p> */}
             </div>
 
             {/* Role Field */}
@@ -342,108 +417,108 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
               );
               return formData.RoleId === 4;
             })() && (
-              <div className="border-t border-gray-200 pt-6 mt-6">
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-200">
-                  <h4 className="text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                    Thông tin nhân viên
-                  </h4>
-                  <p className="text-sm text-blue-700">
-                    Vui lòng điền đầy đủ thông tin cơ sở làm việc và thời gian làm việc
-                  </p>
-                </div>
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4 border border-blue-200">
+                    <h4 className="text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      Thông tin nhân viên
+                    </h4>
+                    <p className="text-sm text-blue-700">
+                      Vui lòng điền đầy đủ thông tin cơ sở làm việc và thời gian làm việc
+                    </p>
+                  </div>
 
-                <div className="space-y-4">
-                  {/* Facility Field - Made more prominent */}
-                  <label
-                    htmlFor="FacilityId"
-                    className="block text-sm font-semibold text-gray-800"
-                  >
-                    Cơ sở làm việc <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="FacilityId"
-                    name="FacilityId"
-                    value={formData.FacilityId || 0}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 bg-white font-medium"
-                    disabled={facilitiesLoading}
-                  >
-                    <option value={0}>Chưa phân cơ sở</option>
-                    {facilitiesLoading ? (
-                      <option disabled>Đang tải danh sách cơ sở...</option>
-                    ) : (
-                      facilities.map((facility) => (
-                        <option key={facility.facId} value={facility.facId}>
-                          {facility.name}{" "}
-                          {facility.address ? `- ${facility.address}` : ""}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {facilitiesLoading
-                      ? "Đang tải danh sách cơ sở từ hệ thống..."
-                      : 'Chọn "Chưa phân cơ sở" nếu nhân viên chưa được phân công cơ sở cụ thể'}
-                  </p>
+                  <div className="space-y-4">
+                    {/* Facility Field - Made more prominent */}
+                    <label
+                      htmlFor="FacilityId"
+                      className="block text-sm font-semibold text-gray-800"
+                    >
+                      Cơ sở làm việc <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="FacilityId"
+                      name="FacilityId"
+                      value={formData.FacilityId || 0}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 bg-white font-medium"
+                      disabled={facilitiesLoading}
+                    >
+                      <option value={0}>Chưa phân cơ sở</option>
+                      {facilitiesLoading ? (
+                        <option disabled>Đang tải danh sách cơ sở...</option>
+                      ) : (
+                        facilities.map((facility) => (
+                          <option key={facility.facId} value={facility.facId}>
+                            {facility.name}{" "}
+                            {facility.address ? `- ${facility.address}` : ""}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {facilitiesLoading
+                        ? "Đang tải danh sách cơ sở từ hệ thống..."
+                        : 'Chọn "Chưa phân cơ sở" nếu nhân viên chưa được phân công cơ sở cụ thể'}
+                    </p>
 
-                  {/* Work Period */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        htmlFor="StartTime"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Ngày bắt đầu làm việc
-                      </label>
-                      <input
-                        type="date"
-                        id="StartTime"
-                        name="StartTime"
-                        value={
-                          formData.StartTime
-                            ? formData.StartTime.split("T")[0]
-                            : ""
-                        }
-                        onChange={(e) => {
-                          const { name, value } = e.target;
-                          setFormData((prev) => ({
-                            ...prev,
-                            [name]: value ? `${value}T08:00:00` : "",
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
+                    {/* Work Period */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="StartTime"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Ngày bắt đầu làm việc
+                        </label>
+                        <input
+                          type="date"
+                          id="StartTime"
+                          name="StartTime"
+                          value={
+                            formData.StartTime
+                              ? formData.StartTime.split("T")[0]
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const { name, value } = e.target;
+                            setFormData((prev) => ({
+                              ...prev,
+                              [name]: value ? `${value}T08:00:00` : "",
+                            }));
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
 
-                    <div>
-                      <label
-                        htmlFor="EndTime"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Ngày kết thúc làm việc
-                      </label>
-                      <input
-                        type="date"
-                        id="EndTime"
-                        name="EndTime"
-                        value={
-                          formData.EndTime ? formData.EndTime.split("T")[0] : ""
-                        }
-                        onChange={(e) => {
-                          const { name, value } = e.target;
-                          setFormData((prev) => ({
-                            ...prev,
-                            [name]: value ? `${value}T18:00:00` : "",
-                          }));
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
+                      <div>
+                        <label
+                          htmlFor="EndTime"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Ngày kết thúc làm việc
+                        </label>
+                        <input
+                          type="date"
+                          id="EndTime"
+                          name="EndTime"
+                          value={
+                            formData.EndTime ? formData.EndTime.split("T")[0] : ""
+                          }
+                          onChange={(e) => {
+                            const { name, value } = e.target;
+                            setFormData((prev) => ({
+                              ...prev,
+                              [name]: value ? `${value}T18:00:00` : "",
+                            }));
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* Buttons */}
