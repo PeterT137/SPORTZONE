@@ -1335,87 +1335,85 @@ const FacilityManager: React.FC = () => {
                                                                 </svg>
                                                                 <div className="text-center">
                                                                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                                                        Chưa có
-                                                                        cơ sở
-                                                                        nào
+                                                                        {searchKeyword.trim() ? "Không tìm được cơ sở theo yêu cầu" : "Chưa có cơ sở nào"}
                                                                     </h3>
                                                                     <p className="text-gray-500 mb-4">
-                                                                        Bắt đầu
-                                                                        bằng
-                                                                        cách tạo
-                                                                        cơ sở
-                                                                        đầu tiên
-                                                                        của bạn
+                                                                        {searchKeyword.trim()
+                                                                            ? "Không có cơ sở nào phù hợp với từ khóa tìm kiếm của bạn. Hãy thử từ khóa khác."
+                                                                            : "Bắt đầu bằng cách tạo cơ sở đầu tiên của bạn"
+                                                                        }
                                                                     </p>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const user =
-                                                                                JSON.parse(
-                                                                                    localStorage.getItem(
-                                                                                        "user"
-                                                                                    ) ||
-                                                                                    "{}"
-                                                                                );
-                                                                            if (
-                                                                                user.RoleId !==
-                                                                                2
-                                                                            ) {
-                                                                                showToast(
-                                                                                    "Bạn không có quyền tạo cơ sở mới.",
-                                                                                    "error"
-                                                                                );
-                                                                                return;
-                                                                            }
-                                                                            setEditId(
-                                                                                null
-                                                                            );
-                                                                            setFormData(
-                                                                                {
-                                                                                    userId:
-                                                                                        user?.UId ||
-                                                                                        0,
-                                                                                    name: "",
-                                                                                    open_time:
-                                                                                        "08:00",
-                                                                                    close_time:
-                                                                                        "17:00",
-                                                                                    address:
-                                                                                        "",
-                                                                                    description:
-                                                                                        "",
-                                                                                    subdescription:
-                                                                                        "",
-                                                                                    imageUrls:
-                                                                                        [],
+                                                                    {!searchKeyword.trim() && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const user =
+                                                                                    JSON.parse(
+                                                                                        localStorage.getItem(
+                                                                                            "user"
+                                                                                        ) ||
+                                                                                        "{}"
+                                                                                    );
+                                                                                if (
+                                                                                    user.RoleId !==
+                                                                                    2
+                                                                                ) {
+                                                                                    showToast(
+                                                                                        "Bạn không có quyền tạo cơ sở mới.",
+                                                                                        "error"
+                                                                                    );
+                                                                                    return;
                                                                                 }
-                                                                            );
+                                                                                setEditId(
+                                                                                    null
+                                                                                );
+                                                                                setFormData(
+                                                                                    {
+                                                                                        userId:
+                                                                                            user?.UId ||
+                                                                                            0,
+                                                                                        name: "",
+                                                                                        open_time:
+                                                                                            "08:00",
+                                                                                        close_time:
+                                                                                            "17:00",
+                                                                                        address:
+                                                                                            "",
+                                                                                        description:
+                                                                                            "",
+                                                                                        subdescription:
+                                                                                            "",
+                                                                                        imageUrls:
+                                                                                            [],
+                                                                                    }
+                                                                                );
 
-                                                                            // Reset image selection
-                                                                            setSelectedImages(
-                                                                                []
-                                                                            );
-                                                                            setImagePreviews(
-                                                                                []
-                                                                            );
+                                                                                // Reset image selection
+                                                                                setSelectedImages(
+                                                                                    []
+                                                                                );
+                                                                                setImagePreviews(
+                                                                                    []
+                                                                                );
 
-                                                                            // Reset file input
-                                                                            if (
-                                                                                fileInputRef.current
-                                                                            ) {
-                                                                                fileInputRef.current.value =
-                                                                                    "";
-                                                                            }
+                                                                                // Reset file input
+                                                                                if (
+                                                                                    fileInputRef.current
+                                                                                ) {
+                                                                                    fileInputRef.current.value =
+                                                                                        "";
+                                                                                }
 
-                                                                            setShowModal(
-                                                                                true
-                                                                            );
-                                                                        }}
-                                                                        className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200"
-                                                                    >
-                                                                        Tạo cơ
-                                                                        sở đầu
-                                                                        tiên
-                                                                    </button>
+                                                                                setShowModal(
+                                                                                    true
+                                                                                );
+                                                                            }}
+                                                                            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200"
+                                                                        >
+                                                                            Tạo cơ
+                                                                            sở đầu
+                                                                            tiên
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </td>

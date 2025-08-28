@@ -195,6 +195,16 @@ export const useFacilityDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [isCarouselPaused, setIsCarouselPaused] = useState<boolean>(false);
 
+  // Delete confirmation modal state
+  const [showDeleteFieldModal, setShowDeleteFieldModal] = useState<boolean>(false);
+  const [fieldToDelete, setFieldToDelete] = useState<number | null>(null);
+  const [showDeleteServiceModal, setShowDeleteServiceModal] = useState<boolean>(false);
+  const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
+  const [showDeleteDiscountModal, setShowDeleteDiscountModal] = useState<boolean>(false);
+  const [discountToDelete, setDiscountToDelete] = useState<number | null>(null);
+  const [showDeleteRegulationModal, setShowDeleteRegulationModal] = useState<boolean>(false);
+  const [regulationToDelete, setRegulationToDelete] = useState<number | null>(null);
+
   // *********************************************************************************
   // HELPER & UTILITY FUNCTIONS
   // *********************************************************************************
@@ -426,14 +436,18 @@ export const useFacilityDetail = () => {
     }
   }, [facId, editRegulation, regulationFormData, fetchRegulations]);
 
-  const deleteRegulation = useCallback(
-    async (id: number) => {
-      if (!window.confirm("Bạn có chắc chắn muốn xóa quy định này?"))
-        return;
+  const handleDeleteRegulation = (id: number) => {
+    setRegulationToDelete(id);
+    setShowDeleteRegulationModal(true);
+  };
+
+  const confirmDeleteRegulation = useCallback(
+    async () => {
+      if (!regulationToDelete) return;
       setIsSubmitting(true);
       try {
         const response = await fetch(
-          `${API_URL}/api/RegulationFacility/${id}`,
+          `${API_URL}/api/RegulationFacility/${regulationToDelete}`,
           {
             method: "DELETE",
             headers: getAuthHeaders(),
@@ -449,10 +463,17 @@ export const useFacilityDetail = () => {
         );
       } finally {
         setIsSubmitting(false);
+        setShowDeleteRegulationModal(false);
+        setRegulationToDelete(null);
       }
     },
-    [fetchRegulations]
+    [fetchRegulations, regulationToDelete]
   );
+
+  const cancelDeleteRegulation = () => {
+    setShowDeleteRegulationModal(false);
+    setRegulationToDelete(null);
+  };
 
   // Filter regulations by search
   useEffect(() => {
@@ -723,10 +744,16 @@ export const useFacilityDetail = () => {
 
   // --- Field Handlers ---
   const handleDeleteField = async (fieldId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa sân này?")) return;
+    setFieldToDelete(fieldId);
+    setShowDeleteFieldModal(true);
+  };
+
+  const confirmDeleteField = async () => {
+    if (!fieldToDelete) return;
+
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/api/Field/${fieldId}`, {
+      const response = await fetch(`${API_URL}/api/Field/${fieldToDelete}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
@@ -734,7 +761,7 @@ export const useFacilityDetail = () => {
         throw new Error(
           (await response.json()).message || "Lỗi khi xóa sân"
         );
-      setFields((prev) => prev.filter((f) => f.fieldId !== fieldId));
+      setFields((prev) => prev.filter((f) => f.fieldId !== fieldToDelete));
       showToast("Xóa sân thành công!", "success");
     } catch (err) {
       showToast(
@@ -743,7 +770,14 @@ export const useFacilityDetail = () => {
       );
     } finally {
       setIsSubmitting(false);
+      setShowDeleteFieldModal(false);
+      setFieldToDelete(null);
     }
+  };
+
+  const cancelDeleteField = () => {
+    setShowDeleteFieldModal(false);
+    setFieldToDelete(null);
   };
 
   const handleEditField = (field: Field) => {
@@ -883,12 +917,17 @@ export const useFacilityDetail = () => {
   };
 
   // --- Service Handlers ---
-  const handleDeleteService = async (serviceId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này?")) return;
+  const handleDeleteService = (serviceId: number) => {
+    setServiceToDelete(serviceId);
+    setShowDeleteServiceModal(true);
+  };
+
+  const confirmDeleteService = async () => {
+    if (!serviceToDelete) return;
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        `${API_URL}/api/Service/DeleteService/${serviceId}`,
+        `${API_URL}/api/Service/DeleteService/${serviceToDelete}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -899,7 +938,7 @@ export const useFacilityDetail = () => {
           (await response.json()).message || "Lỗi khi xóa dịch vụ"
         );
       setServices((prev) =>
-        prev.filter((s) => s.serviceId !== serviceId)
+        prev.filter((s) => s.serviceId !== serviceToDelete)
       );
       showToast("Xóa dịch vụ thành công!", "success");
     } catch (err) {
@@ -909,7 +948,14 @@ export const useFacilityDetail = () => {
       );
     } finally {
       setIsSubmitting(false);
+      setShowDeleteServiceModal(false);
+      setServiceToDelete(null);
     }
+  };
+
+  const cancelDeleteService = () => {
+    setShowDeleteServiceModal(false);
+    setServiceToDelete(null);
   };
 
   const handleEditService = (service: Service) => {
@@ -1082,13 +1128,17 @@ export const useFacilityDetail = () => {
   };
 
   // --- Discount Handlers ---
-  const handleDeleteDiscount = async (discountId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa mã giảm giá này?"))
-      return;
+  const handleDeleteDiscount = (discountId: number) => {
+    setDiscountToDelete(discountId);
+    setShowDeleteDiscountModal(true);
+  };
+
+  const confirmDeleteDiscount = async () => {
+    if (!discountToDelete) return;
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        `${API_URL}/api/Discount/${discountId}`,
+        `${API_URL}/api/Discount/${discountToDelete}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -1099,7 +1149,7 @@ export const useFacilityDetail = () => {
           (await response.json()).message || "Lỗi khi xóa mã giảm giá"
         );
       setDiscounts((prev) =>
-        prev.filter((d) => d.discountId !== discountId)
+        prev.filter((d) => d.discountId !== discountToDelete)
       );
       showToast("Xóa mã giảm giá thành công!", "success");
     } catch (err) {
@@ -1109,7 +1159,14 @@ export const useFacilityDetail = () => {
       );
     } finally {
       setIsSubmitting(false);
+      setShowDeleteDiscountModal(false);
+      setDiscountToDelete(null);
     }
+  };
+
+  const cancelDeleteDiscount = () => {
+    setShowDeleteDiscountModal(false);
+    setDiscountToDelete(null);
   };
 
   const handleEditDiscount = (discount: Discount) => {
@@ -1507,7 +1564,7 @@ export const useFacilityDetail = () => {
     addRegulation,
     editRegulationHandler,
     saveRegulationEdit,
-    deleteRegulation,
+    handleDeleteRegulation,
     // State & Data
     loading,
     isSubmitting,
@@ -1545,6 +1602,16 @@ export const useFacilityDetail = () => {
     currentImageIndex,
     isCarouselPaused,
 
+    // Delete confirmation modal
+    showDeleteFieldModal,
+    fieldToDelete,
+    showDeleteServiceModal,
+    serviceToDelete,
+    showDeleteDiscountModal,
+    discountToDelete,
+    showDeleteRegulationModal,
+    regulationToDelete,
+
     // Functions & Handlers
     setActiveTab,
     setFieldFilter,
@@ -1561,6 +1628,14 @@ export const useFacilityDetail = () => {
     // CRUD and other actions
     closeModal,
     handleDeleteField,
+    confirmDeleteField,
+    cancelDeleteField,
+    confirmDeleteService,
+    cancelDeleteService,
+    confirmDeleteDiscount,
+    cancelDeleteDiscount,
+    confirmDeleteRegulation,
+    cancelDeleteRegulation,
     handleEditField,
     handleSaveFieldEdit,
     handleAddField,
