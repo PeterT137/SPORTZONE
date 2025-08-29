@@ -1669,6 +1669,14 @@ const BookingPage: React.FC = () => {
                                                 </p>
                                             )}
                                         </div>
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                                            <div className="text-sm text-blue-700 space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-blue-600">ℹ️</span>
+                                                    <span><strong>Lưu ý:</strong> <span className="text-black font-bold">Vui lòng điền đúng email để nhận được vé check-in</span></span>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                                                 <FileText className="w-4 h-4 text-gray-500" />
