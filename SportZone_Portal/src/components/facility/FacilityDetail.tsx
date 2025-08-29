@@ -1962,16 +1962,16 @@ const FacilityDetail: React.FC = () => {
                       );
                       return;
                     }
-                    if (
-                      !newRegulationFormData.title ||
-                      !newRegulationFormData.description ||
-                      !newRegulationFormData.status
-                    )
-                      // {
-                      //   alert("Vui lòng nhập đầy đủ thông tin quy định.");
-                      //   return;
-                      // }
-                      addRegulation();
+                    // if (
+                    //   !newRegulationFormData.title ||
+                    //   !newRegulationFormData.description ||
+                    //   !newRegulationFormData.status
+                    // )
+                    //   // {
+                    //   //   alert("Vui lòng nhập đầy đủ thông tin quy định.");
+                    //   //   return;
+                    //   // }
+                    addRegulation();
                   }}
                   className="px-6 py-2 bg-green-600 text-white rounded-xl"
                   disabled={isSubmitting}
