@@ -184,6 +184,14 @@ namespace SportZone_API.Controllers
                     message = ex.Message
                 });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new

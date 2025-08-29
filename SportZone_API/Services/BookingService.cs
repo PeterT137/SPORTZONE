@@ -94,6 +94,20 @@ namespace SportZone_API.Services
                 if (booking == null)
                     throw new KeyNotFoundException("Không tìm thấy booking với ID đã cho");
 
+                // Kiểm tra trạng thái thanh toán của Order trước khi cho phép hủy
+                var order = await _orderService.GetOrderByBookingIdAsync(bookingId);
+                if (order != null)
+                {
+                    if (order.StatusPayment == "Success" || order.StatusPayment == "Arrived")
+                    {
+                        throw new InvalidOperationException("Không thể hủy booking đã thanh toán thành công hoặc đã đến sân");
+                    }
+                }
+                else
+                {
+                    throw new KeyNotFoundException("Không tìm thấy order cho booking này");
+                }
+
                 var schedule = booking.FieldBookingSchedules?.FirstOrDefault();
                 if (schedule?.Date.HasValue == true && schedule?.StartTime.HasValue == true)
                 {
