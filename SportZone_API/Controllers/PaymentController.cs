@@ -42,7 +42,7 @@ namespace SportZone_API.Controllers
             _emailRepository = emailRepository;
         }
 
-        // Dictionary để lưu booking data tạm thời (trong thực tế nên dùng Redis hoặc database)
+        
         private static readonly Dictionary<string, PendingBookingDto> _pendingBookings = new Dictionary<string, PendingBookingDto>();
 
         [HttpPost("calculate-and-pay")]
@@ -51,7 +51,7 @@ namespace SportZone_API.Controllers
         {
             try
             {
-                // Tính toán tổng tiền từ booking data
+                
                 var calculateResult = await _bookingService.CalculateTotalAmount(new CalculateAmountDTO
                 {
                     SelectedSlotIds = bookingData.SelectedSlotIds,
@@ -113,7 +113,7 @@ namespace SportZone_API.Controllers
                     paymentUrl = paymentResult.Data.PaymentUrl,
                     orderId = paymentResult.Data.OrderId,
                     bookingId = pendingBookingResult.Data.BookingId,
-                    expiresAt = DateTime.Now.AddMinutes(5)
+                    expiresAt = DateTime.Now.AddMinutes(15)
                 });
             }
             catch (Exception ex)

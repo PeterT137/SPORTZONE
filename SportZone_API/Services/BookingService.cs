@@ -268,7 +268,7 @@ namespace SportZone_API.Services
                     }
                 }
 
-                // Áp dụng giảm giá
+                
                 if (calculateDto.DiscountId.HasValue)
                 {
                     var discount = await _bookingRepository.GetDiscountByIdAsync(calculateDto.DiscountId.Value);
@@ -297,7 +297,7 @@ namespace SportZone_API.Services
             }
         }
 
-        // Dictionary để lưu trữ thông tin pending bookings
+        
         private static readonly Dictionary<string, PendingBookingInfo> _pendingBookings = new Dictionary<string, PendingBookingInfo>();
         private static readonly object _pendingLock = new object();
 
@@ -317,7 +317,7 @@ namespace SportZone_API.Services
                     };
                 }
 
-                // Tạo booking với status Pending - sử dụng bookingDto gốc
+                
                 var pendingBookingDto = new BookingCreateDTO
                 {
                     SelectedSlotIds = bookingDto.SelectedSlotIds,
@@ -331,16 +331,16 @@ namespace SportZone_API.Services
                     FacilityId = bookingDto.FacilityId
                 };
 
-                // Tạo booking với status Pending
+                
                 var booking = await _bookingRepository.CreateBookingAsync(pendingBookingDto, "Pending");
 
-                // Lưu thông tin pending booking
+                
                 var pendingInfo = new PendingBookingInfo
                 {
                     OrderId = orderId,
                     BookingId = booking.BookingId,
                     CreatedAt = DateTime.Now,
-                    ExpiresAt = DateTime.Now.AddMinutes(15) // Hết hạn sau 15 phút
+                    ExpiresAt = DateTime.Now.AddMinutes(15) 
                 };
 
                 lock (_pendingLock)
@@ -378,7 +378,7 @@ namespace SportZone_API.Services
                 if (booking == null)
                     return false;
 
-                // Update cả Status và StatusPayment thành Success khi thanh toán thành công
+                
                 booking.Status = "Success";
                 booking.StatusPayment = "Success";
                 await _bookingRepository.UpdateBookingAsync(booking);
