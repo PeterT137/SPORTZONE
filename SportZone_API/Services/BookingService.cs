@@ -113,7 +113,7 @@ namespace SportZone_API.Services
                 {
                     var bookingDateTime = CombineDateAndTime(schedule.Date.Value, schedule.EndTime.Value);
                     if (bookingDateTime.AddHours(-2) <= DateTime.Now)
-                    {
+                    { 
                         throw new InvalidOperationException("Không thể hủy booking trong vòng 2 giờ trước giờ bắt đầu");
                     }
                 }
